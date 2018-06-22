@@ -41,9 +41,7 @@ export class ConfigService {
       await this.load();
     }
 
-    const config = this.config.get();
-    const res = this.config.get(key);
-    return res;
+    return this.config.get(key);
   }
 
   async has(key: string): Promise<boolean> {
