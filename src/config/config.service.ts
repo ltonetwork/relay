@@ -2,22 +2,16 @@ import { Injectable } from '@nestjs/common';
 import { promisify } from 'util';
 import { resolve } from 'path';
 import { exists } from 'fs';
-import * as convict from 'convict';
-import convictFallback from 'convict';
+import convict from 'convict';
 
 @Injectable()
 export class ConfigService {
   private config: convict.Config<object>;
 
-  private getConvict() {
-    // wtf
-    return (typeof convict === 'function' && convict) || (typeof convictFallback === 'function' && convictFallback);
-  }
-
   private async load(): Promise<void> {
     const dir = resolve(__dirname, './data');
 
-    this.config = this.getConvict()(`${dir}/default.schema.json`);
+    this.config = convict(`${dir}/default.schema.json`);
     this.config.loadFile(`${dir}/default.config.json`);
 
     const env = `${dir}/default.${this.config.get('env')}.json`;
