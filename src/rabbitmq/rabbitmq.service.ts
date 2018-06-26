@@ -1,28 +1,35 @@
-import { Injectable } from '@nestjs/common';
-import { connect, Connection, Channel } from 'amqplib';
-import { RabbitMQConfig } from './interfaces/rabbitmq-config';
+import { Injectable, Inject } from '@nestjs/common';
+import amqplib from 'amqplib';
+import { RABBITMQ_CONNECTION, RABBITMQ_CHANNEL } from '../constants';
 
 @Injectable()
 export class RabbitMQService {
-  private connection: Connection;
-  private channel: Channel;
-  private config: RabbitMQConfig;
+  constructor(
+    @Inject(RABBITMQ_CONNECTION) private readonly connection: amqplib.Connection,
+    @Inject(RABBITMQ_CHANNEL) private readonly channel: amqplib.Channel,
+  ) { }
 
-  async connect(config: RabbitMQConfig): Promise<void> {
-    this.config = config;
-    this.connection = await connect(await this.config.url);
-    this.channel = await this.connection.createChannel();
-    this.channel.assertQueue(`${this.config.queue}_sub`, { durable: false });
-    this.channel.assertQueue(`${this.config.queue}_pub`, { durable: false });
+  consume(queue: string, callback: (msg: string) => void) {
+    this.assertQueue(queue);
+    this.channel.consume(queue, (msg: amqplib.Message) => {
+      const string = msg.content.toString();
+      callback(string);
+    });
   }
 
-  consume() {
-    // this.channel.consume(`${this.config.queue}_sub`, this.handleMessage.bind(this), {
-    //   noAck: true,
-    // });
+  produce(queue: string, msg: any) {
+    this.assertQueue(queue);
+    const buffer = Buffer.from(JSON.stringify(msg));
+    this.channel.sendToQueue(queue, buffer);
   }
 
-  close(): void {
+  private assertQueue(queue) {
+    // @todo: specify durable, etc. for the queue
+    // optionally also load that from config
+    this.channel.assertQueue(queue, { durable: false });
+  }
+
+  close() {
     this.channel && this.channel.close();
     this.connection && this.connection.close();
   }
