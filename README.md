@@ -20,7 +20,7 @@ $ npm run start
 $ npm run start:dev
 
 # production mode
-npm run start:prod
+$ npm run start:prod
 ```
 
 ## Test
@@ -34,5 +34,7 @@ $ npm run test:e2e
 
 # test coverage
 $ npm run test:cov
-```
 
+# test all
+$ npm run test:all
+```

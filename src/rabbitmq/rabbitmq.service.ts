@@ -15,18 +15,18 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
     @Inject(RABBITMQ_CHANNEL) private readonly channel: amqplib.Channel,
   ) { }
 
-  consume(queue: string, callback: (msg: string) => void) {
+  async consume(queue: string, callback: (msg: string) => void) {
     this.assertQueue(queue);
-    this.channel.consume(queue, (msg: amqplib.Message) => {
+    await this.channel.consume(queue, (msg: amqplib.Message) => {
       const string = msg.content.toString();
       callback(string);
     });
   }
 
-  produce(queue: string, msg: any) {
+  async produce(queue: string, msg: any) {
     this.assertQueue(queue);
     const buffer = Buffer.from(JSON.stringify(msg));
-    this.channel.sendToQueue(queue, buffer);
+    await this.channel.sendToQueue(queue, buffer);
   }
 
   private assertQueue(queue) {
