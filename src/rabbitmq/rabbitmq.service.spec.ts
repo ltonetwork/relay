@@ -1,7 +1,7 @@
 import { Test } from '@nestjs/testing';
 import { RabbitMQModuleConfig } from './rabbitmq.module';
 import { RabbitMQService } from './rabbitmq.service';
-import { RABBITMQ_CONNECTION } from '../constants';
+import { AMQPLIB } from '../constants';
 
 describe('RabbitMQService', () => {
   let rabbitmqService: RabbitMQService;
@@ -17,45 +17,55 @@ describe('RabbitMQService', () => {
     close: jest.fn(),
     createChannel: jest.fn(() => channel),
   };
+  const connect = jest.fn(() => connection);
 
   beforeEach(async () => {
     const module = await Test.createTestingModule(RabbitMQModuleConfig)
-      .overrideProvider(RABBITMQ_CONNECTION)
-      .useValue(connection)
+      .overrideProvider(AMQPLIB)
+      .useValue({ channel, connection, connect })
       .compile();
 
     rabbitmqService = module.get<RabbitMQService>(RabbitMQService);
   });
 
-  describe('consume()', () => {
-    test('should consume message from the channel and pass it back to callback', async () => {
-      const callback = jest.fn();
+  describe('connect()', () => {
+    test('should connect to rabbitmq and store the connection for reuse', async () => {
+      const rabbitmqConnection = await rabbitmqService.connect('fake_url');
+      expect(connect.mock.calls.length).toBe(1);
+      expect(connect.mock.calls[0][0]).toBe('fake_url');
+      expect(connection.createChannel.mock.calls.length).toBe(1);
+      expect(Object.keys(rabbitmqService.connections).length).toBe(1);
+      expect(rabbitmqService.connections).toEqual({
+        fake_url: rabbitmqConnection,
+      });
 
-      await rabbitmqService.consume('fake_queue', callback);
+      const newRabbitmqConnection = await rabbitmqService.connect('new_fake_url');
+      expect(Object.keys(rabbitmqService.connections).length).toBe(2);
+      expect(rabbitmqService.connections).toEqual({
+        fake_url: rabbitmqConnection,
+        new_fake_url: newRabbitmqConnection,
+      });
 
-      expect(channel.consume.mock.calls.length).toBe(1);
-      expect(channel.consume.mock.calls[0][0]).toBe('fake_queue');
-      expect(typeof channel.consume.mock.calls[0][1]).toBe('function');
-
-      expect(callback.mock.calls.length).toBe(1);
-      expect(callback.mock.calls[0][0]).toBe('Some message');
-    });
-  });
-
-  describe('produce()', () => {
-    test('should produce message and send it to the channel', async () => {
-      await rabbitmqService.produce('fake_queue', 'This is produced');
-      expect(channel.sendToQueue.mock.calls.length).toBe(1);
-      expect(channel.sendToQueue.mock.calls[0][0]).toBe('fake_queue');
-      expect(channel.sendToQueue.mock.calls[0][1]).toEqual(Buffer.from(JSON.stringify('This is produced')));
+      expect(await rabbitmqService.connect('fake_url')).toBe(rabbitmqConnection);
     });
   });
 
   describe('close()', () => {
-    test('should close connection and channel', async () => {
+    test('should close all stored connections', async () => {
+      const first = await rabbitmqService.connect('fake_url');
+      const second = await rabbitmqService.connect('new_fake_url');
+
+      expect(Object.keys(rabbitmqService.connections).length).toBe(2);
+
+      const spyFirst = jest.spyOn(first, 'close');
+      const spySecond = jest.spyOn(second, 'close');
+
       await rabbitmqService.close();
-      expect(connection.close.mock.calls.length).toBe(1);
-      expect(channel.close.mock.calls.length).toBe(1);
+
+      expect(Object.keys(rabbitmqService.connections).length).toBe(0);
+
+      expect(spyFirst.mock.calls.length).toBe(1);
+      expect(spySecond.mock.calls.length).toBe(1);
     });
   });
 });

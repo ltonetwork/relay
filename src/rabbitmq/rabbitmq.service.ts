@@ -1,47 +1,40 @@
 import { Injectable, Inject, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { RABBITMQ_CONNECTION, RABBITMQ_CHANNEL } from '../constants';
+import { RabbitMQConnection } from './classes/rabbitmq.connection';
+import { AMQPLIB } from '../constants';
 import amqplib from 'amqplib';
 
 @Injectable()
 export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
+  public readonly connections: { [key: string]: RabbitMQConnection } = {};
+
+  constructor(@Inject(AMQPLIB) private readonly rabbitmq: typeof amqplib) { }
+
   async onModuleInit() { }
 
   async onModuleDestroy() {
     await this.close();
   }
 
-  constructor(
-    @Inject(RABBITMQ_CONNECTION) private readonly connection: amqplib.Connection,
-    @Inject(RABBITMQ_CHANNEL) private readonly channel: amqplib.Channel,
-  ) { }
+  async connect(config: string | amqplib.Options.Connect): Promise<RabbitMQConnection> {
+    const key = typeof config === 'string' ? config : config.hostname;
 
-  async consume(queue: string, callback: (msg: string) => void) {
-    this.assertQueue(queue);
-    await this.channel.consume(queue, (msg: amqplib.Message) => {
-      const string = msg.content.toString();
-      callback(string);
-    });
-  }
+    if (this.connections[key]) {
+      return this.connections[key];
+    }
 
-  async produce(queue: string, msg: any) {
-    this.assertQueue(queue);
-    const buffer = Buffer.from(JSON.stringify(msg));
-    await this.channel.sendToQueue(queue, buffer);
-  }
+    const connection = await this.rabbitmq.connect(config);
+    const channel = await connection.createChannel();
+    this.connections[key] = new RabbitMQConnection(connection, channel);
 
-  private assertQueue(queue) {
-    // @todo: specify durable, etc. for the queue
-    // optionally also load that from config
-    this.channel.assertQueue(queue, { durable: false });
+    return this.connections[key];
   }
 
   async close() {
-    if (this.channel) {
-      await this.channel.close();
-    }
-
-    if (this.connection) {
-      await this.connection.close();
+    for (const key in this.connections) {
+      if (this.connections.hasOwnProperty(key)) {
+        this.connections[key].close();
+        delete this.connections[key];
+      }
     }
   }
 }
