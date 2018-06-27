@@ -3,7 +3,7 @@ import { rabbitmqProviders } from './rabbitmq.providers';
 import { RabbitMQService } from './rabbitmq.service';
 import { ConfigModule } from '../config/config.module';
 
-@Module({
+export const RabbitMQModuleConfig = {
   imports: [ConfigModule],
   controllers: [],
   providers: [
@@ -14,5 +14,7 @@ import { ConfigModule } from '../config/config.module';
     ...rabbitmqProviders,
     RabbitMQService,
   ],
-})
+};
+
+@Module(RabbitMQModuleConfig)
 export class RabbitMQModule { }

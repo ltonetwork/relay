@@ -1,9 +1,15 @@
-import { Injectable, Inject } from '@nestjs/common';
-import amqplib from 'amqplib';
+import { Injectable, Inject, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { RABBITMQ_CONNECTION, RABBITMQ_CHANNEL } from '../constants';
+import amqplib from 'amqplib';
 
 @Injectable()
-export class RabbitMQService {
+export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
+  async onModuleInit() { }
+
+  async onModuleDestroy() {
+    await this.close();
+  }
+
   constructor(
     @Inject(RABBITMQ_CONNECTION) private readonly connection: amqplib.Connection,
     @Inject(RABBITMQ_CHANNEL) private readonly channel: amqplib.Channel,
@@ -29,8 +35,13 @@ export class RabbitMQService {
     this.channel.assertQueue(queue, { durable: false });
   }
 
-  close() {
-    this.channel && this.channel.close();
-    this.connection && this.connection.close();
+  async close() {
+    if (this.channel) {
+      await this.channel.close();
+    }
+
+    if (this.connection) {
+      await this.connection.close();
+    }
   }
 }

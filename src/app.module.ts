@@ -2,10 +2,13 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule } from './config/config.module';
+import { RabbitMQModule } from './rabbitmq/rabbitmq.module';
 
-@Module({
-  imports: [ConfigModule],
+export const AppModuleConfig = {
+  imports: [ConfigModule, RabbitMQModule],
   controllers: [AppController],
   providers: [AppService],
-})
-export class AppModule {}
+};
+
+@Module(AppModuleConfig)
+export class AppModule { }
