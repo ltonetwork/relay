@@ -8,5 +8,9 @@
     ],
     "default": "development",
     "env": "NODE_ENV"
+  },
+  "rabbitmq": {
+    "doc": "The RabbitMQ config. Can be either url or object with options.",
+    "default": "amqp://localhost"
   }
 }

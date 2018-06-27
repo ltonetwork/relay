@@ -19,7 +19,7 @@ describe('AppController', () => {
   });
 
   describe('info', () => {
-    it('should return application info', async () => {
+    test('should return application info', async () => {
       const result = { name: 'foo' };
       jest.spyOn(appService, 'info').mockImplementation(() => result);
       expect(await appController.info()).toBe(result);

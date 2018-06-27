@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { promisify } from 'util';
-import { resolve } from 'path';
-import { exists } from 'fs';
+import util from 'util';
+import path from 'path';
+import fs from 'fs';
 import convict from 'convict';
 
 @Injectable()
@@ -9,13 +9,13 @@ export class ConfigService {
   private config: convict.Config<object>;
 
   private async load(): Promise<void> {
-    const dir = resolve(__dirname, './data');
+    const dir = path.resolve(__dirname, './data');
 
     this.config = convict(`${dir}/default.schema.json`);
     this.config.loadFile(`${dir}/default.config.json`);
 
     const env = `${dir}/default.${this.config.get('env')}.json`;
-    if (await promisify(exists)(env)) {
+    if (await util.promisify(fs.exists)(env)) {
       this.config.loadFile(env);
     }
 
