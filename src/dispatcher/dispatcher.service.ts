@@ -16,7 +16,7 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
     await this.rabbitMQService.close();
   }
 
-  async start() {
+  async start(): Promise<void> {
     const config = await this.configService.get('dispatcher');
     const rabbitmqConnection = await this.rabbitMQService.connect(config.rabbitmq);
     await rabbitmqConnection.consume(config.queue, this.onMessage);

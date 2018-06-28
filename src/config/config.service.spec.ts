@@ -7,13 +7,9 @@ describe('ConfigService', () => {
 
   beforeEach(async () => {
     const module = await Test.createTestingModule(ConfigModuleConfig).compile();
+    await module.init();
 
     configService = module.get<ConfigService>(ConfigService);
-    await configService.onModuleInit();
-  });
-
-  afterEach(async () => {
-    await configService.onModuleDestroy();
   });
 
   describe('get()', () => {

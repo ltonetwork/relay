@@ -24,13 +24,9 @@ describe('RabbitMQService', () => {
       .overrideProvider(AMQPLIB)
       .useValue({ channel, connection, connect })
       .compile();
+    await module.init();
 
     rabbitmqService = module.get<RabbitMQService>(RabbitMQService);
-    await rabbitmqService.onModuleInit();
-  });
-
-  afterEach(async () => {
-    await rabbitmqService.onModuleDestroy();
   });
 
   describe('connect()', () => {

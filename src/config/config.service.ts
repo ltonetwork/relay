@@ -15,13 +15,17 @@ export class ConfigService implements OnModuleInit, OnModuleDestroy {
       await this.load();
     }
 
-    this.config_reload_interval = setInterval(async () => {
-      await this.load();
-    }, this.ttl);
+    if (!this.config_reload_interval) {
+      this.config_reload_interval = setInterval(async () => {
+        await this.load();
+      }, this.ttl);
+    }
   }
 
   async onModuleDestroy() {
-    clearInterval(this.config_reload_interval);
+    if (this.config_reload_interval) {
+      clearInterval(this.config_reload_interval);
+    }
   }
 
   private async load(): Promise<void> {

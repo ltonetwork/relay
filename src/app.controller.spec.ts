@@ -13,6 +13,7 @@ describe('AppController', () => {
       controllers: [AppController],
       providers: [AppService],
     }).compile();
+    module.init();
 
     appService = module.get<AppService>(AppService);
     appController = module.get<AppController>(AppController);
