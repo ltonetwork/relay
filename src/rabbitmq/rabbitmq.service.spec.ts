@@ -26,6 +26,11 @@ describe('RabbitMQService', () => {
       .compile();
 
     rabbitmqService = module.get<RabbitMQService>(RabbitMQService);
+    await rabbitmqService.onModuleInit();
+  });
+
+  afterEach(async () => {
+    await rabbitmqService.onModuleDestroy();
   });
 
   describe('connect()', () => {

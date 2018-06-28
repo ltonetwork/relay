@@ -9,8 +9,15 @@
     "default": "development",
     "env": "NODE_ENV"
   },
-  "rabbitmq": {
-    "doc": "The RabbitMQ config. Can be either url or object with options.",
-    "default": "amqp://localhost"
+  "dispatcher": {
+    "doc": "The event dispatcher config",
+    "rabbitmq": {
+      "doc": "The RabbitMQ connection config. Can be either url or object with options",
+      "default": "amqp://localhost"
+    },
+    "queue": {
+      "doc": "The queue name used by rabbitmq",
+      "default": "events"
+    }
   }
 }

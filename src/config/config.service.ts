@@ -1,12 +1,28 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import util from 'util';
 import path from 'path';
 import fs from 'fs';
 import convict from 'convict';
 
 @Injectable()
-export class ConfigService {
+export class ConfigService implements OnModuleInit, OnModuleDestroy {
   private config: convict.Config<object>;
+  private readonly ttl: number = 300000; // 5 minutes in milliseconds
+  private config_reload_interval: NodeJS.Timer;
+
+  async onModuleInit() {
+    if (!this.config) {
+      await this.load();
+    }
+
+    this.config_reload_interval = setInterval(async () => {
+      await this.load();
+    }, this.ttl);
+  }
+
+  async onModuleDestroy() {
+    clearInterval(this.config_reload_interval);
+  }
 
   private async load(): Promise<void> {
     const dir = path.resolve(__dirname, './data');
@@ -21,34 +37,24 @@ export class ConfigService {
 
     // @todo: determine based on config.provider where to load config from (e.g. dynamodb)
     // then simply merge the config via convict.config.load()
-  }
+    // @todo: support multiple environments by storing envs and their config in a map
 
-  private shouldReloadConfig(): boolean {
-    // @todo: add cache and if its ttl expires we should reload aswell
-    return !this.config;
+    await this.validate();
   }
 
   async set(key: string, value: any): Promise<void> {
-    if (this.shouldReloadConfig()) {
-      await this.load();
-    }
-
     this.config.set(key, value);
   }
 
   async get(key?: string): Promise<any> {
-    if (this.shouldReloadConfig()) {
-      await this.load();
-    }
-
     return this.config.get(key);
   }
 
   async has(key: string): Promise<boolean> {
-    if (this.shouldReloadConfig()) {
-      await this.load();
-    }
-
     return this.config.has(key);
+  }
+
+  async validate(): Promise<void> {
+    this.config.validate({ allowed: 'warn' });
   }
 }
