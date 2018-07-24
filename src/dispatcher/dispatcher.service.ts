@@ -9,8 +9,7 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
     private readonly rabbitMQService: RabbitMQService,
   ) { }
 
-  async onModuleInit() {
-  }
+  async onModuleInit() { }
 
   async onModuleDestroy() {
     await this.rabbitMQService.close();

@@ -18,6 +18,11 @@
     "queue": {
       "doc": "The queue name used by rabbitmq",
       "default": "events"
+    },
+    "legalevents": {
+      "url": {
+        "default": "http://localhost:3030/api/events"
+      }
     }
   }
 }

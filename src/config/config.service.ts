@@ -58,7 +58,7 @@ export class ConfigService implements OnModuleInit, OnModuleDestroy {
     return this.config.has(key);
   }
 
-  async validate(): Promise<void> {
-    this.config.validate({ allowed: 'warn' });
+  async validate(): Promise<any> {
+    return this.config.validate({ allowed: 'warn' });
   }
 }
