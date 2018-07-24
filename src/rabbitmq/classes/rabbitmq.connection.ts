@@ -11,7 +11,7 @@ export class RabbitMQConnection {
     await this.channel.consume(queue, (msg: amqplib.Message) => {
       const string = msg.content.toString();
       callback(string);
-    });
+    }, { noAck: false });
   }
 
   async produce(queue: string, msg: any) {
@@ -21,9 +21,7 @@ export class RabbitMQConnection {
   }
 
   private assertQueue(queue) {
-    // @todo: specify durable, etc. for the queue
-    // optionally also load that from config
-    this.channel.assertQueue(queue, { durable: false });
+    this.channel.assertQueue(queue, { durable: true });
   }
 
   async close() {

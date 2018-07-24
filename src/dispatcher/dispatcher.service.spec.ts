@@ -25,10 +25,16 @@ describe('DispatcherService', () => {
       await dispatcherService.start();
 
       expect(rabbitmqServiceSpy.connect.mock.calls.length).toBe(1);
-      expect(rabbitmqServiceSpy.connect.mock.calls[0][0]).toBe('amqp://localhost');
+      expect(rabbitmqServiceSpy.connect.mock.calls[0][0]).toEqual({
+        hostname: 'localhost',
+        password: 'guest',
+        port: '5672',
+        protocol: 'amqp',
+        username: 'guest',
+      });
 
       expect(rabbitmqConnection.consume.mock.calls.length).toBe(1);
-      expect(rabbitmqConnection.consume.mock.calls[0][0]).toBe('events');
+      expect(rabbitmqConnection.consume.mock.calls[0][0]).toBe('default');
       expect(typeof rabbitmqConnection.consume.mock.calls[0][1]).toBe('function');
     });
   });

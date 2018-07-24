@@ -17,12 +17,17 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
 
   async start(): Promise<void> {
     const config = await this.configService.get('dispatcher');
-    const rabbitmqConnection = await this.rabbitMQService.connect(config.rabbitmq);
-    await rabbitmqConnection.consume(config.queue, this.onMessage);
+    const rabbitmqConnection = await this.rabbitMQService.connect(config.rabbitmq.client);
+    await rabbitmqConnection.consume(config.rabbitmq.queue, this.onMessage);
   }
 
   private onMessage(msg: string) {
-    // tslint:disable-next-line:no-console
-    console.log('received msg in dispatcher', msg);
+    // @todo:
+    // check is msg is actual event
+    // check if event is for the current node
+    // post event to local legalevents
+    // get identities and create dynamic shovels for their nodes
+    // copy event from the default queue to a local queue for the node
+    // remove original event from local default queue by acknowledging it
   }
 }

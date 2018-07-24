@@ -10,14 +10,26 @@
     "env": "NODE_ENV"
   },
   "dispatcher": {
-    "doc": "The event dispatcher config",
+    "doc": "The config of this application, with a namespace so it can be merged into larger configs",
     "rabbitmq": {
-      "doc": "The RabbitMQ connection config. Can be either url or object with options",
-      "default": "amqp://localhost"
-    },
-    "queue": {
-      "doc": "The queue name used by rabbitmq",
-      "default": "events"
+      "client": {
+        "doc": "The RabbitMQ client config",
+        "default": {
+          "protocol": "amqp",
+          "hostname": "localhost",
+          "port": "5672",
+          "username": "guest",
+          "password": "guest"
+        }
+      },
+      "api": {
+        "doc": "Url to get to RabbitMQ web api. Note that management plugin must be installed",
+        "default": "http://localhost:15672/api"
+      },
+      "queue": {
+        "doc": "The default queue name used by rabbitmq",
+        "default": "default"
+      }
     },
     "legalevents": {
       "url": {

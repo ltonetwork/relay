@@ -1,13 +1,19 @@
-import { Injectable, Inject, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, Inject, OnModuleInit, OnModuleDestroy, HttpService } from '@nestjs/common';
 import { RabbitMQConnection } from './classes/rabbitmq.connection';
 import { AMQPLIB } from '../constants';
 import amqplib from 'amqplib';
+import { AxiosResponse } from 'axios';
+import { ConfigService } from '../config/config.service';
 
 @Injectable()
 export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
   public readonly connections: { [key: string]: RabbitMQConnection } = {};
 
-  constructor(@Inject(AMQPLIB) private readonly _amqplib: typeof amqplib) { }
+  constructor(
+    private readonly httpService: HttpService,
+    @Inject(AMQPLIB) private readonly _amqplib: typeof amqplib,
+    private readonly configService: ConfigService,
+  ) { }
 
   async onModuleInit() { }
 
@@ -36,5 +42,37 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
         delete this.connections[key];
       }
     }
+  }
+
+  async addDynamicShovel(destination: string, queue: string): Promise<AxiosResponse> {
+    const api = await this.getApiUrl();
+    const shovelName = 'default';
+    const vhost = '%2f'; // encoded version of '/'
+    const url = `${api}/parameters/shovel/${vhost}/${shovelName}`;
+    const auth = await this.getCredentials();
+    const data = {
+      value: {
+        'src-protocol': 'amqp091',
+        'src-uri': 'amqp://',
+        'src-queue': queue,
+        'dest-protocol': 'amqp091',
+        'dest-uri': destination,
+        'dest-queue': 'default',
+      },
+    };
+
+    const response = await this.httpService.put(url, data, { auth }).toPromise();
+    return response;
+  }
+
+  private async getCredentials(): Promise<{username, password}> {
+    return {
+      username: await this.configService.get('dispatcher.rabbitmq.client.username'),
+      password: await this.configService.get('dispatcher.rabbitmq.client.password'),
+    };
+  }
+
+  private async getApiUrl(): Promise<string> {
+    return await this.configService.get('dispatcher.rabbitmq.api');
   }
 }

@@ -1,10 +1,12 @@
 import { Test } from '@nestjs/testing';
 import { RabbitMQModuleConfig } from './rabbitmq.module';
 import { RabbitMQService } from './rabbitmq.service';
+import { HttpService } from '@nestjs/common';
 import { AMQPLIB } from '../constants';
 
 describe('RabbitMQService', () => {
   let rabbitmqService: RabbitMQService;
+  let httpService: HttpService;
   const channel = {
     close: jest.fn(),
     assertQueue: jest.fn(),
@@ -27,6 +29,7 @@ describe('RabbitMQService', () => {
     await module.init();
 
     rabbitmqService = module.get<RabbitMQService>(RabbitMQService);
+    httpService = module.get<HttpService>(HttpService);
   });
 
   describe('connect()', () => {
@@ -67,6 +70,38 @@ describe('RabbitMQService', () => {
 
       expect(spyFirst.mock.calls.length).toBe(1);
       expect(spySecond.mock.calls.length).toBe(1);
+    });
+  });
+
+  describe('addDynamicShovel()', () => {
+    test('should add a dynamic shovel', async () => {
+      const response = { status: 200, data: { bar: 'crux' } };
+      const httpServiceSpy = jest.spyOn(httpService, 'put').mockImplementation(() => ({
+        toPromise: () => Promise.resolve(response),
+      }));
+
+      const destination = 'amqp://destination';
+      const queue = 'queue';
+      expect(await rabbitmqService.addDynamicShovel(destination, queue)).toBe(response);
+
+      expect(httpServiceSpy.mock.calls.length).toBe(1);
+      expect(httpServiceSpy.mock.calls[0][0]).toBe('http://localhost:15672/api/parameters/shovel/%2f/default');
+      expect(httpServiceSpy.mock.calls[0][1]).toEqual({
+        value: {
+          'dest-protocol': 'amqp091',
+          'dest-queue': 'default',
+          'dest-uri': destination,
+          'src-protocol': 'amqp091',
+          'src-queue': queue,
+          'src-uri': 'amqp://',
+        },
+      });
+      expect(httpServiceSpy.mock.calls[0][2]).toEqual({
+        auth: {
+          password: 'guest',
+          username: 'guest',
+        },
+      });
     });
   });
 });
