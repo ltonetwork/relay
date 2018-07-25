@@ -1,5 +1,6 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { RabbitMQService } from '../rabbitmq/rabbitmq.service';
+import { RabbitMQApiService } from '../rabbitmq/rabbitmq-api.service';
 import { ConfigService } from '../config/config.service';
 
 @Injectable()
@@ -7,6 +8,7 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly config: ConfigService,
     private readonly rabbitMQService: RabbitMQService,
+    private readonly rabbitMQApiService: RabbitMQApiService,
   ) { }
 
   async onModuleInit() { }
@@ -20,7 +22,7 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
     await rabbitmqConnection.consume(await this.config.getRabbitMQQueue(), this.onMessage);
   }
 
-  private onMessage(msg: string) {
+  async onMessage(msg: string) {
     // @todo:
     // check is msg is actual event
     // check if event is for the current node

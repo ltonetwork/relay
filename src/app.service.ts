@@ -5,7 +5,7 @@ import { ConfigService } from './config/config.service';
 
 @Injectable()
 export class AppService {
-  constructor(private readonly configService: ConfigService) {}
+  constructor(private readonly config: ConfigService) { }
 
   async info(): Promise<object> {
     const data = await util.promisify(fs.readFile)('package.json', { encoding: 'utf8' });
@@ -15,7 +15,7 @@ export class AppService {
       name: json.name,
       version: json.version,
       description: json.description,
-      env: await this.configService.get('env'),
+      env: await this.config.getEnv(),
     };
   }
 }

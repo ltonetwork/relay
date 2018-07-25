@@ -2,8 +2,6 @@ import { Injectable, Inject, OnModuleInit, OnModuleDestroy, HttpService } from '
 import { RabbitMQConnection } from './classes/rabbitmq.connection';
 import { AMQPLIB } from '../constants';
 import amqplib from 'amqplib';
-import querystring from 'querystring';
-import { AxiosResponse } from 'axios';
 import { ConfigService } from '../config/config.service';
 
 @Injectable()
@@ -43,26 +41,5 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
         delete this.connections[key];
       }
     }
-  }
-
-  async addDynamicShovel(destination: string, queue: string): Promise<AxiosResponse> {
-    const api = await this.config.getRabbitMQApiUrl();
-    const shovelName = 'default';
-    const vhost = querystring.escape(await this.config.getRabbitMQVhost());
-    const url = `${api}/parameters/shovel/${vhost}/${shovelName}`;
-    const auth = await this.config.getRabbitMQCredentials();
-    const data = {
-      value: {
-        'src-protocol': 'amqp091',
-        'src-uri': 'amqp://',
-        'src-queue': queue,
-        'dest-protocol': 'amqp091',
-        'dest-uri': destination,
-        'dest-queue': 'default',
-      },
-    };
-
-    const response = await this.httpService.put(url, data, { auth }).toPromise();
-    return response;
   }
 }

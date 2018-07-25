@@ -8,9 +8,9 @@ export class RabbitMQConnection {
 
   async consume(queue: string, callback: (msg: string) => void) {
     this.assertQueue(queue);
-    await this.channel.consume(queue, (msg: amqplib.Message) => {
+    await this.channel.consume(queue, async (msg: amqplib.Message) => {
       const string = msg.content.toString();
-      callback(string);
+      await callback(string);
     }, { noAck: false });
   }
 

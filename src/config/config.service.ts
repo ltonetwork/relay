@@ -5,6 +5,10 @@ import { ConfigLoaderService } from './config-loader.service';
 export class ConfigService {
   constructor(private readonly config: ConfigLoaderService) { }
 
+  async getEnv(): Promise<string> {
+    return await this.config.get('env');
+  }
+
   async getRabbitMQClient(): Promise<object> {
     return await this.config.get('dispatcher.rabbitmq.client');
   }
