@@ -1,4 +1,5 @@
 import amqplib from 'amqplib';
+import util from 'util';
 
 export class RabbitMQConnection {
   constructor(
@@ -6,18 +7,26 @@ export class RabbitMQConnection {
     private readonly channel: amqplib.Channel,
   ) { }
 
-  async consume(queue: string, callback: (msg: string) => void) {
+  async consume(queue: string, callback: (msg: amqplib.Message) => void) {
     this.assertQueue(queue);
     await this.channel.consume(queue, async (msg: amqplib.Message) => {
-      const string = msg.content.toString();
-      await callback(string);
+      await callback(msg);
     }, { noAck: false });
   }
 
   async produce(queue: string, msg: any) {
     this.assertQueue(queue);
-    const buffer = Buffer.from(JSON.stringify(msg));
+    const data = util.isString(msg) ? msg : JSON.stringify(msg);
+    const buffer = Buffer.from(data);
     await this.channel.sendToQueue(queue, buffer);
+  }
+
+  ack(message: amqplib.Message) {
+    this.channel.ack(message);
+  }
+
+  reject(message: amqplib.Message, requeue?: boolean) {
+    this.channel.reject(message, requeue);
   }
 
   private assertQueue(queue) {

@@ -30,7 +30,7 @@ describe('RabbitMQConnection', () => {
       expect(typeof channel.consume.mock.calls[0][1]).toBe('function');
 
       expect(callback.mock.calls.length).toBe(1);
-      expect(callback.mock.calls[0][0]).toBe('Some message');
+      expect(callback.mock.calls[0][0]).toEqual({ content: Buffer.from('Some message') });
     });
   });
 
@@ -39,7 +39,7 @@ describe('RabbitMQConnection', () => {
       await rabbitmqConnection.produce('fake_queue', 'This is produced');
       expect(channel.sendToQueue.mock.calls.length).toBe(1);
       expect(channel.sendToQueue.mock.calls[0][0]).toBe('fake_queue');
-      expect(channel.sendToQueue.mock.calls[0][1]).toEqual(Buffer.from(JSON.stringify('This is produced')));
+      expect(channel.sendToQueue.mock.calls[0][1]).toEqual(Buffer.from('This is produced'));
     });
   });
 
