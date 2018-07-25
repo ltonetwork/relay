@@ -12,10 +12,14 @@ export class LegalEventsService implements OnModuleInit, OnModuleDestroy {
   async onModuleInit() { }
   async onModuleDestroy() { }
 
-  async send(event: any): Promise<AxiosResponse> {
+  async send(event: any): Promise<AxiosResponse | Error> {
     const url = await this.config.getLegalEventsUrl();
-    const response = await this.httpService.post(url, event).toPromise();
 
-    return response;
+    try {
+      const response = await this.httpService.post(url, event).toPromise();
+      return response;
+    } catch (e) {
+      return e;
+    }
   }
 }

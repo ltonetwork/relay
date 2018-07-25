@@ -3,9 +3,10 @@ import { dispatcherProviders } from './dispatcher.providers';
 import { DispatcherService } from './dispatcher.service';
 import { ConfigModule } from '../config/config.module';
 import { RabbitMQModule } from '../rabbitmq/rabbitmq.module';
+import { LegalEventsModule } from '../legalevents/legalevents.module';
 
 export const DispatcherModuleConfig = {
-  imports: [ConfigModule, RabbitMQModule],
+  imports: [ConfigModule, RabbitMQModule, LegalEventsModule],
   controllers: [],
   providers: [
     ...dispatcherProviders,

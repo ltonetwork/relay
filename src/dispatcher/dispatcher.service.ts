@@ -1,7 +1,7 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { LegalEventsService } from '../legalevents/legalevents.service';
 import { RabbitMQService } from '../rabbitmq/rabbitmq.service';
 import { RabbitMQConnection } from '../rabbitmq/classes/rabbitmq.connection';
-import { RabbitMQApiService } from '../rabbitmq/rabbitmq-api.service';
 import { ConfigService } from '../config/config.service';
 import amqplib from 'amqplib';
 
@@ -12,7 +12,7 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly config: ConfigService,
     private readonly rabbitMQService: RabbitMQService,
-    private readonly rabbitMQApiService: RabbitMQApiService,
+    private readonly legalEventsService: LegalEventsService,
   ) { }
 
   async onModuleInit() { }
@@ -35,15 +35,23 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
       throw new Error('dispatcher: unable to handle message, invalid message received');
     }
 
-    const data = JSON.parse(msg.content.toString());
+    const event = JSON.parse(msg.content.toString());
 
-    if (!data.id) {
+    if (!event.id) {
       return this.connection.reject(msg);
     }
 
-    // post event to local legalevents, if this fails reject and deadletter it
+    const response = await this.legalEventsService.send(event);
+
+    if (
+      !response || response instanceof Error || !response.status ||
+      [200, 201, 204].indexOf(response.status) === -1
+    ) {
+      return this.connection.reject(msg);
+    }
+
+    this.connection.ack(msg);
     // get identities and create dynamic shovels for their nodes
     // copy event from the default queue to a local queue for the node
-    // remove original event from local default queue by acknowledging it
   }
 }
