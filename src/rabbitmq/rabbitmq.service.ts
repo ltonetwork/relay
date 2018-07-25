@@ -2,6 +2,7 @@ import { Injectable, Inject, OnModuleInit, OnModuleDestroy, HttpService } from '
 import { RabbitMQConnection } from './classes/rabbitmq.connection';
 import { AMQPLIB } from '../constants';
 import amqplib from 'amqplib';
+import querystring from 'querystring';
 import { AxiosResponse } from 'axios';
 import { ConfigService } from '../config/config.service';
 
@@ -12,7 +13,7 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly httpService: HttpService,
     @Inject(AMQPLIB) private readonly _amqplib: typeof amqplib,
-    private readonly configService: ConfigService,
+    private readonly config: ConfigService,
   ) { }
 
   async onModuleInit() { }
@@ -45,11 +46,11 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
   }
 
   async addDynamicShovel(destination: string, queue: string): Promise<AxiosResponse> {
-    const api = await this.getApiUrl();
+    const api = await this.config.getRabbitMQApiUrl();
     const shovelName = 'default';
-    const vhost = '%2f'; // encoded version of '/'
+    const vhost = querystring.escape(await this.config.getRabbitMQVhost());
     const url = `${api}/parameters/shovel/${vhost}/${shovelName}`;
-    const auth = await this.getCredentials();
+    const auth = await this.config.getRabbitMQCredentials();
     const data = {
       value: {
         'src-protocol': 'amqp091',
@@ -63,16 +64,5 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
 
     const response = await this.httpService.put(url, data, { auth }).toPromise();
     return response;
-  }
-
-  private async getCredentials(): Promise<{username, password}> {
-    return {
-      username: await this.configService.get('dispatcher.rabbitmq.client.username'),
-      password: await this.configService.get('dispatcher.rabbitmq.client.password'),
-    };
-  }
-
-  private async getApiUrl(): Promise<string> {
-    return await this.configService.get('dispatcher.rabbitmq.api');
   }
 }

@@ -31,6 +31,7 @@ describe('DispatcherService', () => {
         port: '5672',
         protocol: 'amqp',
         username: 'guest',
+        vhost: '/',
       });
 
       expect(rabbitmqConnection.consume.mock.calls.length).toBe(1);

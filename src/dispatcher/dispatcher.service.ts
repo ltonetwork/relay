@@ -5,7 +5,7 @@ import { ConfigService } from '../config/config.service';
 @Injectable()
 export class DispatcherService implements OnModuleInit, OnModuleDestroy {
   constructor(
-    private readonly configService: ConfigService,
+    private readonly config: ConfigService,
     private readonly rabbitMQService: RabbitMQService,
   ) { }
 
@@ -16,16 +16,15 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
   }
 
   async start(): Promise<void> {
-    const config = await this.configService.get('dispatcher');
-    const rabbitmqConnection = await this.rabbitMQService.connect(config.rabbitmq.client);
-    await rabbitmqConnection.consume(config.rabbitmq.queue, this.onMessage);
+    const rabbitmqConnection = await this.rabbitMQService.connect(await this.config.getRabbitMQClient());
+    await rabbitmqConnection.consume(await this.config.getRabbitMQQueue(), this.onMessage);
   }
 
   private onMessage(msg: string) {
     // @todo:
     // check is msg is actual event
     // check if event is for the current node
-    // post event to local legalevents
+    // post event to local legalevents, if this fails reject and deadletter it
     // get identities and create dynamic shovels for their nodes
     // copy event from the default queue to a local queue for the node
     // remove original event from local default queue by acknowledging it

@@ -1,64 +1,34 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import util from 'util';
-import path from 'path';
-import fs from 'fs';
-import convict from 'convict';
+import { Injectable } from '@nestjs/common';
+import { ConfigLoaderService } from './config-loader.service';
 
 @Injectable()
-export class ConfigService implements OnModuleInit, OnModuleDestroy {
-  private config: convict.Config<object>;
-  private readonly ttl: number = 300000; // 5 minutes in milliseconds
-  private config_reload_interval: NodeJS.Timer;
+export class ConfigService {
+  constructor(private readonly config: ConfigLoaderService) { }
 
-  async onModuleInit() {
-    if (!this.config) {
-      await this.load();
-    }
-
-    if (!this.config_reload_interval) {
-      this.config_reload_interval = setInterval(async () => {
-        await this.load();
-      }, this.ttl);
-    }
+  async getRabbitMQClient(): Promise<object> {
+    return await this.config.get('dispatcher.rabbitmq.client');
   }
 
-  async onModuleDestroy() {
-    if (this.config_reload_interval) {
-      clearInterval(this.config_reload_interval);
-    }
+  async getRabbitMQCredentials(): Promise<{ username, password }> {
+    return {
+      username: await this.config.get('dispatcher.rabbitmq.client.username'),
+      password: await this.config.get('dispatcher.rabbitmq.client.password'),
+    };
   }
 
-  private async load(): Promise<void> {
-    const dir = path.resolve(__dirname, './data');
-
-    this.config = convict(`${dir}/default.schema.json`);
-    this.config.loadFile(`${dir}/default.config.json`);
-
-    const env = `${dir}/default.${this.config.get('env')}.json`;
-    if (await util.promisify(fs.exists)(env)) {
-      this.config.loadFile(env);
-    }
-
-    // @todo: determine based on config.provider where to load config from (e.g. dynamodb)
-    // then simply merge the config via convict.config.load()
-    // @todo: support multiple environments by storing envs and their config in a map
-
-    await this.validate();
+  async getRabbitMQVhost(): Promise<string> {
+    return await this.config.get('dispatcher.rabbitmq.client.vhost');
   }
 
-  async set(key: string, value: any): Promise<void> {
-    this.config.set(key, value);
+  async getRabbitMQApiUrl(): Promise<string> {
+    return await this.config.get('dispatcher.rabbitmq.api');
   }
 
-  async get(key?: string): Promise<any> {
-    return this.config.get(key);
+  async getRabbitMQQueue(): Promise<string> {
+    return await this.config.get('dispatcher.rabbitmq.queue');
   }
 
-  async has(key: string): Promise<boolean> {
-    return this.config.has(key);
-  }
-
-  async validate(): Promise<any> {
-    return this.config.validate({ allowed: 'warn' });
+  async getLegalEventsUrl(): Promise<string> {
+    return await this.config.get('dispatcher.legalevents.url');
   }
 }

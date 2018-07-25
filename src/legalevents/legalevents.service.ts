@@ -6,20 +6,16 @@ import { ConfigService } from '../config/config.service';
 export class LegalEventsService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly httpService: HttpService,
-    private readonly configService: ConfigService,
+    private readonly config: ConfigService,
   ) { }
 
   async onModuleInit() { }
   async onModuleDestroy() { }
 
   async send(event: any): Promise<AxiosResponse> {
-    const url = await this.getUrl();
+    const url = await this.config.getLegalEventsUrl();
     const response = await this.httpService.post(url, event).toPromise();
 
     return response;
-  }
-
-  private async getUrl(): Promise<string> {
-    return await this.configService.get('dispatcher.legalevents.url');
   }
 }

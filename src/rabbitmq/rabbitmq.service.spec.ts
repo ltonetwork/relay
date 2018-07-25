@@ -85,7 +85,7 @@ describe('RabbitMQService', () => {
       expect(await rabbitmqService.addDynamicShovel(destination, queue)).toBe(response);
 
       expect(httpServiceSpy.mock.calls.length).toBe(1);
-      expect(httpServiceSpy.mock.calls[0][0]).toBe('http://localhost:15672/api/parameters/shovel/%2f/default');
+      expect(httpServiceSpy.mock.calls[0][0]).toBe('http://localhost:15672/api/parameters/shovel/%2F/default');
       expect(httpServiceSpy.mock.calls[0][1]).toEqual({
         value: {
           'dest-protocol': 'amqp091',
