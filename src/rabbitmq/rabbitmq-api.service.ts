@@ -1,12 +1,14 @@
 import { Injectable, HttpService } from '@nestjs/common';
 import querystring from 'querystring';
 import { AxiosResponse } from 'axios';
+import { LoggerService } from '../logger/logger.service';
 import { ConfigService } from '../config/config.service';
 
 @Injectable()
 export class RabbitMQApiService {
   constructor(
     private readonly httpService: HttpService,
+    private readonly logger: LoggerService,
     private readonly config: ConfigService,
   ) { }
 
@@ -32,6 +34,7 @@ export class RabbitMQApiService {
       const response = await this.httpService.put(url, data, { auth }).toPromise();
       return response;
     } catch (e) {
+      this.logger.error(`queuer: failed to add shovel for remote node: '${e}'`);
       return e;
     }
   }

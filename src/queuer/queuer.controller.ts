@@ -1,28 +1,32 @@
-import { Controller, Post, HttpStatus, Req, Res } from '@nestjs/common';
+import { Controller, Post, Req, Res } from '@nestjs/common';
 import { Response, Request } from 'express';
+import { LoggerService } from '../logger/logger.service';
 import { QueuerService } from './queuer.service';
 
 @Controller('queue')
 export class QueuerController {
-  constructor(private readonly queuerService: QueuerService) { }
+  constructor(
+    private readonly logger: LoggerService,
+    private readonly queuerService: QueuerService,
+  ) { }
 
   @Post()
   async add(@Req() req: Request, @Res() res: Response): Promise<Response> {
     if (!req.body) {
-      return res.status(HttpStatus.BAD_REQUEST).send('invalid body given');
+      return res.status(400).send('invalid body given');
     }
 
     if (!req.body.id) {
-      return res.status(HttpStatus.BAD_REQUEST).send('no id given');
+      return res.status(400).send('no id given');
     }
 
     try {
       await this.queuerService.add(req.body, req.query.to);
     } catch (e) {
-      // @todo: log this
-      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send('failed to add event to queue, something went wrong');
+      this.logger.error(`failed to add event to queue '${e}'`);
+      return res.status(500).send(`failed to add event to queue '${e}'`);
     }
 
-    return res.status(HttpStatus.NO_CONTENT).send();
+    return res.status(204).send();
   }
 }

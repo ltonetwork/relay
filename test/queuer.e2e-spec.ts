@@ -3,7 +3,7 @@ import request from 'supertest';
 import { AppModuleConfig } from '../src/app.module';
 import { INestApplication } from '@nestjs/common';
 
-describe('Application e2e test', () => {
+describe('Queuer e2e test', () => {
   let app: INestApplication;
 
   beforeAll(async () => {
@@ -18,7 +18,7 @@ describe('Application e2e test', () => {
 
   describe('POST /queue', () => {
     test('should add event to the queue for local node', async () => {
-      const event = { id: 'fake_id' };
+      const event = { id: 'local' };
       const res = await request(app.getHttpServer())
         .post('/queue')
         .send(event);
@@ -29,7 +29,7 @@ describe('Application e2e test', () => {
     }, 10000);
 
     test('should add event to the queue for remote node', async () => {
-      const event = { id: 'fake_id' };
+      const event = { id: 'external' };
       const to = 'amqp://';
       const res = await request(app.getHttpServer())
         .post('/queue')
