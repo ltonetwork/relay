@@ -7,16 +7,14 @@ import { RabbitMQModule } from '../rabbitmq/rabbitmq.module';
 
 export const QueuerModuleConfig = {
   imports: [ConfigModule, RabbitMQModule],
-  controllers: [],
+  controllers: [QueuerController],
   providers: [
     ...queuerProviders,
     QueuerService,
-    QueuerController,
   ],
   exports: [
     ...queuerProviders,
     QueuerService,
-    QueuerController,
   ],
 };
 

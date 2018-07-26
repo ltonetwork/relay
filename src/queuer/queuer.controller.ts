@@ -12,12 +12,12 @@ export class QueuerController {
       return res.status(HttpStatus.BAD_REQUEST).send('invalid body given');
     }
 
-    if (!req.body.event || !req.body.event.id) {
-      return res.status(HttpStatus.BAD_REQUEST).send('invalid event given');
+    if (!req.body.id) {
+      return res.status(HttpStatus.BAD_REQUEST).send('no id given');
     }
 
     try {
-      await this.queuerService.add(req.body.event, req.query.to);
+      await this.queuerService.add(req.body, req.query.to);
     } catch (e) {
       // @todo: log this
       return res.status(HttpStatus.INTERNAL_SERVER_ERROR).send('failed to add event to queue, something went wrong');
