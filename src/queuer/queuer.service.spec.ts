@@ -1,11 +1,11 @@
 import { Test } from '@nestjs/testing';
-import { DispatcherModuleConfig } from './dispatcher.module';
-import { DispatcherService } from './dispatcher.service';
+import { QueuerModuleConfig } from './queuer.module';
+import { QueuerService } from './queuer.service';
 import { RabbitMQService } from '../rabbitmq/rabbitmq.service';
 import { LegalEventsService } from '../legalevents/legalevents.service';
 
-describe('DispatcherService', () => {
-  let dispatcherService: DispatcherService;
+describe('QueuerService', () => {
+  let queuerService: QueuerService;
   let rabbitmqService: RabbitMQService;
   let legalEventsService: LegalEventsService;
 
@@ -26,19 +26,19 @@ describe('DispatcherService', () => {
   }
 
   beforeEach(async () => {
-    const module = await Test.createTestingModule(DispatcherModuleConfig).compile();
+    const module = await Test.createTestingModule(QueuerModuleConfig).compile();
     await module.init();
 
-    dispatcherService = module.get<DispatcherService>(DispatcherService);
+    queuerService = module.get<QueuerService>(QueuerService);
     rabbitmqService = module.get<RabbitMQService>(RabbitMQService);
     legalEventsService = module.get<LegalEventsService>(LegalEventsService);
   });
 
   describe('start()', () => {
-    test('should start the dispatcher which listens for rabbitmq messages', async () => {
+    test('should start the queuer which listens for rabbitmq messages', async () => {
       const spies = spy();
 
-      await dispatcherService.start();
+      await queuerService.start();
 
       expect(spies.rmqService.connect.mock.calls.length).toBe(1);
       expect(spies.rmqService.connect.mock.calls[0][0]).toEqual({
@@ -51,28 +51,23 @@ describe('DispatcherService', () => {
       });
 
       expect(spies.rmqConnection.consume.mock.calls.length).toBe(1);
-      expect(spies.rmqConnection.consume.mock.calls[0][0]).toBe('\'\'');
-      expect(spies.rmqConnection.consume.mock.calls[0][1]).toBe('\'\'');
-      expect(typeof spies.rmqConnection.consume.mock.calls[0][2]).toBe('function');
+      expect(spies.rmqConnection.consume.mock.calls[0][0]).toBe('default');
+      expect(typeof spies.rmqConnection.consume.mock.calls[0][1]).toBe('function');
     });
   });
 
   describe('onMessage()', () => {
     test('should throw error if no connection is created', async () => {
-      await expect(dispatcherService.onMessage(null)).rejects
-        .toThrow('dispatcher: unable to handle message, connection is not started');
+      await expect(queuerService.onMessage(null)).rejects
+        .toThrow('queuer: unable to handle message, connection is not started');
     });
 
-    test('shouldreject message if invalid or no message is received', async () => {
+    test('should throw error if invalid message is received', async () => {
       const spies = spy();
 
-      const msg = null;
-
-      await dispatcherService.start();
-      await dispatcherService.onMessage(msg);
-
-      expect(spies.rmqConnection.reject.mock.calls.length).toBe(1);
-      expect(spies.rmqConnection.reject.mock.calls[0][0]).toBe(msg);
+      await queuerService.start();
+      await expect(queuerService.onMessage(null)).rejects
+        .toThrow('queuer: unable to handle message, invalid message received');
     });
 
     test('should reject message if event has no id', async () => {
@@ -80,8 +75,8 @@ describe('DispatcherService', () => {
 
       const msg = { content: { toString: () => '{}' } } as any;
 
-      await dispatcherService.start();
-      await dispatcherService.onMessage(msg);
+      await queuerService.start();
+      await queuerService.onMessage(msg);
 
       expect(spies.rmqConnection.reject.mock.calls.length).toBe(1);
       expect(spies.rmqConnection.reject.mock.calls[0][0]).toBe(msg);
@@ -94,8 +89,8 @@ describe('DispatcherService', () => {
 
       spies.leService.send.mockImplementation(() => ({ status: 400 }));
 
-      await dispatcherService.start();
-      await dispatcherService.onMessage(msg);
+      await queuerService.start();
+      await queuerService.onMessage(msg);
 
       expect(spies.rmqConnection.reject.mock.calls.length).toBe(1);
       expect(spies.rmqConnection.reject.mock.calls[0][0]).toBe(msg);
@@ -108,8 +103,8 @@ describe('DispatcherService', () => {
 
       const msg = { content: { toString: () => '{"id": "fake_id"}' } } as any;
 
-      await dispatcherService.start();
-      await dispatcherService.onMessage(msg);
+      await queuerService.start();
+      await queuerService.onMessage(msg);
 
       expect(spies.rmqConnection.reject.mock.calls.length).toBe(0);
       expect(spies.rmqConnection.ack.mock.calls.length).toBe(1);

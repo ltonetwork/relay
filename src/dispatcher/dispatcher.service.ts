@@ -23,7 +23,12 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
 
   async start(): Promise<void> {
     this.connection = await this.rabbitMQService.connect(await this.config.getRabbitMQClient());
-    await this.connection.consume(await this.config.getRabbitMQQueue(), this.onMessage);
+
+    await this.connection.consume(
+      await this.config.getRabbitMQExchange(),
+      await this.config.getRabbitMQQueue(),
+      this.onMessage,
+    );
   }
 
   async onMessage(msg: amqplib.Message) {
@@ -32,26 +37,33 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
     }
 
     if (!msg || !msg.content) {
-      throw new Error('dispatcher: unable to handle message, invalid message received');
-    }
-
-    const event = JSON.parse(msg.content.toString());
-
-    if (!event.id) {
       return this.connection.reject(msg);
     }
 
-    const response = await this.legalEventsService.send(event);
+    const event = {
+      string: msg.content.toString(),
+      json: null,
+    };
+
+    try {
+      event.json = JSON.parse(event.string);
+    } catch (e) {
+      return this.connection.reject(msg);
+    }
+
+    if (!event.json || !event.json.id) {
+      return this.connection.reject(msg);
+    }
+
+    const response = await this.legalEventsService.send(event.json);
 
     if (
       !response || response instanceof Error || !response.status ||
-      [200, 201, 204].indexOf(response.status) === -1
+      [200, 201, 204].indexOf(response.status) === - 1
     ) {
       return this.connection.reject(msg);
     }
 
     this.connection.ack(msg);
-    // get identities and create dynamic shovels for their nodes
-    // copy event from the default queue to a local queue for the node
   }
 }

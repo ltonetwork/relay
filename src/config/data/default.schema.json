@@ -29,7 +29,11 @@
       },
       "queue": {
         "doc": "The default queue name used by rabbitmq",
-        "default": "default"
+        "default": "''"
+      },
+      "exchange": {
+        "doc": "The default exchange name used by rabbitmq",
+        "default": "''"
       }
     },
     "legalevents": {

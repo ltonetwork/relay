@@ -28,6 +28,10 @@ export class ConfigService {
     return await this.config.get('dispatcher.rabbitmq.api');
   }
 
+  async getRabbitMQExchange(): Promise<string> {
+    return await this.config.get('dispatcher.rabbitmq.exchange');
+  }
+
   async getRabbitMQQueue(): Promise<string> {
     return await this.config.get('dispatcher.rabbitmq.queue');
   }
