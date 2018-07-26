@@ -24,14 +24,14 @@ describe('RabbitMQApiService', () => {
 
       const destination = 'amqp://destination';
       const queue = 'queue';
-      expect(await rabbitmqApiService.addDynamicShovel(destination, queue)).toBe(response);
+      expect(await rabbitmqApiService.addDynamicShovel(queue, destination)).toBe(response);
 
       expect(httpServiceSpy.mock.calls.length).toBe(1);
       expect(httpServiceSpy.mock.calls[0][0]).toBe('http://localhost:15672/api/parameters/shovel/%2F/default');
       expect(httpServiceSpy.mock.calls[0][1]).toEqual({
         value: {
           'dest-protocol': 'amqp091',
-          'dest-queue': 'default',
+          'dest-queue': '\'\'',
           'dest-uri': destination,
           'src-protocol': 'amqp091',
           'src-queue': queue,

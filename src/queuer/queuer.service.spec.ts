@@ -2,27 +2,25 @@ import { Test } from '@nestjs/testing';
 import { QueuerModuleConfig } from './queuer.module';
 import { QueuerService } from './queuer.service';
 import { RabbitMQService } from '../rabbitmq/rabbitmq.service';
-import { LegalEventsService } from '../legalevents/legalevents.service';
+import { RabbitMQApiService } from '../rabbitmq/rabbitmq-api.service';
 
 describe('QueuerService', () => {
   let queuerService: QueuerService;
   let rabbitmqService: RabbitMQService;
-  let legalEventsService: LegalEventsService;
+  let rabbitmqApiService: RabbitMQApiService;
 
   function spy() {
     const rmqConnection = {
-      ack: jest.fn(),
-      reject: jest.fn(),
-      consume: jest.fn(),
+      publish: jest.fn(),
     };
     const rmqService = {
       connect: jest.spyOn(rabbitmqService, 'connect').mockImplementation(() => rmqConnection),
     };
-    const leService = {
-      send: jest.spyOn(legalEventsService, 'send').mockImplementation(() => ({ status: 200 })),
+    const rmqApiService = {
+      addDynamicShovel: jest.spyOn(rabbitmqApiService, 'addDynamicShovel').mockImplementation(() => ({ status: 200 })),
     };
 
-    return { rmqConnection, rmqService, leService };
+    return { rmqConnection, rmqService, rmqApiService };
   }
 
   beforeEach(async () => {
@@ -31,14 +29,15 @@ describe('QueuerService', () => {
 
     queuerService = module.get<QueuerService>(QueuerService);
     rabbitmqService = module.get<RabbitMQService>(RabbitMQService);
-    legalEventsService = module.get<LegalEventsService>(LegalEventsService);
+    rabbitmqApiService = module.get<RabbitMQApiService>(RabbitMQApiService);
   });
 
-  describe('start()', () => {
-    test('should start the queuer which listens for rabbitmq messages', async () => {
+  describe('add()', () => {
+    test('should connect and publish event to local default queue', async () => {
       const spies = spy();
 
-      await queuerService.start();
+      const event = { id: 'fake_id' };
+      await queuerService.add(event);
 
       expect(spies.rmqService.connect.mock.calls.length).toBe(1);
       expect(spies.rmqService.connect.mock.calls[0][0]).toEqual({
@@ -50,67 +49,42 @@ describe('QueuerService', () => {
         vhost: '/',
       });
 
-      expect(spies.rmqConnection.consume.mock.calls.length).toBe(1);
-      expect(spies.rmqConnection.consume.mock.calls[0][0]).toBe('default');
-      expect(typeof spies.rmqConnection.consume.mock.calls[0][1]).toBe('function');
-    });
-  });
-
-  describe('onMessage()', () => {
-    test('should throw error if no connection is created', async () => {
-      await expect(queuerService.onMessage(null)).rejects
-        .toThrow('queuer: unable to handle message, connection is not started');
+      expect(spies.rmqConnection.publish.mock.calls.length).toBe(1);
+      expect(spies.rmqConnection.publish.mock.calls[0][0]).toBe('\'\'');
+      expect(spies.rmqConnection.publish.mock.calls[0][1]).toBe('\'\'');
+      expect(spies.rmqConnection.publish.mock.calls[0][2]).toBe(event);
     });
 
-    test('should throw error if invalid message is received', async () => {
+    test('should create dynamic shovel and publish event to remote queue if param is given', async () => {
       const spies = spy();
 
-      await queuerService.start();
-      await expect(queuerService.onMessage(null)).rejects
-        .toThrow('queuer: unable to handle message, invalid message received');
-    });
+      const event = { id: 'fake_id' };
+      const destination = ['amqp://ext1', 'amqp://ext2'];
+      await queuerService.add(event, destination);
 
-    test('should reject message if event has no id', async () => {
-      const spies = spy();
+      expect(spies.rmqService.connect.mock.calls.length).toBe(1);
+      expect(spies.rmqService.connect.mock.calls[0][0]).toEqual({
+        hostname: 'localhost',
+        password: 'guest',
+        port: '5672',
+        protocol: 'amqp',
+        username: 'guest',
+        vhost: '/',
+      });
 
-      const msg = { content: { toString: () => '{}' } } as any;
+      expect(spies.rmqApiService.addDynamicShovel.mock.calls.length).toBe(2);
+      expect(spies.rmqApiService.addDynamicShovel.mock.calls[0][0]).toBe('amqp://ext1');
+      expect(spies.rmqApiService.addDynamicShovel.mock.calls[0][1]).toBe('amqp://ext1');
+      expect(spies.rmqApiService.addDynamicShovel.mock.calls[1][0]).toBe('amqp://ext2');
+      expect(spies.rmqApiService.addDynamicShovel.mock.calls[1][1]).toBe('amqp://ext2');
 
-      await queuerService.start();
-      await queuerService.onMessage(msg);
-
-      expect(spies.rmqConnection.reject.mock.calls.length).toBe(1);
-      expect(spies.rmqConnection.reject.mock.calls[0][0]).toBe(msg);
-    });
-
-    test('should reject message if legalevents responds with bad status code', async () => {
-      const spies = spy();
-
-      const msg = { content: { toString: () => '{"id": "fake_id"}' } } as any;
-
-      spies.leService.send.mockImplementation(() => ({ status: 400 }));
-
-      await queuerService.start();
-      await queuerService.onMessage(msg);
-
-      expect(spies.rmqConnection.reject.mock.calls.length).toBe(1);
-      expect(spies.rmqConnection.reject.mock.calls[0][0]).toBe(msg);
-      expect(spies.leService.send.mock.calls.length).toBe(1);
-      expect(spies.leService.send.mock.calls[0][0]).toEqual({ id: 'fake_id' });
-    });
-
-    test('should acknowledge message if legalevents responds with success status code', async () => {
-      const spies = spy();
-
-      const msg = { content: { toString: () => '{"id": "fake_id"}' } } as any;
-
-      await queuerService.start();
-      await queuerService.onMessage(msg);
-
-      expect(spies.rmqConnection.reject.mock.calls.length).toBe(0);
-      expect(spies.rmqConnection.ack.mock.calls.length).toBe(1);
-      expect(spies.rmqConnection.ack.mock.calls[0][0]).toBe(msg);
-      expect(spies.leService.send.mock.calls.length).toBe(1);
-      expect(spies.leService.send.mock.calls[0][0]).toEqual({ id: 'fake_id' });
+      expect(spies.rmqConnection.publish.mock.calls.length).toBe(2);
+      expect(spies.rmqConnection.publish.mock.calls[0][0]).toBe('\'\'');
+      expect(spies.rmqConnection.publish.mock.calls[0][1]).toBe('amqp://ext1');
+      expect(spies.rmqConnection.publish.mock.calls[0][2]).toBe(event);
+      expect(spies.rmqConnection.publish.mock.calls[1][0]).toBe('\'\'');
+      expect(spies.rmqConnection.publish.mock.calls[1][1]).toBe('amqp://ext2');
+      expect(spies.rmqConnection.publish.mock.calls[1][2]).toBe(event);
     });
   });
 });

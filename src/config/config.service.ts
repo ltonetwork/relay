@@ -36,6 +36,10 @@ export class ConfigService {
     return await this.config.get('dispatcher.rabbitmq.queue');
   }
 
+  async getRabbitMQShovel(): Promise<string> {
+    return await this.config.get('dispatcher.rabbitmq.shovel');
+  }
+
   async getLegalEventsUrl(): Promise<string> {
     return await this.config.get('dispatcher.legalevents.url');
   }

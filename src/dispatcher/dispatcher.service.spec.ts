@@ -63,7 +63,7 @@ describe('DispatcherService', () => {
         .toThrow('dispatcher: unable to handle message, connection is not started');
     });
 
-    test('shouldreject message if invalid or no message is received', async () => {
+    test('should reject message if invalid or no message is received', async () => {
       const spies = spy();
 
       const msg = null;

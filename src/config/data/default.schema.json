@@ -34,6 +34,10 @@
       "exchange": {
         "doc": "The default exchange name used by rabbitmq",
         "default": "''"
+      },
+      "shovel": {
+        "doc": "The default shovel name used by rabbitmq",
+        "default": "default"
       }
     },
     "legalevents": {
