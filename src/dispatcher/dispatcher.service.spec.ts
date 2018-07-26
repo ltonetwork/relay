@@ -58,17 +58,11 @@ describe('DispatcherService', () => {
   });
 
   describe('onMessage()', () => {
-    test('should throw error if no connection is created', async () => {
-      await expect(dispatcherService.onMessage(null)).rejects
-        .toThrow('dispatcher: unable to handle message, connection is not started');
-    });
-
     test('should reject message if invalid or no message is received', async () => {
       const spies = spy();
 
       const msg = null;
 
-      await dispatcherService.start();
       await dispatcherService.onMessage(msg);
 
       expect(spies.rmqConnection.reject.mock.calls.length).toBe(1);
@@ -80,7 +74,6 @@ describe('DispatcherService', () => {
 
       const msg = { content: { toString: () => '{}' } } as any;
 
-      await dispatcherService.start();
       await dispatcherService.onMessage(msg);
 
       expect(spies.rmqConnection.reject.mock.calls.length).toBe(1);
@@ -108,7 +101,6 @@ describe('DispatcherService', () => {
 
       const msg = { content: { toString: () => '{"id": "fake_id"}' } } as any;
 
-      await dispatcherService.start();
       await dispatcherService.onMessage(msg);
 
       expect(spies.rmqConnection.reject.mock.calls.length).toBe(0);

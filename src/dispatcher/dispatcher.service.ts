@@ -27,13 +27,13 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
     await this.connection.consume(
       await this.config.getRabbitMQExchange(),
       await this.config.getRabbitMQQueue(),
-      this.onMessage,
+      this.onMessage.bind(this),
     );
   }
 
   async onMessage(msg: amqplib.Message) {
     if (!this.connection) {
-      throw new Error('dispatcher: unable to handle message, connection is not started');
+      this.connection = await this.rabbitMQService.connect(await this.config.getRabbitMQClient());
     }
 
     if (!msg || !msg.content) {

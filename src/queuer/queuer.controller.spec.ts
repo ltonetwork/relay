@@ -1,6 +1,5 @@
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
-import { AppModuleConfig } from '../app.module';
 import { QueuerModuleConfig } from './queuer.module';
 import { QueuerService } from './queuer.service';
 import { INestApplication } from '@nestjs/common';
@@ -18,7 +17,7 @@ describe('QueuerController', () => {
   }
 
   beforeEach(async () => {
-    const module = await Test.createTestingModule(AppModuleConfig).compile();
+    const module = await Test.createTestingModule(QueuerModuleConfig).compile();
     app = module.createNestApplication();
     await app.init();
 
