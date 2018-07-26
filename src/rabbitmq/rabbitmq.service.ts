@@ -1,13 +1,18 @@
-import { Injectable, Inject, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, Inject, OnModuleInit, OnModuleDestroy, HttpService } from '@nestjs/common';
 import { RabbitMQConnection } from './classes/rabbitmq.connection';
 import { AMQPLIB } from '../constants';
 import amqplib from 'amqplib';
+import { ConfigService } from '../config/config.service';
 
 @Injectable()
 export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
   public readonly connections: { [key: string]: RabbitMQConnection } = {};
 
-  constructor(@Inject(AMQPLIB) private readonly rabbitmq: typeof amqplib) { }
+  constructor(
+    private readonly httpService: HttpService,
+    @Inject(AMQPLIB) private readonly _amqplib: typeof amqplib,
+    private readonly config: ConfigService,
+  ) { }
 
   async onModuleInit() { }
 
@@ -22,7 +27,7 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
       return this.connections[key];
     }
 
-    const connection = await this.rabbitmq.connect(config);
+    const connection = await this._amqplib.connect(config);
     const channel = await connection.createChannel();
     this.connections[key] = new RabbitMQConnection(connection, channel);
 

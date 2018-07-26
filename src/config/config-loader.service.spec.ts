@@ -1,9 +1,19 @@
-import { ConfigService } from './config.service';
+import { Test } from '@nestjs/testing';
+import { ConfigModuleConfig } from './config.module';
+import { ConfigLoaderService } from './config-loader.service';
 
-describe('ConfigService', () => {
+describe('ConfigLoaderService', () => {
+  let configService: ConfigLoaderService;
+
+  beforeEach(async () => {
+    const module = await Test.createTestingModule(ConfigModuleConfig).compile();
+    await module.init();
+
+    configService = module.get<ConfigLoaderService>(ConfigLoaderService);
+  });
+
   describe('get()', () => {
     test('should return all data from config if no key is given', async () => {
-      const configService = new ConfigService();
       const config = await configService.get();
       expect(config).toMatchObject({
         env: 'test',
@@ -11,7 +21,6 @@ describe('ConfigService', () => {
     });
 
     test('should return only data from config that matches given key', async () => {
-      const configService = new ConfigService();
       const config = await configService.get('env');
       expect(config).toEqual('test');
     });
@@ -19,7 +28,6 @@ describe('ConfigService', () => {
 
   describe('set()', () => {
     test('should set only data in config that matches given key', async () => {
-      const configService = new ConfigService();
       await configService.set('env', 'foo');
       const config = await configService.get();
       expect(config).toMatchObject({
@@ -30,7 +38,6 @@ describe('ConfigService', () => {
 
   describe('has()', () => {
     test('should return whether the key in the config exists', async () => {
-      const configService = new ConfigService();
       expect(await configService.has('env')).toBe(true);
       expect(await configService.has('foo')).toBe(false);
     });

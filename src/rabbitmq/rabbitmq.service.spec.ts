@@ -1,10 +1,12 @@
 import { Test } from '@nestjs/testing';
 import { RabbitMQModuleConfig } from './rabbitmq.module';
 import { RabbitMQService } from './rabbitmq.service';
+import { HttpService } from '@nestjs/common';
 import { AMQPLIB } from '../constants';
 
 describe('RabbitMQService', () => {
   let rabbitmqService: RabbitMQService;
+  let httpService: HttpService;
   const channel = {
     close: jest.fn(),
     assertQueue: jest.fn(),
@@ -24,8 +26,10 @@ describe('RabbitMQService', () => {
       .overrideProvider(AMQPLIB)
       .useValue({ channel, connection, connect })
       .compile();
+    await module.init();
 
     rabbitmqService = module.get<RabbitMQService>(RabbitMQService);
+    httpService = module.get<HttpService>(HttpService);
   });
 
   describe('connect()', () => {
