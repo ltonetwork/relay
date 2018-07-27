@@ -25,7 +25,7 @@ describe('LegalEventsService', () => {
       expect(await legalEventsService.send(event)).toBe(response);
 
       expect(requestServiceSpy.mock.calls.length).toBe(1);
-      expect(requestServiceSpy.mock.calls[0][0]).toBe('http://localhost:3030/api/events');
+      expect(requestServiceSpy.mock.calls[0][0]).toBe('http://localhost:3030/api/events/event-chains');
       expect(requestServiceSpy.mock.calls[0][1]).toBe(event);
     });
   });

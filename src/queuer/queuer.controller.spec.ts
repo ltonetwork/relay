@@ -28,7 +28,7 @@ describe('QueuerController', () => {
     test('should pass event to the queuer service', async () => {
       const spies = spy();
 
-      const event = { id: 'fake_id' };
+      const event = { id: 'fakeid' };
       const res = await request(app.getHttpServer())
         .post('/queue')
         .send(event);
@@ -45,7 +45,7 @@ describe('QueuerController', () => {
     test('should pass event and remote nodes to the queuer service', async () => {
       const spies = spy();
 
-      const event = { id: 'fake_id' };
+      const event = { id: 'fakeid' };
       const to = ['amqp://ext1', 'amqp://ext2'];
       const res = await request(app.getHttpServer())
         .post('/queue')
