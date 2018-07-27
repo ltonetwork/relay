@@ -1,6 +1,5 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { AxiosResponse } from 'axios';
-import { LoggerService } from '../logger/logger.service';
 import { ConfigService } from '../config/config.service';
 import { RequestService } from '../request/request.service';
 
@@ -8,7 +7,6 @@ import { RequestService } from '../request/request.service';
 export class LegalEventsService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly requestService: RequestService,
-    private readonly logger: LoggerService,
     private readonly config: ConfigService,
   ) { }
 

@@ -64,7 +64,7 @@ export class RequestService {
   }
 
   private log(e, method, url) {
-    this.logger.error(`http: failed send '${method}: ${url}', error: '${e}'`, {
+    this.logger.error(`request: failed send '${method}: ${url}', error: '${e}'`, {
       stack: e.stack,
       response: e.response ? e.response.data : null,
     });

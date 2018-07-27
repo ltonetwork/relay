@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import querystring from 'querystring';
 import { AxiosResponse } from 'axios';
-import { LoggerService } from '../logger/logger.service';
 import { ConfigService } from '../config/config.service';
 import { RequestService } from '../request/request.service';
 
@@ -9,7 +8,6 @@ import { RequestService } from '../request/request.service';
 export class RabbitMQApiService {
   constructor(
     private readonly requestService: RequestService,
-    private readonly logger: LoggerService,
     private readonly config: ConfigService,
   ) { }
 
