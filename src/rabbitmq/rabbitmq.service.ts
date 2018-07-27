@@ -1,4 +1,4 @@
-import { Injectable, Inject, OnModuleInit, OnModuleDestroy, HttpService } from '@nestjs/common';
+import { Injectable, Inject, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { RabbitMQConnection } from './classes/rabbitmq.connection';
 import { LoggerService } from '../logger/logger.service';
 import { AMQPLIB } from '../constants';
