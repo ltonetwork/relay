@@ -10,6 +10,9 @@
         "vhost": "/"
       },
       "api": "http://rabbitmq:15672/api"
+    },
+    "legalevents": {
+      "url": "http://legalevents"
     }
   }
 }
