@@ -21,10 +21,8 @@ export class RabbitMQApiService {
     const queue = await this.config.getRabbitMQQueue();
     const data = {
       value: {
-        'src-protocol': 'amqp091',
         'src-uri': 'amqp://',
         'src-queue': srcQueue,
-        'dest-protocol': 'amqp091',
         'dest-uri': destUri,
         'dest-queue': queue,
       },
