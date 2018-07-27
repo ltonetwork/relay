@@ -1,12 +1,13 @@
-import { Injectable, HttpService } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import querystring from 'querystring';
 import { AxiosResponse } from 'axios';
 import { ConfigService } from '../config/config.service';
+import { RequestService } from '../request/request.service';
 
 @Injectable()
 export class RabbitMQApiService {
   constructor(
-    private readonly httpService: HttpService,
+    private readonly requestService: RequestService,
     private readonly config: ConfigService,
   ) { }
 
@@ -19,20 +20,13 @@ export class RabbitMQApiService {
     const queue = await this.config.getRabbitMQQueue();
     const data = {
       value: {
-        'src-protocol': 'amqp091',
         'src-uri': 'amqp://',
         'src-queue': srcQueue,
-        'dest-protocol': 'amqp091',
         'dest-uri': destUri,
         'dest-queue': queue,
       },
     };
 
-    try {
-      const response = await this.httpService.put(url, data, { auth }).toPromise();
-      return response;
-    } catch (e) {
-      return e;
-    }
+    return await this.requestService.put(url, data, { auth });
   }
 }

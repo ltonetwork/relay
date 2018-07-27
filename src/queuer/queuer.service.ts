@@ -2,6 +2,7 @@ import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { RabbitMQService } from '../rabbitmq/rabbitmq.service';
 import { RabbitMQApiService } from '../rabbitmq/rabbitmq-api.service';
 import { RabbitMQConnection } from '../rabbitmq/classes/rabbitmq.connection';
+import { LoggerService } from '../logger/logger.service';
 import { ConfigService } from '../config/config.service';
 import util from 'util';
 
@@ -10,6 +11,7 @@ export class QueuerService implements OnModuleInit, OnModuleDestroy {
   private connection: RabbitMQConnection;
 
   constructor(
+    private readonly logger: LoggerService,
     private readonly config: ConfigService,
     private readonly rabbitMQService: RabbitMQService,
     private readonly rabbitMQApiService: RabbitMQApiService,
@@ -27,12 +29,14 @@ export class QueuerService implements OnModuleInit, OnModuleDestroy {
     }
 
     if (!destination || !destination.length) {
+      this.logger.info(`queuer: adding event '${event.id}' for local node`);
       return this.addLocal(event);
     }
 
     const to = util.isString(destination) ? [destination] : destination;
 
     for (const node of to) {
+      this.logger.info(`queuer: adding event '${event.id}' for remote node '${node}'`);
       await this.addRemote(node, event);
     }
   }
@@ -52,7 +56,6 @@ export class QueuerService implements OnModuleInit, OnModuleDestroy {
       !response || response instanceof Error || !response.status ||
       [200, 201, 204].indexOf(response.status) === - 1
     ) {
-      // @todo: log error
       throw new Error('queuer: failed to add shovel for remote node');
     }
 
