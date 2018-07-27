@@ -3,6 +3,7 @@ import { RabbitMQConnection } from './classes/rabbitmq.connection';
 import { LoggerService } from '../logger/logger.service';
 import { AMQPLIB } from '../constants';
 import amqplib from 'amqplib';
+import delay from 'delay';
 
 @Injectable()
 export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
@@ -26,12 +27,19 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
       return this.connections[key];
     }
 
-    this.logger.info(`rabbitmq: starting connection ${key}`);
-    const connection = await this._amqplib.connect(config);
-    const channel = await connection.createChannel();
-    this.connections[key] = new RabbitMQConnection(connection, channel);
+    this.logger.info(`rabbitmq: attempting to connect ${key}`);
 
-    return this.connections[key];
+    try {
+      const connection = await this._amqplib.connect(config);
+      const channel = await connection.createChannel();
+      this.connections[key] = new RabbitMQConnection(connection, channel);
+      this.logger.info(`rabbitmq: successfully connect ${key}`);
+      return this.connections[key];
+    } catch (e) {
+      this.logger.error(`rabbitmq: failed to connect ${key}`, { stack: e.stack });
+      await delay(2000);
+      return this.connect(config);
+    }
   }
 
   async close() {
