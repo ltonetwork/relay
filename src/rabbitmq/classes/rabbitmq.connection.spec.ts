@@ -29,11 +29,11 @@ describe('RabbitMQConnection', () => {
       await rabbitmqConnection.consume('fake_exchange', 'fake_queue', spies.rmqCallback);
 
       // init phase
-      expect(spies.rmqChannel.assertQueue.mock.calls.length).toBe(1);
+      expect(spies.rmqChannel.assertQueue.mock.calls.length).toBe(2);
       expect(spies.rmqChannel.assertQueue.mock.calls[0][0]).toBe('fake_queue');
-      expect(spies.rmqChannel.assertExchange.mock.calls.length).toBe(1);
+      expect(spies.rmqChannel.assertExchange.mock.calls.length).toBe(2);
       expect(spies.rmqChannel.assertExchange.mock.calls[0][0]).toBe('fake_exchange');
-      expect(spies.rmqChannel.bindQueue.mock.calls.length).toBe(1);
+      expect(spies.rmqChannel.bindQueue.mock.calls.length).toBe(2);
       expect(spies.rmqChannel.bindQueue.mock.calls[0][0]).toBe('fake_queue');
       expect(spies.rmqChannel.bindQueue.mock.calls[0][1]).toBe('fake_exchange');
       expect(spies.rmqChannel.bindQueue.mock.calls[0][2]).toBe('fake_queue');
@@ -55,11 +55,11 @@ describe('RabbitMQConnection', () => {
       await rabbitmqConnection.publish('fake_exchange', 'fake_queue', 'This is produced');
 
       // init phase
-      expect(spies.rmqChannel.assertQueue.mock.calls.length).toBe(1);
+      expect(spies.rmqChannel.assertQueue.mock.calls.length).toBe(2);
       expect(spies.rmqChannel.assertQueue.mock.calls[0][0]).toBe('fake_queue');
-      expect(spies.rmqChannel.assertExchange.mock.calls.length).toBe(1);
+      expect(spies.rmqChannel.assertExchange.mock.calls.length).toBe(2);
       expect(spies.rmqChannel.assertExchange.mock.calls[0][0]).toBe('fake_exchange');
-      expect(spies.rmqChannel.bindQueue.mock.calls.length).toBe(1);
+      expect(spies.rmqChannel.bindQueue.mock.calls.length).toBe(2);
       expect(spies.rmqChannel.bindQueue.mock.calls[0][0]).toBe('fake_queue');
       expect(spies.rmqChannel.bindQueue.mock.calls[0][1]).toBe('fake_exchange');
       expect(spies.rmqChannel.bindQueue.mock.calls[0][2]).toBe('fake_queue');

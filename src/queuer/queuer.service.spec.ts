@@ -51,7 +51,7 @@ describe('QueuerService', () => {
 
       expect(spies.rmqConnection.publish.mock.calls.length).toBe(1);
       expect(spies.rmqConnection.publish.mock.calls[0][0]).toBe('\'\'');
-      expect(spies.rmqConnection.publish.mock.calls[0][1]).toBe('\'\'');
+      expect(spies.rmqConnection.publish.mock.calls[0][1]).toBe('default');
       expect(spies.rmqConnection.publish.mock.calls[0][2]).toBe(event);
     });
 
