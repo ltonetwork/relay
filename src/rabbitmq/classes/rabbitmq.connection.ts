@@ -29,7 +29,7 @@ export class RabbitMQConnection {
     this.channel.ack(message);
   }
 
-  reject(message: amqplib.Message, requeue?: boolean) {
+  reject(message: amqplib.Message, requeue: boolean = false) {
     this.channel.reject(message, requeue);
   }
 
