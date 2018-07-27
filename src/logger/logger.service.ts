@@ -1,5 +1,4 @@
 import { Injectable, Inject, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { ConfigService } from '../config/config.service';
 import { WINSTON } from '../constants';
 import winston from 'winston';
 import moment from 'moment';
@@ -11,7 +10,6 @@ export class LoggerService implements OnModuleInit, OnModuleDestroy {
 
   constructor(
     @Inject(WINSTON) private readonly _winston: typeof winston,
-    private readonly config: ConfigService,
   ) { }
 
   async onModuleInit() {

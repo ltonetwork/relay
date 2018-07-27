@@ -4,7 +4,8 @@
     "format": [
       "production",
       "development",
-      "test"
+      "test",
+      "lto"
     ],
     "default": "development",
     "env": "NODE_ENV"

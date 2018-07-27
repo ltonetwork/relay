@@ -1,0 +1,20 @@
+{
+  "dispatcher": {
+    "rabbitmq": {
+      "client": {
+        "protocol": "amqp",
+        "hostname": "rabbitmq",
+        "port": "5672",
+        "username": "guest",
+        "password": "guest",
+        "vhost": "/"
+      },
+      "api": "http://rabbitmq:15672/api"
+    },
+    "legalevents": {
+      "url": {
+        "default": "http://legalevents"
+      }
+    }
+  }
+}

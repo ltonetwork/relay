@@ -11,8 +11,8 @@ import { RequestModule } from './request/request.module';
 
 export const AppModuleConfig = {
   imports: [
-    ConfigModule,
     LoggerModule,
+    ConfigModule,
     RequestModule,
     RabbitMQModule,
     LegalEventsModule,

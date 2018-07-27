@@ -3,12 +3,15 @@ import util from 'util';
 import path from 'path';
 import fs from 'fs';
 import convict from 'convict';
+import { LoggerService } from '../logger/logger.service';
 
 @Injectable()
 export class ConfigLoaderService implements OnModuleInit, OnModuleDestroy {
   private config: convict.Config<object>;
   private readonly ttl: number = 300000; // 5 minutes in milliseconds
   private config_reload_interval: NodeJS.Timer;
+
+  constructor(private readonly logger: LoggerService) { }
 
   async onModuleInit() {
     if (!this.config) {
@@ -34,7 +37,12 @@ export class ConfigLoaderService implements OnModuleInit, OnModuleDestroy {
     this.config = convict(`${dir}/default.schema.json`);
     this.config.loadFile(`${dir}/default.config.json`);
 
-    const env = `${dir}/default.${this.config.get('env')}.json`;
+    const env = `${dir}/${this.config.get('env')}.config.json`;
+
+    if (this.logger) {
+      this.logger.info(`loading config for env '${this.config.get('env')}'`);
+    }
+
     if (await util.promisify(fs.exists)(env)) {
       this.config.loadFile(env);
     }
