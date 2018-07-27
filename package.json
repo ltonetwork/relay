@@ -24,6 +24,7 @@
     "axios": "^0.18.0",
     "convict": "^4.3.2",
     "fastify-formbody": "^2.0.1",
+    "moment": "^2.22.2",
     "reflect-metadata": "^0.1.12",
     "rxjs": "^6.2.2",
     "winston": "^3.0.0"

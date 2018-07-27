@@ -21,7 +21,10 @@ export class LegalEventsService implements OnModuleInit, OnModuleDestroy {
       const response = await this.httpService.post(url, event).toPromise();
       return response;
     } catch (e) {
-      this.logger.error(`legalevents: failed to send, error: '${e}'`);
+      this.logger.error(`legalevents: failed to send, error: '${e}'`, {
+        stack: e.stack,
+        response: e.response.data,
+      });
       return e;
     }
   }

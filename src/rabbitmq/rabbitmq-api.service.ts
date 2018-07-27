@@ -34,7 +34,10 @@ export class RabbitMQApiService {
       const response = await this.httpService.put(url, data, { auth }).toPromise();
       return response;
     } catch (e) {
-      this.logger.error(`queuer: failed to add shovel for remote node: '${e}'`);
+      this.logger.error(`queuer: failed to add shovel for remote node: '${e}'`, {
+        stack: e.stack,
+        response: e.response.data,
+      });
       return e;
     }
   }
