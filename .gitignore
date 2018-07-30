@@ -1,6 +1,5 @@
 lib-cov
 *.seed
-*.log
 *.csv
 *.dat
 *.out
@@ -38,3 +37,7 @@ dist/**/*
 
 # Coverage
 coverage
+
+# Logs
+*.log
+logs
