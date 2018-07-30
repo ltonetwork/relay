@@ -2,8 +2,6 @@ import amqplib from 'amqplib';
 import util from 'util';
 
 export class RabbitMQConnection {
-  private initialized = false;
-
   constructor(
     private readonly connection: amqplib.Connection,
     private readonly channel: amqplib.Channel,
@@ -30,7 +28,7 @@ export class RabbitMQConnection {
   }
 
   requeue(message: amqplib.Message) {
-    this.channel.reject(message, true);
+    this.channel.git reject(message, true);
   }
 
   deadletter(message: amqplib.Message) {
@@ -38,15 +36,12 @@ export class RabbitMQConnection {
   }
 
   private async init(exchange: string, queue: string, pattern: string) {
-    if (this.initialized) {
-      return;
-    }
-
     // create queue
     await this.assertExchange(exchange);
     await this.assertQueue(queue, {
       durable: true,
       deadLetterExchange: `${exchange}.deadletter`,
+      deadLetterRoutingKey: `${queue}.deadletter`,
     });
     await this.bindQueue(exchange, queue, pattern);
 
@@ -54,16 +49,21 @@ export class RabbitMQConnection {
     await this.assertExchange(`${exchange}.deadletter`);
     await this.assertQueue(`${queue}.deadletter`);
     await this.bindQueue(`${exchange}.deadletter`, `${queue}.deadletter`, `${queue}.deadletter`);
-
-    this.initialized = true;
   }
 
-  private async assertQueue(queue: string, options: amqplib.Options.AssertQueue = { durable: true }) {
+  private async assertQueue(
+    queue: string,
+    options: amqplib.Options.AssertQueue = { durable: true },
+  ) {
     await this.channel.assertQueue(queue, options);
   }
 
-  private async assertExchange(exchange: string) {
-    await this.channel.assertExchange(exchange, 'direct', { durable: true });
+  private async assertExchange(
+    exchange: string,
+    type: string = 'direct',
+    options: amqplib.Options.AssertExchange = { durable: true },
+  ) {
+    await this.channel.assertExchange(exchange, type, options);
   }
 
   private async bindQueue(exchange: string, queue: string, pattern: string) {
