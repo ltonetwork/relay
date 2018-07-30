@@ -42,8 +42,8 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
     }
 
     if (!msg || !msg.content) {
-      this.logger.info('dispatcher: message rejected, it is invalid');
-      return this.connection.reject(msg);
+      this.logger.info('dispatcher: message deadlettered, it is invalid');
+      return this.connection.deadletter(msg);
     }
 
     const event = {
@@ -54,12 +54,12 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
     try {
       event.json = JSON.parse(event.string);
     } catch (e) {
-      this.logger.info('dispatcher: message rejected, it is not json');
-      return this.connection.reject(msg);
+      this.logger.info('dispatcher: message deadlettered, it is not json');
+      return this.connection.deadletter(msg);
     }
 
     if (!event.json || !event.json.id) {
-      return this.connection.reject(msg);
+      return this.connection.deadletter(msg);
     }
 
     const response = await this.legalEventsService.send(event.json);
@@ -68,8 +68,8 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
       !response || response instanceof Error || !response.status ||
       [200, 201, 204].indexOf(response.status) === - 1
     ) {
-      this.logger.info('dispatcher: message rejected, failed to send to legalevents');
-      return this.connection.reject(msg);
+      this.logger.info('dispatcher: message deadlettered, failed to send to legalevents');
+      return this.connection.deadletter(msg);
     }
 
     this.connection.ack(msg);

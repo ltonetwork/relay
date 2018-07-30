@@ -7,7 +7,7 @@ import { RabbitMQModule } from '../rabbitmq/rabbitmq.module';
 import { LegalEventsModule } from '../legalevents/legalevents.module';
 
 export const DispatcherModuleConfig = {
-  imports: [ConfigModule, LoggerModule, RabbitMQModule, LegalEventsModule],
+  imports: [LoggerModule, ConfigModule, RabbitMQModule, LegalEventsModule],
   controllers: [],
   providers: [
     ...dispatcherProviders,

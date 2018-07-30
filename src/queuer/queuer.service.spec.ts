@@ -36,7 +36,7 @@ describe('QueuerService', () => {
     test('should connect and publish event to local default queue', async () => {
       const spies = spy();
 
-      const event = { id: 'fake_id' };
+      const event = { id: 'fakeid' };
       await queuerService.add(event);
 
       expect(spies.rmqService.connect.mock.calls.length).toBe(1);
@@ -51,14 +51,14 @@ describe('QueuerService', () => {
 
       expect(spies.rmqConnection.publish.mock.calls.length).toBe(1);
       expect(spies.rmqConnection.publish.mock.calls[0][0]).toBe('\'\'');
-      expect(spies.rmqConnection.publish.mock.calls[0][1]).toBe('\'\'');
+      expect(spies.rmqConnection.publish.mock.calls[0][1]).toBe('default');
       expect(spies.rmqConnection.publish.mock.calls[0][2]).toBe(event);
     });
 
     test('should create dynamic shovel and publish event to remote queue if param is given', async () => {
       const spies = spy();
 
-      const event = { id: 'fake_id' };
+      const event = { id: 'fakeid' };
       const destination = ['amqp://ext1', 'amqp://ext2'];
       await queuerService.add(event, destination);
 

@@ -29,8 +29,12 @@ export class RabbitMQConnection {
     this.channel.ack(message);
   }
 
-  reject(message: amqplib.Message, requeue?: boolean) {
-    this.channel.reject(message, requeue);
+  requeue(message: amqplib.Message) {
+    this.channel.reject(message, true);
+  }
+
+  deadletter(message: amqplib.Message) {
+    this.channel.reject(message, false);
   }
 
   private async init(exchange: string, queue: string, pattern: string) {
@@ -38,15 +42,24 @@ export class RabbitMQConnection {
       return;
     }
 
+    // create queue
     await this.assertExchange(exchange);
-    await this.assertQueue(queue);
+    await this.assertQueue(queue, {
+      durable: true,
+      deadLetterExchange: `${exchange}.deadletter`,
+    });
     await this.bindQueue(exchange, queue, pattern);
+
+    // create deadletter
+    await this.assertExchange(`${exchange}.deadletter`);
+    await this.assertQueue(`${queue}.deadletter`);
+    await this.bindQueue(`${exchange}.deadletter`, `${queue}.deadletter`, `${queue}.deadletter`);
 
     this.initialized = true;
   }
 
-  private async assertQueue(queue: string) {
-    await this.channel.assertQueue(queue, { durable: true });
+  private async assertQueue(queue: string, options: amqplib.Options.AssertQueue = { durable: true }) {
+    await this.channel.assertQueue(queue, options);
   }
 
   private async assertExchange(exchange: string) {

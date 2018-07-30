@@ -1,10 +1,9 @@
 import { Module } from '@nestjs/common';
 import { loggerProviders } from './logger.providers';
 import { LoggerService } from './logger.service';
-import { ConfigModule } from '../config/config.module';
 
 export const LoggerModuleConfig = {
-  imports: [ConfigModule],
+  imports: [],
   controllers: [],
   providers: [
     ...loggerProviders,

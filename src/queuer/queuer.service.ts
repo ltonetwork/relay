@@ -4,6 +4,7 @@ import { RabbitMQApiService } from '../rabbitmq/rabbitmq-api.service';
 import { RabbitMQConnection } from '../rabbitmq/classes/rabbitmq.connection';
 import { LoggerService } from '../logger/logger.service';
 import { ConfigService } from '../config/config.service';
+import { EventChain } from 'lto-api';
 import util from 'util';
 
 @Injectable()
@@ -24,19 +25,23 @@ export class QueuerService implements OnModuleInit, OnModuleDestroy {
   }
 
   async add(event: any, destination?: string | string[]): Promise<void> {
+    const chain = (new EventChain()).setValues(event);
+    const hash = chain.getLatestHash();
+    this.logger.info(`queuer: adding event chain '${chain.id}'`);
+
     if (!this.connection) {
       this.connection = await this.rabbitMQService.connect(await this.config.getRabbitMQClient());
     }
 
     if (!destination || !destination.length) {
-      this.logger.info(`queuer: adding event '${event.id}' for local node`);
+      this.logger.info(`queuer: adding event '${hash}' for local node`);
       return this.addLocal(event);
     }
 
     const to = util.isString(destination) ? [destination] : destination;
 
     for (const node of to) {
-      this.logger.info(`queuer: adding event '${event.id}' for remote node '${node}'`);
+      this.logger.info(`queuer: adding event '${hash}' for remote node '${node}'`);
       await this.addRemote(node, event);
     }
   }

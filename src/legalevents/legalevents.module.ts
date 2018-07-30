@@ -6,7 +6,7 @@ import { ConfigModule } from '../config/config.module';
 import { RequestModule } from '../request/request.module';
 
 export const LegalEventsModuleConfig = {
-  imports: [ConfigModule, LoggerModule, RequestModule],
+  imports: [LoggerModule, ConfigModule, RequestModule],
   controllers: [],
   providers: [
     ...legalEventsProviders,

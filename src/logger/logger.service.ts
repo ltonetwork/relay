@@ -1,20 +1,18 @@
-import { Injectable, Inject, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { ConfigService } from '../config/config.service';
+import { Injectable, Inject } from '@nestjs/common';
 import { WINSTON } from '../constants';
 import winston from 'winston';
 import moment from 'moment';
 import util from 'util';
 
 @Injectable()
-export class LoggerService implements OnModuleInit, OnModuleDestroy {
+export class LoggerService {
   private logger: winston.Logger;
 
   constructor(
     @Inject(WINSTON) private readonly _winston: typeof winston,
-    private readonly config: ConfigService,
   ) { }
 
-  async onModuleInit() {
+  private createLogger(): winston.Logger {
     const formats = [
       winston.format.timestamp(),
       winston.format.printf((info) => {
@@ -35,7 +33,7 @@ export class LoggerService implements OnModuleInit, OnModuleDestroy {
       }),
     ];
 
-    this.logger = winston.createLogger({
+    return winston.createLogger({
       transports: [
         new winston.transports.Console({
           format: winston.format.combine(
@@ -57,17 +55,23 @@ export class LoggerService implements OnModuleInit, OnModuleDestroy {
     });
   }
 
-  async onModuleDestroy() { }
-
   info(message: string, meta?: any) {
-    this.logger.info(message, meta);
+    this.log('info', message, meta);
   }
 
   warn(message: string, meta?: any) {
-    this.logger.warn(message, meta);
+    this.log('warn', message, meta);
   }
 
   error(message: string, meta?: any) {
-    this.logger.error(message, meta);
+    this.log('error', message, meta);
+  }
+
+  private log(level: string, message: string, meta?: any) {
+    if (!this.logger) {
+      this.logger = this.createLogger();
+    }
+
+    this.logger[level](message, meta);
   }
 }

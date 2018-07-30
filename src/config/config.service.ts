@@ -3,7 +3,7 @@ import { ConfigLoaderService } from './config-loader.service';
 
 @Injectable()
 export class ConfigService {
-  constructor(private readonly config: ConfigLoaderService) { }
+  constructor(private readonly config: ConfigLoaderService) {}
 
   async getEnv(): Promise<string> {
     return await this.config.get('env');
@@ -13,7 +13,7 @@ export class ConfigService {
     return await this.config.get('dispatcher.rabbitmq.client');
   }
 
-  async getRabbitMQCredentials(): Promise<{ username, password }> {
+  async getRabbitMQCredentials(): Promise<{ username; password }> {
     return {
       username: await this.config.get('dispatcher.rabbitmq.client.username'),
       password: await this.config.get('dispatcher.rabbitmq.client.password'),

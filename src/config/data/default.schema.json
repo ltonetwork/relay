@@ -4,7 +4,8 @@
     "format": [
       "production",
       "development",
-      "test"
+      "test",
+      "lto"
     ],
     "default": "development",
     "env": "NODE_ENV"
@@ -29,10 +30,10 @@
       },
       "queue": {
         "doc": "The default queue name used by rabbitmq",
-        "default": "''"
+        "default": "default"
       },
       "exchange": {
-        "doc": "The default exchange name used by rabbitmq",
+        "doc": "The default exchange name used by rabbitmq. Note empty string has special meaning",
         "default": "''"
       },
       "shovel": {

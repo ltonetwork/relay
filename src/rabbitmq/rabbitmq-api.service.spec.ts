@@ -29,7 +29,7 @@ describe('RabbitMQApiService', () => {
       expect(requestServiceSpy.mock.calls[0][0]).toBe('http://localhost:15672/api/parameters/shovel/%2F/default');
       expect(requestServiceSpy.mock.calls[0][1]).toEqual({
         value: {
-          'dest-queue': '\'\'',
+          'dest-queue': 'default',
           'dest-uri': destination,
           'src-queue': queue,
           'src-uri': 'amqp://',

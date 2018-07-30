@@ -18,7 +18,7 @@ describe('Queuer e2e test', () => {
 
   describe('POST /queue', () => {
     test('should add event to the queue for local node', async () => {
-      const event = { id: 'local' };
+      const event = { id: 'fakeid1' };
       const res = await request(app.getHttpServer())
         .post('/queue')
         .send(event);
@@ -29,7 +29,7 @@ describe('Queuer e2e test', () => {
     }, 10000);
 
     test('should add event to the queue for remote node', async () => {
-      const event = { id: 'external' };
+      const event = { id: 'fakeid2' };
       const to = 'amqp://';
       const res = await request(app.getHttpServer())
         .post('/queue')

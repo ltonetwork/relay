@@ -7,7 +7,7 @@ import { ConfigModule } from '../config/config.module';
 import { RequestModule } from '../request/request.module';
 
 export const RabbitMQModuleConfig = {
-  imports: [ConfigModule, LoggerModule, RequestModule],
+  imports: [LoggerModule, ConfigModule, RequestModule],
   controllers: [],
   providers: [
     ...rabbitmqProviders,
