@@ -43,7 +43,7 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
     }
 
     if (!msg || !msg.content) {
-      this.logger.error(`dispatcher: message deadlettered, it is invalid`);
+      this.logger.warn(`dispatcher: message deadlettered, it is invalid`);
       return this.connection.deadletter(msg);
     }
 
@@ -53,19 +53,19 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
       const json = JSON.parse(msg.content.toString());
       event.setValues(json);
     } catch (e) {
-      this.logger.error(`dispatcher: message deadlettered, it is not valid json`);
+      this.logger.warn(`dispatcher: message deadlettered, it is not valid json`);
       return this.connection.deadletter(msg);
     }
 
     if (!event.id) {
-      this.logger.error(`dispatcher: message deadlettered, it has no id`);
+      this.logger.warn(`dispatcher: message deadlettered, it has no id`);
       return this.connection.deadletter(msg);
     }
 
     const hash = event.getLatestHash();
 
     if (!hash) {
-      this.logger.error(`dispatcher: message '${event.id}' deadlettered, it has no hash`);
+      this.logger.warn(`dispatcher: message '${event.id}' deadlettered, it has no hash`);
       return this.connection.deadletter(msg);
     }
 
@@ -75,7 +75,7 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
       !response || response instanceof Error || !response.status ||
       [200, 201, 204].indexOf(response.status) === - 1
     ) {
-      this.logger.error(`dispatcher: message '${event.id}/${hash}' deadlettered, failed to send to legalevents`);
+      this.logger.warn(`dispatcher: message '${event.id}/${hash}' deadlettered, failed to send to legalevents`);
       return this.connection.deadletter(msg);
     }
 

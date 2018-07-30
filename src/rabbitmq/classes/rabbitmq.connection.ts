@@ -28,7 +28,7 @@ export class RabbitMQConnection {
   }
 
   requeue(message: amqplib.Message) {
-    this.channel.git reject(message, true);
+    this.channel.reject(message, true);
   }
 
   deadletter(message: amqplib.Message) {
