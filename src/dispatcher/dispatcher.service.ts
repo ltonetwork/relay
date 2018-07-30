@@ -4,6 +4,7 @@ import { RabbitMQService } from '../rabbitmq/rabbitmq.service';
 import { RabbitMQConnection } from '../rabbitmq/classes/rabbitmq.connection';
 import { LoggerService } from '../logger/logger.service';
 import { ConfigService } from '../config/config.service';
+import { EventChain } from 'lto-api';
 import amqplib from 'amqplib';
 
 @Injectable()
@@ -24,7 +25,7 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
   }
 
   async start(): Promise<void> {
-    this.logger.info('dispatcher: starting connection');
+    this.logger.info(`dispatcher: starting connection`);
     this.connection = await this.rabbitMQService.connect(await this.config.getRabbitMQClient());
 
     await this.connection.consume(
@@ -35,44 +36,50 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onMessage(msg: amqplib.Message) {
-    this.logger.info('dispatcher: message received');
+    this.logger.info(`dispatcher: message received`);
 
     if (!this.connection) {
       this.connection = await this.rabbitMQService.connect(await this.config.getRabbitMQClient());
     }
 
     if (!msg || !msg.content) {
-      this.logger.info('dispatcher: message deadlettered, it is invalid');
+      this.logger.error(`dispatcher: message deadlettered, it is invalid`);
       return this.connection.deadletter(msg);
     }
 
-    const event = {
-      string: msg.content.toString(),
-      json: null,
-    };
+    const event = new EventChain();
 
     try {
-      event.json = JSON.parse(event.string);
+      const json = JSON.parse(msg.content.toString());
+      event.setValues(json);
     } catch (e) {
-      this.logger.info('dispatcher: message deadlettered, it is not json');
+      this.logger.error(`dispatcher: message deadlettered, it is not valid json`);
       return this.connection.deadletter(msg);
     }
 
-    if (!event.json || !event.json.id) {
+    if (!event.id) {
+      this.logger.error(`dispatcher: message deadlettered, it has no id`);
       return this.connection.deadletter(msg);
     }
 
-    const response = await this.legalEventsService.send(event.json);
+    const hash = event.getLatestHash();
+
+    if (!hash) {
+      this.logger.error(`dispatcher: message '${event.id}' deadlettered, it has no hash`);
+      return this.connection.deadletter(msg);
+    }
+
+    const response = await this.legalEventsService.send(event);
 
     if (
       !response || response instanceof Error || !response.status ||
       [200, 201, 204].indexOf(response.status) === - 1
     ) {
-      this.logger.info('dispatcher: message deadlettered, failed to send to legalevents');
+      this.logger.error(`dispatcher: message '${event.id}/${hash}' deadlettered, failed to send to legalevents`);
       return this.connection.deadletter(msg);
     }
 
     this.connection.ack(msg);
-    this.logger.info('dispatcher: message acknowledged');
+    this.logger.info(`dispatcher: message '${event.id}/${hash}' acknowledged`);
   }
 }

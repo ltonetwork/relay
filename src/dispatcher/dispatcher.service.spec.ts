@@ -83,7 +83,7 @@ describe('DispatcherService', () => {
     test('should deadletter message if legalevents responds with bad status code', async () => {
       const spies = spy();
 
-      const msg = { content: { toString: () => '{"id": "fake_id"}' } } as any;
+      const msg = { content: { toString: () => '{"id": "fakeid"}' } } as any;
 
       spies.leService.send.mockImplementation(() => ({ status: 400 }));
 
@@ -93,13 +93,13 @@ describe('DispatcherService', () => {
       expect(spies.rmqConnection.deadletter.mock.calls.length).toBe(1);
       expect(spies.rmqConnection.deadletter.mock.calls[0][0]).toBe(msg);
       expect(spies.leService.send.mock.calls.length).toBe(1);
-      expect(spies.leService.send.mock.calls[0][0]).toEqual({ id: 'fake_id' });
+      expect(spies.leService.send.mock.calls[0][0]).toMatchObject({ id: 'fakeid' });
     });
 
     test('should acknowledge message if legalevents responds with success status code', async () => {
       const spies = spy();
 
-      const msg = { content: { toString: () => '{"id": "fake_id"}' } } as any;
+      const msg = { content: { toString: () => '{"id": "fakeid"}' } } as any;
 
       await dispatcherService.onMessage(msg);
 
@@ -107,7 +107,7 @@ describe('DispatcherService', () => {
       expect(spies.rmqConnection.ack.mock.calls.length).toBe(1);
       expect(spies.rmqConnection.ack.mock.calls[0][0]).toBe(msg);
       expect(spies.leService.send.mock.calls.length).toBe(1);
-      expect(spies.leService.send.mock.calls[0][0]).toEqual({ id: 'fake_id' });
+      expect(spies.leService.send.mock.calls[0][0]).toMatchObject({ id: 'fakeid' });
     });
   });
 });
