@@ -1,6 +1,7 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { WINSTON } from '../constants';
 import winston from 'winston';
+import winstonRotateFile from 'winston-daily-rotate-file';
 import moment from 'moment';
 import util from 'util';
 
@@ -41,14 +42,16 @@ export class LoggerService {
             ...formats,
           ),
         }),
-        new winston.transports.File({
+        new winstonRotateFile({
           format: winston.format.combine(...formats),
-          filename: 'error.log',
+          filename: 'error-%DATE%.log',
+          dirname: 'logs',
           level: 'error',
         }),
-        new winston.transports.File({
+        new winstonRotateFile({
           format: winston.format.combine(...formats),
-          filename: 'combined.log',
+          filename: 'combined-%DATE%.log',
+          dirname: 'logs',
           handleExceptions: true,
         }),
       ],
