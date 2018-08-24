@@ -1,14 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { RabbitMQModuleConfig } from './rabbitmq.module';
 import { RabbitMQService } from './rabbitmq.service';
-import { HttpService } from '@nestjs/common';
 import { AMQPLIB } from '../constants';
 
 describe('RabbitMQService', () => {
   let module: TestingModule;
   let rabbitmqService: RabbitMQService;
-  let httpService: HttpService;
   const channel = {
+    on: jest.fn(),
     close: jest.fn(),
     assertQueue: jest.fn(),
     sendToQueue: jest.fn(),
@@ -30,7 +29,6 @@ describe('RabbitMQService', () => {
     await module.init();
 
     rabbitmqService = module.get<RabbitMQService>(RabbitMQService);
-    httpService = module.get<HttpService>(HttpService);
   });
 
   afterEach(async () => {
