@@ -1,14 +1,15 @@
-import { Test } from '@nestjs/testing';
+import { Test, TestingModule } from '@nestjs/testing';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule } from './config/config.module';
 
 describe('AppController', () => {
+  let module: TestingModule;
   let appController: AppController;
   let appService: AppService;
 
   beforeEach(async () => {
-    const module = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       imports: [ConfigModule],
       controllers: [AppController],
       providers: [AppService],
@@ -17,6 +18,10 @@ describe('AppController', () => {
 
     appService = module.get<AppService>(AppService);
     appController = module.get<AppController>(AppController);
+  });
+
+  afterEach(async () => {
+    await module.close();
   });
 
   describe('info', () => {

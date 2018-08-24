@@ -1,10 +1,11 @@
-import { Test } from '@nestjs/testing';
+import { Test, TestingModule } from '@nestjs/testing';
 import { QueuerModuleConfig } from './queuer.module';
 import { QueuerService } from './queuer.service';
 import { RabbitMQService } from '../rabbitmq/rabbitmq.service';
 import { RabbitMQApiService } from '../rabbitmq/rabbitmq-api.service';
 
 describe('QueuerService', () => {
+  let module: TestingModule;
   let queuerService: QueuerService;
   let rabbitmqService: RabbitMQService;
   let rabbitmqApiService: RabbitMQApiService;
@@ -24,12 +25,16 @@ describe('QueuerService', () => {
   }
 
   beforeEach(async () => {
-    const module = await Test.createTestingModule(QueuerModuleConfig).compile();
+    module = await Test.createTestingModule(QueuerModuleConfig).compile();
     await module.init();
 
     queuerService = module.get<QueuerService>(QueuerService);
     rabbitmqService = module.get<RabbitMQService>(RabbitMQService);
     rabbitmqApiService = module.get<RabbitMQApiService>(RabbitMQApiService);
+  });
+
+  afterEach(async () => {
+    await module.close();
   });
 
   describe('add()', () => {

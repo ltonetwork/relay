@@ -30,14 +30,24 @@ describe('RabbitMQConnection', () => {
 
       // init phase
       expect(spies.rmqChannel.assertQueue.mock.calls.length).toBe(2);
-      expect(spies.rmqChannel.assertQueue.mock.calls[0][0]).toBe('fake_queue');
       expect(spies.rmqChannel.assertExchange.mock.calls.length).toBe(2);
-      expect(spies.rmqChannel.assertExchange.mock.calls[0][0]).toBe('fake_exchange');
       expect(spies.rmqChannel.bindQueue.mock.calls.length).toBe(2);
-      expect(spies.rmqChannel.bindQueue.mock.calls[0][0]).toBe('fake_queue');
-      expect(spies.rmqChannel.bindQueue.mock.calls[0][1]).toBe('fake_exchange');
-      expect(spies.rmqChannel.bindQueue.mock.calls[0][2]).toBe('fake_queue');
 
+      expect(spies.rmqChannel.assertQueue.mock.calls[0][0]).toBe('fake_queue.deadletter');
+      expect(spies.rmqChannel.assertExchange.mock.calls[0][0]).toBe('fake_exchange.deadletter');
+      expect(spies.rmqChannel.bindQueue.mock.calls[0][0]).toBe('fake_queue.deadletter');
+      expect(spies.rmqChannel.bindQueue.mock.calls[0][1]).toBe('fake_exchange.deadletter');
+      expect(spies.rmqChannel.bindQueue.mock.calls[0][2]).toBe('fake_queue.deadletter');
+      expect(spies.rmqChannel.assertQueue.mock.calls[0][0]).toBe('fake_queue.deadletter');
+
+      expect(spies.rmqChannel.assertQueue.mock.calls[1][0]).toBe('fake_queue');
+      expect(spies.rmqChannel.assertExchange.mock.calls[1][0]).toBe('fake_exchange');
+      expect(spies.rmqChannel.bindQueue.mock.calls[1][0]).toBe('fake_queue');
+      expect(spies.rmqChannel.bindQueue.mock.calls[1][1]).toBe('fake_exchange');
+      expect(spies.rmqChannel.bindQueue.mock.calls[1][2]).toBe('fake_queue');
+      expect(spies.rmqChannel.assertQueue.mock.calls[1][0]).toBe('fake_queue');
+
+      // consume
       expect(spies.rmqChannel.consume.mock.calls.length).toBe(1);
       expect(spies.rmqChannel.consume.mock.calls[0][0]).toBe('fake_queue');
       expect(typeof spies.rmqChannel.consume.mock.calls[0][1]).toBe('function');
@@ -56,14 +66,22 @@ describe('RabbitMQConnection', () => {
 
       // init phase
       expect(spies.rmqChannel.assertQueue.mock.calls.length).toBe(2);
-      expect(spies.rmqChannel.assertQueue.mock.calls[0][0]).toBe('fake_queue');
       expect(spies.rmqChannel.assertExchange.mock.calls.length).toBe(2);
-      expect(spies.rmqChannel.assertExchange.mock.calls[0][0]).toBe('fake_exchange');
       expect(spies.rmqChannel.bindQueue.mock.calls.length).toBe(2);
-      expect(spies.rmqChannel.bindQueue.mock.calls[0][0]).toBe('fake_queue');
-      expect(spies.rmqChannel.bindQueue.mock.calls[0][1]).toBe('fake_exchange');
-      expect(spies.rmqChannel.bindQueue.mock.calls[0][2]).toBe('fake_queue');
 
+      expect(spies.rmqChannel.assertQueue.mock.calls[0][0]).toBe('fake_queue.deadletter');
+      expect(spies.rmqChannel.assertExchange.mock.calls[0][0]).toBe('fake_exchange.deadletter');
+      expect(spies.rmqChannel.bindQueue.mock.calls[0][0]).toBe('fake_queue.deadletter');
+      expect(spies.rmqChannel.bindQueue.mock.calls[0][1]).toBe('fake_exchange.deadletter');
+      expect(spies.rmqChannel.bindQueue.mock.calls[0][2]).toBe('fake_queue.deadletter');
+
+      expect(spies.rmqChannel.assertQueue.mock.calls[1][0]).toBe('fake_queue');
+      expect(spies.rmqChannel.assertExchange.mock.calls[1][0]).toBe('fake_exchange');
+      expect(spies.rmqChannel.bindQueue.mock.calls[1][0]).toBe('fake_queue');
+      expect(spies.rmqChannel.bindQueue.mock.calls[1][1]).toBe('fake_exchange');
+      expect(spies.rmqChannel.bindQueue.mock.calls[1][2]).toBe('fake_queue');
+
+      // publish
       expect(spies.rmqChannel.publish.mock.calls.length).toBe(1);
       expect(spies.rmqChannel.publish.mock.calls[0][0]).toBe('fake_exchange');
       expect(spies.rmqChannel.publish.mock.calls[0][1]).toBe('fake_queue');
