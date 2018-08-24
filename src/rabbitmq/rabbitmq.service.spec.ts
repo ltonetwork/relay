@@ -1,10 +1,11 @@
-import { Test } from '@nestjs/testing';
+import { Test, TestingModule } from '@nestjs/testing';
 import { RabbitMQModuleConfig } from './rabbitmq.module';
 import { RabbitMQService } from './rabbitmq.service';
 import { HttpService } from '@nestjs/common';
 import { AMQPLIB } from '../constants';
 
 describe('RabbitMQService', () => {
+  let module: TestingModule;
   let rabbitmqService: RabbitMQService;
   let httpService: HttpService;
   const channel = {
@@ -22,7 +23,7 @@ describe('RabbitMQService', () => {
   const connect = jest.fn(() => connection);
 
   beforeEach(async () => {
-    const module = await Test.createTestingModule(RabbitMQModuleConfig)
+    module = await Test.createTestingModule(RabbitMQModuleConfig)
       .overrideProvider(AMQPLIB)
       .useValue({ channel, connection, connect })
       .compile();
@@ -30,6 +31,10 @@ describe('RabbitMQService', () => {
 
     rabbitmqService = module.get<RabbitMQService>(RabbitMQService);
     httpService = module.get<HttpService>(HttpService);
+  });
+
+  afterEach(async () => {
+    await module.close();
   });
 
   describe('connect()', () => {

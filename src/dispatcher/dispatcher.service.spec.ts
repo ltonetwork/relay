@@ -1,10 +1,11 @@
-import { Test } from '@nestjs/testing';
+import { Test, TestingModule } from '@nestjs/testing';
 import { DispatcherModuleConfig } from './dispatcher.module';
 import { DispatcherService } from './dispatcher.service';
 import { RabbitMQService } from '../rabbitmq/rabbitmq.service';
 import { LegalEventsService } from '../legalevents/legalevents.service';
 
 describe('DispatcherService', () => {
+  let module: TestingModule;
   let dispatcherService: DispatcherService;
   let rabbitmqService: RabbitMQService;
   let legalEventsService: LegalEventsService;
@@ -26,12 +27,16 @@ describe('DispatcherService', () => {
   }
 
   beforeEach(async () => {
-    const module = await Test.createTestingModule(DispatcherModuleConfig).compile();
+    module = await Test.createTestingModule(DispatcherModuleConfig).compile();
     await module.init();
 
     dispatcherService = module.get<DispatcherService>(DispatcherService);
     rabbitmqService = module.get<RabbitMQService>(RabbitMQService);
     legalEventsService = module.get<LegalEventsService>(LegalEventsService);
+  });
+
+  afterEach(async () => {
+    await module.close();
   });
 
   describe('start()', () => {

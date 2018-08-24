@@ -36,6 +36,11 @@ export class RabbitMQConnection {
   }
 
   private async init(exchange: string, queue: string, pattern: string) {
+    // create deadletter
+    await this.assertExchange(`${exchange}.deadletter`);
+    await this.assertQueue(`${queue}.deadletter`);
+    await this.bindQueue(`${exchange}.deadletter`, `${queue}.deadletter`, `${queue}.deadletter`);
+
     // create queue
     await this.assertExchange(exchange);
     await this.assertQueue(queue, {
@@ -44,11 +49,6 @@ export class RabbitMQConnection {
       deadLetterRoutingKey: `${queue}.deadletter`,
     });
     await this.bindQueue(exchange, queue, pattern);
-
-    // create deadletter
-    await this.assertExchange(`${exchange}.deadletter`);
-    await this.assertQueue(`${queue}.deadletter`);
-    await this.bindQueue(`${exchange}.deadletter`, `${queue}.deadletter`, `${queue}.deadletter`);
   }
 
   private async assertQueue(

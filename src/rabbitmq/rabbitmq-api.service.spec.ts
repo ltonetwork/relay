@@ -1,18 +1,23 @@
-import { Test } from '@nestjs/testing';
+import { Test, TestingModule } from '@nestjs/testing';
 import { RabbitMQModuleConfig } from './rabbitmq.module';
 import { RabbitMQApiService } from './rabbitmq-api.service';
 import { RequestService } from '../request/request.service';
 
 describe('RabbitMQApiService', () => {
+  let module: TestingModule;
   let rabbitmqApiService: RabbitMQApiService;
   let requestService: RequestService;
 
   beforeEach(async () => {
-    const module = await Test.createTestingModule(RabbitMQModuleConfig).compile();
+    module = await Test.createTestingModule(RabbitMQModuleConfig).compile();
     await module.init();
 
     rabbitmqApiService = module.get<RabbitMQApiService>(RabbitMQApiService);
     requestService = module.get<RequestService>(RequestService);
+  });
+
+  afterEach(async () => {
+    await module.close();
   });
 
   describe('addDynamicShovel()', () => {

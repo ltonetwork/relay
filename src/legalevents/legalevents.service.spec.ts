@@ -1,18 +1,23 @@
-import { Test } from '@nestjs/testing';
+import { Test, TestingModule } from '@nestjs/testing';
 import { RequestService } from '../request/request.service';
 import { LegalEventsModuleConfig } from './legalevents.module';
 import { LegalEventsService } from './legalevents.service';
 
 describe('LegalEventsService', () => {
+  let module: TestingModule;
   let legalEventsService: LegalEventsService;
   let requestService: RequestService;
 
   beforeEach(async () => {
-    const module = await Test.createTestingModule(LegalEventsModuleConfig).compile();
+    module = await Test.createTestingModule(LegalEventsModuleConfig).compile();
     await module.init();
 
     legalEventsService = module.get<LegalEventsService>(LegalEventsService);
     requestService = module.get<RequestService>(RequestService);
+  });
+
+  afterEach(async () => {
+    await module.close();
   });
 
   describe('send()', () => {
