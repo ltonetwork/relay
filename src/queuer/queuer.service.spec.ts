@@ -45,14 +45,7 @@ describe('QueuerService', () => {
       await queuerService.add(event);
 
       expect(spies.rmqService.connect.mock.calls.length).toBe(1);
-      expect(spies.rmqService.connect.mock.calls[0][0]).toEqual({
-        hostname: 'localhost',
-        password: 'guest',
-        port: '5672',
-        protocol: 'amqp',
-        username: 'guest',
-        vhost: '/',
-      });
+      expect(spies.rmqService.connect.mock.calls[0][0]).toBe('amqp://guest:guest@localhost:5672/%2f');
 
       expect(spies.rmqConnection.publish.mock.calls.length).toBe(1);
       expect(spies.rmqConnection.publish.mock.calls[0][0]).toBe('\'\'');
@@ -68,14 +61,7 @@ describe('QueuerService', () => {
       await queuerService.add(event, destination);
 
       expect(spies.rmqService.connect.mock.calls.length).toBe(1);
-      expect(spies.rmqService.connect.mock.calls[0][0]).toEqual({
-        hostname: 'localhost',
-        password: 'guest',
-        port: '5672',
-        protocol: 'amqp',
-        username: 'guest',
-        vhost: '/',
-      });
+      expect(spies.rmqService.connect.mock.calls[0][0]).toBe('amqp://guest:guest@localhost:5672/%2f');
 
       expect(spies.rmqApiService.addDynamicShovel.mock.calls.length).toBe(2);
       expect(spies.rmqApiService.addDynamicShovel.mock.calls[0][0]).toBe('amqp://ext1');

@@ -15,18 +15,12 @@
     "rabbitmq": {
       "client": {
         "doc": "The RabbitMQ client config",
-        "default": {
-          "protocol": "amqp",
-          "hostname": "localhost",
-          "port": "5672",
-          "username": "guest",
-          "password": "guest",
-          "vhost": "/"
-        }
+        "default": "amqp://guest:guest@localhost:5672/%2f",
+        "env": "DISPATCHER_RABBITMQ_CLIENT"
       },
       "api": {
-        "doc": "Url to get to RabbitMQ web api. Note that management plugin must be installed",
-        "default": "http://localhost:15672/api"
+        "doc": "RabbitMQ web api url. Management plugin must be installed. Uses rabbitmq hostname if omitted.",
+        "default": null
       },
       "queue": {
         "doc": "The default queue name used by rabbitmq",
