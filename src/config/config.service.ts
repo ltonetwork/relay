@@ -1,31 +1,54 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigLoaderService } from './config-loader.service';
+import { ConnectionString } from 'connection-string';
 
 @Injectable()
 export class ConfigService {
-  constructor(private readonly config: ConfigLoaderService) {}
+  constructor(private readonly config: ConfigLoaderService) { }
 
   async getEnv(): Promise<string> {
     return await this.config.get('env');
   }
 
-  async getRabbitMQClient(): Promise<object> {
+  async getRabbitMQClient(): Promise<string> {
     return await this.config.get('dispatcher.rabbitmq.client');
   }
 
-  async getRabbitMQCredentials(): Promise<{ username; password }> {
+  async getRabbitMQClientAsObject(): Promise<{
+    protocol, hostname, port, username, password, vhost,
+  }> {
+    const string = await this.getRabbitMQClient();
+    const parsed = new ConnectionString(string);
+
     return {
-      username: await this.config.get('dispatcher.rabbitmq.client.username'),
-      password: await this.config.get('dispatcher.rabbitmq.client.password'),
+      protocol: parsed.protocol,
+      hostname: parsed.hosts[0].name,
+      port: parsed.hosts[0].port,
+      username: parsed.user,
+      password: parsed.password,
+      vhost: parsed.path[0],
     };
   }
 
+  async getRabbitMQCredentials(): Promise<{ username; password }> {
+    const { username, password } = await this.getRabbitMQClientAsObject();
+    return { username, password };
+  }
+
   async getRabbitMQVhost(): Promise<string> {
-    return await this.config.get('dispatcher.rabbitmq.client.vhost');
+    return (await this.getRabbitMQClientAsObject()).vhost;
   }
 
   async getRabbitMQApiUrl(): Promise<string> {
-    return await this.config.get('dispatcher.rabbitmq.api');
+    const config = await this.config.get('dispatcher.rabbitmq.api');
+
+    if (config) {
+      return config;
+    }
+
+    const { hostname } = await this.getRabbitMQClientAsObject();
+
+    return `http://${hostname}:15672/api`;
   }
 
   async getRabbitMQExchange(): Promise<string> {
