@@ -46,7 +46,7 @@ describe('DispatcherService', () => {
       await dispatcherService.start();
 
       expect(spies.rmqService.connect.mock.calls.length).toBe(1);
-      expect(spies.rmqService.connect.mock.calls[0][0]).toBe('amqp://guest:guest@localhost:5672/%2f');
+      expect(spies.rmqService.connect.mock.calls[0][0]).toBe('amqp://');
 
       expect(spies.rmqConnection.consume.mock.calls.length).toBe(1);
       expect(spies.rmqConnection.consume.mock.calls[0][0]).toBe('\'\'');

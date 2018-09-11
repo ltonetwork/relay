@@ -23,7 +23,7 @@ describe('ConfigService', () => {
     });
 
     test('getRabbitMQClient()', async () => {
-      expect(await configService.getRabbitMQClient()).toBe('amqp://guest:guest@localhost:5672/%2f');
+      expect(await configService.getRabbitMQClient()).toBe('amqp://');
     });
 
     test('getRabbitMQCredentials()', async () => {

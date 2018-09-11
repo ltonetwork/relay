@@ -1,7 +1,7 @@
 {
   "dispatcher": {
     "rabbitmq": {
-      "client": "amqp://guest:guest@rabbitmq:5672/%2f"
+      "client": "amqp://rabbitmq"
     },
     "legalevents": {
       "url": "http://legalevents"
