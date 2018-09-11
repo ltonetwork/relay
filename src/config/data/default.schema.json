@@ -14,8 +14,8 @@
     "doc": "The config of this application, with a namespace so it can be merged into larger configs",
     "rabbitmq": {
       "client": {
-        "doc": "The RabbitMQ client config",
-        "default": "amqp://guest:guest@localhost:5672/%2f",
+        "doc": "The RabbitMQ client config. Uses default config if only protocol is given",
+        "default": "amqp://",
         "env": "DISPATCHER_RABBITMQ_CLIENT"
       },
       "api": {

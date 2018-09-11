@@ -21,12 +21,12 @@ export class ConfigService {
     const parsed = new ConnectionString(string);
 
     return {
-      protocol: parsed.protocol,
-      hostname: parsed.hosts[0].name,
-      port: parsed.hosts[0].port,
-      username: parsed.user,
-      password: parsed.password,
-      vhost: parsed.path[0],
+      protocol: parsed.protocol || 'amqp',
+      hostname: (parsed.hosts && parsed.hosts[0].name) || 'localhost',
+      port: (parsed.hosts && parsed.hosts[0].port) || 5672,
+      username: parsed.user || 'guest',
+      password: parsed.password || 'guest',
+      vhost: (parsed.path && parsed.path[0]) || '/',
     };
   }
 
