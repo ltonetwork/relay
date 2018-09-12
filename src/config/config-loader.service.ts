@@ -3,7 +3,6 @@ import util from 'util';
 import path from 'path';
 import fs from 'fs';
 import convict from 'convict';
-import { LoggerService } from '../logger/logger.service';
 
 @Injectable()
 export class ConfigLoaderService implements OnModuleInit, OnModuleDestroy {
@@ -11,7 +10,7 @@ export class ConfigLoaderService implements OnModuleInit, OnModuleDestroy {
   private readonly ttl: number = 300000; // 5 minutes in milliseconds
   private config_reload_interval: NodeJS.Timer;
 
-  constructor(private readonly logger: LoggerService) { }
+  constructor() { }
 
   async onModuleInit() {
     if (!this.config) {
@@ -38,10 +37,6 @@ export class ConfigLoaderService implements OnModuleInit, OnModuleDestroy {
     this.config.loadFile(`${dir}/default.config.json`);
 
     const env = `${dir}/${this.config.get('env')}.config.json`;
-
-    if (this.logger) {
-      this.logger.info(`loading config for env '${this.config.get('env')}'`);
-    }
 
     if (await util.promisify(fs.exists)(env)) {
       this.config.loadFile(env);

@@ -25,7 +25,7 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
   }
 
   async start(): Promise<void> {
-    this.logger.info(`dispatcher: starting connection`);
+    this.logger.debug(`dispatcher: starting connection`);
     this.connection = await this.rabbitMQService.connect(await this.config.getRabbitMQClient());
 
     await this.connection.consume(
