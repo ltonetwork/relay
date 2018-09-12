@@ -40,7 +40,7 @@ export class ConfigLoaderService implements OnModuleInit, OnModuleDestroy {
     const env = `${dir}/${this.config.get('env')}.config.json`;
 
     if (this.logger) {
-      this.logger.info(`loading config for env '${this.config.get('env')}'`);
+      this.logger.debug(`loading config for env '${this.config.get('env')}'`);
     }
 
     if (await util.promisify(fs.exists)(env)) {

@@ -37,16 +37,17 @@ export class LoggerService {
     return winston.createLogger({
       transports: [
         new winston.transports.Console({
+          level: 'info',
           format: winston.format.combine(
             ...[winston.format.colorize()],
             ...formats,
           ),
         }),
         new winstonRotateFile({
+          level: 'error',
           format: winston.format.combine(...formats),
           filename: 'error-%DATE%.log',
           dirname: 'logs',
-          level: 'error',
         }),
         new winstonRotateFile({
           format: winston.format.combine(...formats),
@@ -68,6 +69,10 @@ export class LoggerService {
 
   error(message: string, meta?: any) {
     this.log('error', message, meta);
+  }
+
+  debug(message: string, meta?: any) {
+    this.log('debug', message, meta);
   }
 
   private log(level: string, message: string, meta?: any) {

@@ -73,20 +73,13 @@ export class RabbitMQConnection {
   }
 
   private async init(exchange: string, queue: string, pattern: string) {
-    if (!await this.checkExchange(`${exchange}.deadletter`)) {
+      // deadletter
       await this.assertExchange(`${exchange}.deadletter`);
-    }
-
-    if (!await this.checkQueue(`${queue}.deadletter`)) {
       await this.assertQueue(`${queue}.deadletter`);
-      await this.bindQueue(`${exchange}.deadletter`, `${queue}.deadletter`, `${queue}.deadletter`);
-    }
+      await this.bindQueue(`${exchange}.deadletter`, `${queue}.deadletter`, `${pattern}.deadletter`);
 
-    if (!await this.checkExchange(exchange)) {
+      // regular
       await this.assertExchange(exchange);
-    }
-
-    if (!await this.checkQueue(queue)) {
       await this.assertQueue(queue, {
         durable: true,
         deadLetterExchange: `${exchange}.deadletter`,
@@ -94,16 +87,15 @@ export class RabbitMQConnection {
       });
       await this.bindQueue(exchange, queue, pattern);
     }
-  }
 
   private async assertQueue(
     queue: string,
     options: amqplib.Options.AssertQueue = { durable: true },
   ) {
     try {
-      this.log('info', `rabbitmq-connection: attempting to assert queue '${queue}'`);
+      this.log('debug', `rabbitmq-connection: attempting to assert queue '${queue}'`);
       await this.channel.assertQueue(queue, options);
-      this.log('info', `rabbitmq-connection: successfully asserted queue '${queue}'`);
+      this.log('debug', `rabbitmq-connection: successfully asserted queue '${queue}'`);
     } catch (e) {
       this.log('error', `rabbitmq-connection: failed to assert queue '${e}'`);
       await delay(1500);
@@ -117,9 +109,9 @@ export class RabbitMQConnection {
     options: amqplib.Options.AssertExchange = { durable: true },
   ) {
     try {
-      this.log('info', `rabbitmq-connection: attempting to assert exchange '${exchange}'`);
+      this.log('debug', `rabbitmq-connection: attempting to assert exchange '${exchange}'`);
       await this.channel.assertExchange(exchange, type, options);
-      this.log('info', `rabbitmq-connection: successfully asserted exchange '${exchange}'`);
+      this.log('debug', `rabbitmq-connection: successfully asserted exchange '${exchange}'`);
     } catch (e) {
       this.log('error', `rabbitmq-connection: failed to assert exchange '${e}'`);
       await delay(1500);
@@ -143,6 +135,7 @@ export class RabbitMQConnection {
 
   private log(level: string, msg: string) {
     if (this.logger) {
+      // logger may be omitted so we do a check
       this.logger[level](msg);
     }
   }
