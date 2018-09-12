@@ -56,5 +56,13 @@ describe('ConfigService', () => {
     test('getLegalEventsUrl()', async () => {
       expect(await configService.getLegalEventsUrl()).toBe('http://localhost:3030/api/events');
     });
+
+    test('getLoggerConsole()', async () => {
+      expect(await configService.getLoggerConsole()).toEqual({ level: 'info' });
+    });
+
+    test('getLoggerCombined()', async () => {
+      expect(await configService.getLoggerCombined()).toEqual({ level: 'info' });
+    });
   });
 });

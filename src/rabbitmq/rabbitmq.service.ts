@@ -31,17 +31,17 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
       return this.reopen(config);
     }
 
-    this.logger.info(`rabbitmq: attempting to connect ${key}`);
+    this.logger.debug(`rabbitmq: attempting to connect ${key}`);
 
     try {
       const connection = await this._amqplib.connect(config);
       const channel = await connection.createChannel();
       this.onError(channel, config);
       this.connections[key] = new RabbitMQConnection(connection, channel, this.logger);
-      this.logger.info(`rabbitmq: successfully connect ${key}`);
+      this.logger.info(`rabbitmq: successfully connected ${key}`);
       return this.connections[key];
     } catch (e) {
-      this.logger.error(`rabbitmq: failed to connect ${key}`, { stack: e.stack });
+      this.logger.error(`rabbitmq: failed to connect ${key} '${e}'`);
       await delay(2000);
       return this.connect(config);
     }
@@ -49,7 +49,7 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
 
   private async reopen(config: string | amqplib.Options.Connect): Promise<RabbitMQConnection> {
     const key = typeof config === 'string' ? config : config.hostname;
-    this.logger.info(`rabbitmq: attempting to reopen connection ${key}`);
+    this.logger.debug(`rabbitmq: attempting to reopen connection ${key}`);
 
     try {
       const connection = await this._amqplib.connect(config);
@@ -62,7 +62,7 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
       this.logger.info(`rabbitmq: successfully reopened connection ${key}`);
       return this.connections[key];
     } catch (e) {
-      this.logger.error(`rabbitmq: failed to reopen connection ${key}`, { stack: e.stack });
+      this.logger.error(`rabbitmq: failed to reopen connection ${key} '${e}'`);
       await delay(1000);
       return this.reopen(config);
     }

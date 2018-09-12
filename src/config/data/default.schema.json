@@ -39,6 +39,20 @@
       "url": {
         "default": "http://localhost:3030/api/events"
       }
+    },
+    "logger": {
+      "console": {
+        "level": {
+          "default": "info",
+          "env": "DISPATCHER_LOGGER_CONSOLE_LEVEL"
+        }
+      },
+      "combined": {
+        "level": {
+          "default": "info",
+          "env": "DISPATCHER_LOGGER_COMBINED_LEVEL"
+        }
+      }
     }
   }
 }

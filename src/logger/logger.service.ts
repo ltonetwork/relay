@@ -1,19 +1,21 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, forwardRef } from '@nestjs/common';
 import { WINSTON } from '../constants';
 import winston from 'winston';
 import winstonRotateFile from 'winston-daily-rotate-file';
 import moment from 'moment';
 import util from 'util';
+import { ConfigService } from '../config/config.service';
 
 @Injectable()
 export class LoggerService {
   private logger: winston.Logger;
 
   constructor(
+    private readonly config: ConfigService,
     @Inject(WINSTON) private readonly _winston: typeof winston,
   ) { }
 
-  private createLogger(): winston.Logger {
+  private async createLogger(): Promise<winston.Logger> {
     const formats = [
       winston.format.timestamp(),
       winston.format.printf((info) => {
@@ -37,7 +39,7 @@ export class LoggerService {
     return winston.createLogger({
       transports: [
         new winston.transports.Console({
-          level: 'info',
+          level: (await this.config.getLoggerConsole()).level,
           format: winston.format.combine(
             ...[winston.format.colorize()],
             ...formats,
@@ -50,6 +52,7 @@ export class LoggerService {
           dirname: 'logs',
         }),
         new winstonRotateFile({
+          level: (await this.config.getLoggerCombined()).level,
           format: winston.format.combine(...formats),
           filename: 'combined-%DATE%.log',
           dirname: 'logs',
@@ -75,9 +78,9 @@ export class LoggerService {
     this.log('debug', message, meta);
   }
 
-  private log(level: string, message: string, meta?: any) {
+  private async log(level: string, message: string, meta?: any) {
     if (!this.logger) {
-      this.logger = this.createLogger();
+      this.logger = await this.createLogger();
     }
 
     this.logger[level](message, meta);

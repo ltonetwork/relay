@@ -66,4 +66,12 @@ export class ConfigService {
   async getLegalEventsUrl(): Promise<string> {
     return await this.config.get('dispatcher.legalevents.url');
   }
+
+  async getLoggerConsole(): Promise<{ level }> {
+    return await this.config.get('dispatcher.logger.console');
+  }
+
+  async getLoggerCombined(): Promise<{ level }> {
+    return await this.config.get('dispatcher.logger.combined');
+  }
 }
