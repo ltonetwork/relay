@@ -13,6 +13,7 @@ describe('QueuerService', () => {
   function spy() {
     const rmqConnection = {
       publish: jest.fn(),
+      init: jest.fn(),
     };
     const rmqService = {
       connect: jest.spyOn(rabbitmqService, 'connect').mockImplementation(() => rmqConnection),
@@ -47,6 +48,8 @@ describe('QueuerService', () => {
       expect(spies.rmqService.connect.mock.calls.length).toBe(1);
       expect(spies.rmqService.connect.mock.calls[0][0]).toBe('amqp://');
 
+      expect(spies.rmqConnection.init.mock.calls.length).toBe(0);
+
       expect(spies.rmqConnection.publish.mock.calls.length).toBe(1);
       expect(spies.rmqConnection.publish.mock.calls[0][0]).toBe('\'\'');
       expect(spies.rmqConnection.publish.mock.calls[0][1]).toBe('default');
@@ -68,6 +71,8 @@ describe('QueuerService', () => {
       expect(spies.rmqApiService.addDynamicShovel.mock.calls[0][1]).toBe('amqp://ext1');
       expect(spies.rmqApiService.addDynamicShovel.mock.calls[1][0]).toBe('amqp://ext2');
       expect(spies.rmqApiService.addDynamicShovel.mock.calls[1][1]).toBe('amqp://ext2');
+
+      expect(spies.rmqConnection.init.mock.calls.length).toBe(2);
 
       expect(spies.rmqConnection.publish.mock.calls.length).toBe(2);
       expect(spies.rmqConnection.publish.mock.calls[0][0]).toBe('\'\'');

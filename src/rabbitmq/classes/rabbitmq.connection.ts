@@ -72,7 +72,7 @@ export class RabbitMQConnection {
     }
   }
 
-  private async init(exchange: string, queue: string, pattern: string) {
+  async init(exchange: string, queue: string, pattern: string) {
       // deadletter
       await this.assertExchange(`${exchange}.deadletter`);
       await this.assertQueue(`${queue}.deadletter`);

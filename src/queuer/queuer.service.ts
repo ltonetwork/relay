@@ -54,6 +54,9 @@ export class QueuerService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async addRemote(node: string, event: any): Promise<void> {
+    // explicitly init queue before shovel creates it
+    await this.connection.init(await this.config.getRabbitMQExchange(), node, node);
+
     const response = await this.rabbitMQApiService.addDynamicShovel(node, node);
 
     if (
