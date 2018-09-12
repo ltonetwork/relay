@@ -20,7 +20,8 @@
       },
       "api": {
         "doc": "RabbitMQ web api url. Management plugin must be installed. Uses rabbitmq hostname if omitted.",
-        "default": null
+        "default": "",
+        "env": "DISPATCHER_RABBITMQ_API"
       },
       "queue": {
         "doc": "The default queue name used by rabbitmq",
