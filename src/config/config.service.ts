@@ -1,10 +1,21 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigLoaderService } from './config-loader.service';
 import { ConnectionString } from 'connection-string';
+import toBoolean from 'boolean';
 
 @Injectable()
 export class ConfigService {
   constructor(private readonly config: ConfigLoaderService) { }
+
+  async hasModuleDispatcher(): Promise<boolean> {
+    const flag = await this.config.get('dispatcher.modules.dispatcher');
+    return toBoolean(flag);
+  }
+
+  async hasModuleQueuer(): Promise<boolean> {
+    const flag = await this.config.get('dispatcher.modules.queuer');
+    return toBoolean(flag);
+  }
 
   async getEnv(): Promise<string> {
     return await this.config.get('env');

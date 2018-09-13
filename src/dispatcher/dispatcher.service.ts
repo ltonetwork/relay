@@ -25,6 +25,10 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
   }
 
   async start(): Promise<void> {
+    if (!this.config.hasModuleDispatcher()) {
+      return this.logger.debug(`dispatcher: module not enabled`);
+    }
+
     this.logger.debug(`dispatcher: starting connection`);
     this.connection = await this.rabbitMQService.connect(await this.config.getRabbitMQClient());
 
