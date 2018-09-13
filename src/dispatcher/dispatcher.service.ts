@@ -25,7 +25,7 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
   }
 
   async start(): Promise<void> {
-    if (!this.config.hasModuleDispatcher()) {
+    if (!await this.config.hasModuleDispatcher()) {
       return this.logger.debug(`dispatcher: module not enabled`);
     }
 

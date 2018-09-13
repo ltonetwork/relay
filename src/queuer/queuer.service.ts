@@ -25,7 +25,7 @@ export class QueuerService implements OnModuleInit, OnModuleDestroy {
   }
 
   async add(event: any, destination?: string | string[]): Promise<void> {
-    if (!this.config.hasModuleQueuer()) {
+    if (!await this.config.hasModuleQueuer()) {
       return this.logger.debug(`queuer: module not enabled`);
     }
 
