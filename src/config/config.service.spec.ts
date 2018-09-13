@@ -18,6 +18,14 @@ describe('ConfigService', () => {
   });
 
   describe('get config', () => {
+    test('hasModuleDispatcher()', async () => {
+      expect(await configService.hasModuleDispatcher()).toBe(true);
+    });
+
+    test('hasModuleQueuer()', async () => {
+      expect(await configService.hasModuleQueuer()).toBe(true);
+    });
+
     test('getEnv()', async () => {
       expect(await configService.getEnv()).toBe('test');
     });

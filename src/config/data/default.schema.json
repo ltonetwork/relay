@@ -12,6 +12,17 @@
   },
   "dispatcher": {
     "doc": "The config of this application, with a namespace so it can be merged into larger configs",
+    "modules": {
+      "doc": "Configure which modules should be enabled",
+      "dispatcher": {
+        "default": 1,
+        "env": "DISPATCHER_MODULES_DISPATCHER"
+      },
+      "queuer": {
+        "default": 1,
+        "env": "DISPATCHER_MODULES_QUEUER"
+      }
+    },
     "rabbitmq": {
       "client": {
         "doc": "The RabbitMQ client config. Uses default config if only protocol is given",

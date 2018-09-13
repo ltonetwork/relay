@@ -24,6 +24,7 @@
     "@nestjs/core": "^5.3.6",
     "amqplib": "^0.5.2",
     "axios": "^0.18.0",
+    "boolean": "^0.2.0",
     "connection-string": "^1.0.1",
     "convict": "^4.3.2",
     "delay": "^3.1.0",
