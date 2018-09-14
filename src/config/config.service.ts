@@ -21,17 +21,18 @@ export class ConfigService {
     return this.config.get('env');
   }
 
+  getHostname(): string {
+    return this.config.get('hostname');
+  }
+
   getRabbitMQPublicUrl(): string {
-    const hostname = this.config.get('hostname');
+    const hostname = this.getHostname();
     const string = this.getRabbitMQClient();
     const parsed = new ConnectionString(string);
+    parsed.hosts = parsed.hosts || [{}];
 
-    if (!parsed.hosts || !parsed.hosts[0].name || parsed.hosts[0].name === 'rabbitmq') {
-      if (parsed.hosts) {
-        parsed.hosts[0].name = hostname;
-      } else {
-        parsed.hosts = [{name: hostname}];
-      }
+    if (!parsed.hosts[0].name || parsed.hosts[0].name === 'rabbitmq') {
+      parsed.hosts[0].name = hostname;
     }
 
     return parsed.toString();
