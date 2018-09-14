@@ -33,7 +33,7 @@ export class QueuerService implements OnModuleInit, OnModuleDestroy {
     const hash = chain.getLatestHash();
 
     if (!this.connection) {
-      this.connection = await this.rabbitMQService.connect(await this.config.getRabbitMQClient());
+      this.connection = await this.rabbitMQService.connect(this.config.getRabbitMQClient());
     }
 
     if (!destination || !destination.length) {
@@ -51,15 +51,15 @@ export class QueuerService implements OnModuleInit, OnModuleDestroy {
 
   private async addLocal(event: any): Promise<void> {
     return await this.connection.publish(
-      await this.config.getRabbitMQExchange(),
-      await this.config.getRabbitMQQueue(),
+      this.config.getRabbitMQExchange(),
+      this.config.getRabbitMQQueue(),
       event,
     );
   }
 
   private async addRemote(node: string, event: any): Promise<void> {
     // explicitly init queue before shovel creates it
-    await this.connection.init(await this.config.getRabbitMQExchange(), node, node);
+    await this.connection.init(this.config.getRabbitMQExchange(), node, node);
 
     const response = await this.rabbitMQApiService.addDynamicShovel(node, node);
 
@@ -71,7 +71,7 @@ export class QueuerService implements OnModuleInit, OnModuleDestroy {
     }
 
     return await this.connection.publish(
-      await this.config.getRabbitMQExchange(),
+      this.config.getRabbitMQExchange(),
       node,
       event,
     );

@@ -39,7 +39,7 @@ export class LoggerService {
     return winston.createLogger({
       transports: [
         new winston.transports.Console({
-          level: (await this.config.getLoggerConsole()).level,
+          level: (this.config.getLoggerConsole()).level,
           format: winston.format.combine(
             ...[winston.format.colorize()],
             ...formats,
@@ -52,7 +52,7 @@ export class LoggerService {
           dirname: 'logs',
         }),
         new winstonRotateFile({
-          level: (await this.config.getLoggerCombined()).level,
+          level: (this.config.getLoggerCombined()).level,
           format: winston.format.combine(...formats),
           filename: 'combined-%DATE%.log',
           dirname: 'logs',

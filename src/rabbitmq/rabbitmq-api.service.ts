@@ -12,13 +12,13 @@ export class RabbitMQApiService {
   ) { }
 
   async addDynamicShovel(srcQueue: string, destUri: string): Promise<AxiosResponse | Error> {
-    const srcUri = await this.config.getRabbitMQClient();
-    const api = await this.config.getRabbitMQApiUrl();
-    const shovel = await this.config.getRabbitMQShovel();
-    const vhost = querystring.escape(await this.config.getRabbitMQVhost());
+    const srcUri = this.config.getRabbitMQClient();
+    const api = this.config.getRabbitMQApiUrl();
+    const shovel = this.config.getRabbitMQShovel();
+    const vhost = querystring.escape(this.config.getRabbitMQVhost());
     const url = `${api}/parameters/shovel/${vhost}/${shovel}`;
-    const auth = await this.config.getRabbitMQCredentials();
-    const queue = await this.config.getRabbitMQQueue();
+    const auth = this.config.getRabbitMQCredentials();
+    const queue = this.config.getRabbitMQQueue();
     const data = {
       value: {
         'src-uri': srcUri,

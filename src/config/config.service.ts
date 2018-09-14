@@ -7,28 +7,28 @@ import toBoolean from 'boolean';
 export class ConfigService {
   constructor(private readonly config: ConfigLoaderService) { }
 
-  async hasModuleDispatcher(): Promise<boolean> {
-    const flag = await this.config.get('dispatcher.modules.dispatcher');
+  hasModuleDispatcher(): boolean {
+    const flag = this.config.get('dispatcher.modules.dispatcher');
     return toBoolean(flag);
   }
 
-  async hasModuleQueuer(): Promise<boolean> {
-    const flag = await this.config.get('dispatcher.modules.queuer');
+  hasModuleQueuer(): boolean {
+    const flag = this.config.get('dispatcher.modules.queuer');
     return toBoolean(flag);
   }
 
-  async getEnv(): Promise<string> {
-    return await this.config.get('env');
+  getEnv(): string {
+    return this.config.get('env');
   }
 
-  async getRabbitMQClient(): Promise<string> {
-    return await this.config.get('dispatcher.rabbitmq.client');
+  getRabbitMQClient(): string {
+    return this.config.get('dispatcher.rabbitmq.client');
   }
 
-  async getRabbitMQClientAsObject(): Promise<{
+  getRabbitMQClientAsObject(): {
     protocol, hostname, port, username, password, vhost,
-  }> {
-    const string = await this.getRabbitMQClient();
+  } {
+    const string = this.getRabbitMQClient();
     const parsed = new ConnectionString(string);
 
     return {
@@ -41,48 +41,48 @@ export class ConfigService {
     };
   }
 
-  async getRabbitMQCredentials(): Promise<{ username; password }> {
-    const { username, password } = await this.getRabbitMQClientAsObject();
+  getRabbitMQCredentials(): { username; password } {
+    const { username, password } = this.getRabbitMQClientAsObject();
     return { username, password };
   }
 
-  async getRabbitMQVhost(): Promise<string> {
-    return (await this.getRabbitMQClientAsObject()).vhost;
+  getRabbitMQVhost(): string {
+    return (this.getRabbitMQClientAsObject()).vhost;
   }
 
-  async getRabbitMQApiUrl(): Promise<string> {
-    const config = await this.config.get('dispatcher.rabbitmq.api');
+  getRabbitMQApiUrl(): string {
+    const config = this.config.get('dispatcher.rabbitmq.api');
 
     if (config) {
       return config;
     }
 
-    const { hostname } = await this.getRabbitMQClientAsObject();
+    const { hostname } = this.getRabbitMQClientAsObject();
 
     return `http://${hostname}:15672/api`;
   }
 
-  async getRabbitMQExchange(): Promise<string> {
-    return await this.config.get('dispatcher.rabbitmq.exchange');
+  getRabbitMQExchange(): string {
+    return this.config.get('dispatcher.rabbitmq.exchange');
   }
 
-  async getRabbitMQQueue(): Promise<string> {
-    return await this.config.get('dispatcher.rabbitmq.queue');
+  getRabbitMQQueue(): string {
+    return this.config.get('dispatcher.rabbitmq.queue');
   }
 
-  async getRabbitMQShovel(): Promise<string> {
-    return await this.config.get('dispatcher.rabbitmq.shovel');
+  getRabbitMQShovel(): string {
+    return this.config.get('dispatcher.rabbitmq.shovel');
   }
 
-  async getLegalEventsUrl(): Promise<string> {
-    return await this.config.get('dispatcher.legalevents.url');
+  getLegalEventsUrl(): string {
+    return this.config.get('dispatcher.legalevents.url');
   }
 
-  async getLoggerConsole(): Promise<{ level }> {
-    return await this.config.get('dispatcher.logger.console');
+  getLoggerConsole(): { level } {
+    return this.config.get('dispatcher.logger.console');
   }
 
-  async getLoggerCombined(): Promise<{ level }> {
-    return await this.config.get('dispatcher.logger.combined');
+  getLoggerCombined(): { level } {
+    return this.config.get('dispatcher.logger.combined');
   }
 }

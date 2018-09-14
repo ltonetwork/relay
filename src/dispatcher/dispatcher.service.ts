@@ -30,11 +30,11 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
     }
 
     this.logger.debug(`dispatcher: starting connection`);
-    this.connection = await this.rabbitMQService.connect(await this.config.getRabbitMQClient());
+    this.connection = await this.rabbitMQService.connect(this.config.getRabbitMQClient());
 
     await this.connection.consume(
-      await this.config.getRabbitMQExchange(),
-      await this.config.getRabbitMQQueue(),
+      this.config.getRabbitMQExchange(),
+      this.config.getRabbitMQQueue(),
       this.onMessage.bind(this),
     );
   }
@@ -43,7 +43,7 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
     this.logger.info(`dispatcher: message received`);
 
     if (!this.connection) {
-      this.connection = await this.rabbitMQService.connect(await this.config.getRabbitMQClient());
+      this.connection = await this.rabbitMQService.connect(this.config.getRabbitMQClient());
     }
 
     if (!msg || !msg.content) {
