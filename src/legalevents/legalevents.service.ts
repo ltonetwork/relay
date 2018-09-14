@@ -14,7 +14,7 @@ export class LegalEventsService implements OnModuleInit, OnModuleDestroy {
   async onModuleDestroy() { }
 
   async send(event: any): Promise<AxiosResponse | Error> {
-    const url = await this.config.getLegalEventsUrl();
+    const url = this.config.getLegalEventsUrl();
     return await this.requestService.post(`${url}/event-chains`, event);
   }
 }

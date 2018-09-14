@@ -15,7 +15,7 @@ export class AppService {
       name: json.name,
       version: json.version,
       description: json.description,
-      env: await this.config.getEnv(),
+      env: this.config.getEnv(),
     };
   }
 }

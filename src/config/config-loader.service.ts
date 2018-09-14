@@ -49,19 +49,19 @@ export class ConfigLoaderService implements OnModuleInit, OnModuleDestroy {
     await this.validate();
   }
 
-  async set(key: string, value: any): Promise<void> {
+  set(key: string, value: any): void {
     this.config.set(key, value);
   }
 
-  async get(key?: string): Promise<any> {
+  get(key?: string): any {
     return this.config.get(key);
   }
 
-  async has(key: string): Promise<boolean> {
+  has(key: string): boolean {
     return this.config.has(key);
   }
 
-  async validate(): Promise<any> {
+  validate(): any {
     return this.config.validate({ allowed: 'warn' });
   }
 }
