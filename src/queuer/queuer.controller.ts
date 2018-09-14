@@ -23,8 +23,8 @@ export class QueuerController {
     try {
       await this.queuerService.add(req.body, req.query.to);
     } catch (e) {
-      this.logger.error(`failed to add event to queue '${e}'`, { stack: e.stack });
-      return res.status(500).send(`failed to add event to queue '${e}'`);
+      this.logger.error(`failed to add chain to queue '${e}'`, { stack: e.stack });
+      return res.status(500).send(`failed to add chain to queue '${e}'`);
     }
 
     return res.status(204).send();
