@@ -30,6 +30,10 @@ describe('ConfigService', () => {
       expect(await configService.getEnv()).toBe('test');
     });
 
+    test('getRabbitMQPublicUrl', () => {
+      expect(configService.getRabbitMQPublicUrl()).toBe('amqp://localhost');
+    });
+
     test('getRabbitMQClient()', async () => {
       expect(await configService.getRabbitMQClient()).toBe('amqp://');
     });

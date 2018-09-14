@@ -10,6 +10,11 @@
     "default": "development",
     "env": "NODE_ENV"
   },
+  "hostname": {
+    "doc": "Public hostname where the service is running on",
+    "default": "localhost",
+    "env": "PUBLIC_HOSTNAME"
+  },
   "dispatcher": {
     "doc": "The config of this application, with a namespace so it can be merged into larger configs",
     "modules": {

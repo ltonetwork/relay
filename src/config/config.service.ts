@@ -21,6 +21,22 @@ export class ConfigService {
     return this.config.get('env');
   }
 
+  getRabbitMQPublicUrl(): string {
+    const hostname = this.config.get('hostname');
+    const string = this.getRabbitMQClient();
+    const parsed = new ConnectionString(string);
+
+    if (!parsed.hosts || !parsed.hosts[0].name || parsed.hosts[0].name === 'rabbitmq') {
+      if (parsed.hosts) {
+        parsed.hosts[0].name = hostname;
+      } else {
+        parsed.hosts = [{name: hostname}];
+      }
+    }
+
+    return parsed.toString();
+  }
+
   getRabbitMQClient(): string {
     return this.config.get('dispatcher.rabbitmq.client');
   }
