@@ -17,24 +17,24 @@ describe('Queuer e2e test', () => {
   });
 
   describe('POST /queue', () => {
-    test('should add event to the queue for local node', async () => {
-      const event = { id: 'fakeid1' };
+    test('should add chain to the queue for local node', async () => {
+      const chain = { id: 'fakeid1', events: [{ body: 'fakebody', signkey: 'fakesignkey' }] };
       const res = await request(app.getHttpServer())
         .post('/queue')
-        .send(event);
+        .send(chain);
 
       expect(res.status).toBe(204);
       expect(res.header['content-type']).toBeUndefined();
       expect(res.body).toEqual({});
     }, 10000);
 
-    test('should add event to the queue for remote node', async () => {
-      const event = { id: 'fakeid2' };
+    test('should add chain to the queue for remote node', async () => {
+      const chain = { id: 'fakeid2', events: [{ body: 'fakebody', signkey: 'fakesignkey' }] };
       const to = 'amqp://';
       const res = await request(app.getHttpServer())
         .post('/queue')
         .query({ to })
-        .send(event);
+        .send(chain);
 
       expect(res.status).toBe(204);
       expect(res.header['content-type']).toBeUndefined();

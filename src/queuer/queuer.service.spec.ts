@@ -3,6 +3,7 @@ import { QueuerModuleConfig } from './queuer.module';
 import { QueuerService } from './queuer.service';
 import { RabbitMQService } from '../rabbitmq/rabbitmq.service';
 import { RabbitMQApiService } from '../rabbitmq/rabbitmq-api.service';
+import { EventChain } from 'lto-api';
 
 describe('QueuerService', () => {
   let module: TestingModule;
@@ -42,8 +43,8 @@ describe('QueuerService', () => {
     test('should connect and publish event to local default queue', async () => {
       const spies = spy();
 
-      const event = { id: 'fakeid' };
-      await queuerService.add(event);
+      const chain = { id: 'fakeid', events: [{ body: 'fakebody', signkey: 'fakesignkey' }] };
+      await queuerService.add(chain);
 
       expect(spies.rmqService.connect.mock.calls.length).toBe(1);
       expect(spies.rmqService.connect.mock.calls[0][0]).toBe('amqp://');
@@ -53,15 +54,19 @@ describe('QueuerService', () => {
       expect(spies.rmqConnection.publish.mock.calls.length).toBe(1);
       expect(spies.rmqConnection.publish.mock.calls[0][0]).toBe('\'\'');
       expect(spies.rmqConnection.publish.mock.calls[0][1]).toBe('default');
-      expect(spies.rmqConnection.publish.mock.calls[0][2]).toBe(event);
+      expect(spies.rmqConnection.publish.mock.calls[0][2]).toBeInstanceOf(EventChain);
+      expect(spies.rmqConnection.publish.mock.calls[0][2]).toMatchObject({
+        id: 'fakeid',
+        events: [{ body: 'fakebody', origin: 'amqp://localhost', signkey: 'fakesignkey' }],
+      });
     });
 
     test('should create dynamic shovel and publish event to remote queue if param is given', async () => {
       const spies = spy();
 
-      const event = { id: 'fakeid' };
+      const chain = { id: 'fakeid', events: [{ body: 'fakebody', signkey: 'fakesignkey' }] };
       const destination = ['amqp://ext1', 'amqp://ext2'];
-      await queuerService.add(event, destination);
+      await queuerService.add(chain, destination);
 
       expect(spies.rmqService.connect.mock.calls.length).toBe(1);
       expect(spies.rmqService.connect.mock.calls[0][0]).toBe('amqp://');
@@ -77,10 +82,18 @@ describe('QueuerService', () => {
       expect(spies.rmqConnection.publish.mock.calls.length).toBe(2);
       expect(spies.rmqConnection.publish.mock.calls[0][0]).toBe('\'\'');
       expect(spies.rmqConnection.publish.mock.calls[0][1]).toBe('amqp://ext1');
-      expect(spies.rmqConnection.publish.mock.calls[0][2]).toBe(event);
+      expect(spies.rmqConnection.publish.mock.calls[0][2]).toBeInstanceOf(EventChain);
+      expect(spies.rmqConnection.publish.mock.calls[0][2]).toMatchObject({
+        id: 'fakeid',
+        events: [{ body: 'fakebody', origin: 'amqp://localhost', signkey: 'fakesignkey' }],
+      });
       expect(spies.rmqConnection.publish.mock.calls[1][0]).toBe('\'\'');
       expect(spies.rmqConnection.publish.mock.calls[1][1]).toBe('amqp://ext2');
-      expect(spies.rmqConnection.publish.mock.calls[1][2]).toBe(event);
+      expect(spies.rmqConnection.publish.mock.calls[1][2]).toBeInstanceOf(EventChain);
+      expect(spies.rmqConnection.publish.mock.calls[1][2]).toMatchObject({
+        id: 'fakeid',
+        events: [{ body: 'fakebody', origin: 'amqp://localhost', signkey: 'fakesignkey' }],
+      });
     });
   });
 });

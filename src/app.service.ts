@@ -16,6 +16,7 @@ export class AppService {
       version: json.version,
       description: json.description,
       env: this.config.getEnv(),
+      node: this.config.getRabbitMQPublicUrl(),
     };
   }
 }

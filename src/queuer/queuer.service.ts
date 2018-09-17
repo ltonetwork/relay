@@ -24,40 +24,45 @@ export class QueuerService implements OnModuleInit, OnModuleDestroy {
     await this.rabbitMQService.close();
   }
 
-  async add(event: any, destination?: string | string[]): Promise<void> {
+  async add(input: any, destination?: string | string[]): Promise<void> {
     if (!this.config.hasModuleQueuer()) {
       return this.logger.debug(`queuer: module not enabled`);
     }
-
-    const chain = (new EventChain()).setValues(event);
-    const hash = chain.getLatestHash();
 
     if (!this.connection) {
       this.connection = await this.rabbitMQService.connect(this.config.getRabbitMQClient());
     }
 
+    const chain = (new EventChain()).setValues(input);
+    const hash = chain.getLatestHash();
+
+    chain.events = chain.events.map((event: any) => {
+      event.origin = this.config.getRabbitMQPublicUrl();
+      return event;
+    });
+
     if (!destination || !destination.length) {
-      this.logger.info(`queuer: adding event '${chain.id}/${hash}' for local node`);
-      return await this.addLocal(event);
+      this.logger.info(`queuer: adding chain '${chain.id}/${hash}' for local node`);
+      return await this.addLocal(chain);
     }
 
     const to = util.isString(destination) ? [destination] : destination;
 
     for (const node of to) {
-      this.logger.info(`queuer: adding event '${chain.id}/${hash}' for remote node '${node}'`);
-      await this.addRemote(node, event);
+      this.logger.info(`queuer: adding chain '${chain.id}/${hash}' for remote node '${node}'`);
+      await this.addRemote(node, chain);
     }
   }
 
-  private async addLocal(event: any): Promise<void> {
+  private async addLocal(chain: any): Promise<void> {
     return await this.connection.publish(
       this.config.getRabbitMQExchange(),
       this.config.getRabbitMQQueue(),
-      event,
+      chain,
     );
   }
 
-  private async addRemote(node: string, event: any): Promise<void> {
+  private async addRemote(node: string, chain: any): Promise<void> {
     // explicitly init queue before shovel creates it
     await this.connection.init(this.config.getRabbitMQExchange(), node, node);
 
@@ -73,7 +78,7 @@ export class QueuerService implements OnModuleInit, OnModuleDestroy {
     return await this.connection.publish(
       this.config.getRabbitMQExchange(),
       node,
-      event,
+      chain,
     );
   }
 }
