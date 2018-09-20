@@ -19,9 +19,10 @@ export class RabbitMQApiService {
     const url = `${api}/parameters/shovel/${vhost}/${shovel}`;
     const auth = this.config.getRabbitMQCredentials();
     const queue = this.config.getRabbitMQQueue();
+
     const data = {
       value: {
-        'src-uri': srcUri,
+        'src-uri': srcUri.replace('amqp://rabbitmq', 'ampq://'),
         'src-queue': srcQueue,
         'dest-uri': destUri,
         'dest-queue': queue,
