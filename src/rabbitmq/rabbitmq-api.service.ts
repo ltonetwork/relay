@@ -22,7 +22,7 @@ export class RabbitMQApiService {
 
     const data = {
       value: {
-        'src-uri': srcUri.replace('amqp://rabbitmq', 'ampq://'),
+        'src-uri': srcUri.replace('amqp://rabbitmq', 'amqp://'),
         'src-queue': srcQueue,
         'dest-uri': destUri,
         'dest-queue': queue,
