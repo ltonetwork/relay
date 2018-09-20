@@ -33,6 +33,10 @@ export class ConfigService {
 
     if (!parsed.hosts[0].name || ['rabbitmq', 'localhost'].indexOf(parsed.hosts[0].name) > -1) {
       parsed.hosts[0].name = hostname;
+
+      parsed.hosts[0].port = (parsed.hosts && parsed.hosts[0].port) || 5672;
+      parsed.user = parsed.user || 'guest';
+      parsed.password = parsed.password || 'guest';
     }
 
     return parsed.toString();

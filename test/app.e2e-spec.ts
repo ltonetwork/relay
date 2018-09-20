@@ -26,7 +26,7 @@ describe('Application e2e test', () => {
         version: '0.0.1',
         description: 'Event dispatcher',
         env: 'test',
-        node: 'amqp://localhost',
+        node: 'amqp://guest:guest@localhost:5672',
       });
     });
   });
