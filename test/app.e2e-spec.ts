@@ -23,7 +23,6 @@ describe('Application e2e test', () => {
       expect(res.header['content-type']).toMatch(/json/);
       expect(res.body).toMatchObject({
         name: 'event-dispatcher',
-        version: '0.0.1',
         description: 'Event dispatcher',
         env: 'test',
         node: 'amqp://guest:guest@localhost:5672',
