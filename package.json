@@ -28,6 +28,7 @@
     "connection-string": "^1.0.1",
     "convict": "^4.3.2",
     "delay": "^3.1.0",
+    "event-stream": "^3.3.4",
     "fastify-formbody": "^2.0.1",
     "lto-api": "^0.3.6",
     "moment": "^2.22.2",
