@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import querystring from 'querystring';
 import { AxiosResponse } from 'axios';
 import { ConfigService } from '../common/config/config.service';
-import { RequestService } from '../request/request.service';
+import { RequestService } from '../common/request/request.service';
 
 @Injectable()
 export class RabbitMQApiService {

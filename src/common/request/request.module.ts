@@ -2,8 +2,8 @@ import { Module } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { requestProviders } from './request.providers';
 import { RequestService } from './request.service';
-import { LoggerModule } from '../common/logger/logger.module';
-import { ConfigModule } from '../common/config/config.module';
+import { LoggerModule } from '../logger/logger.module';
+import { ConfigModule } from '../config/config.module';
 
 export const RequestModuleConfig = {
   imports: [LoggerModule, ConfigModule, HttpModule],

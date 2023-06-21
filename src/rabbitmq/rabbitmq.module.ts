@@ -4,7 +4,7 @@ import { RabbitMQService } from './rabbitmq.service';
 import { RabbitMQApiService } from './rabbitmq-api.service';
 import { LoggerModule } from '../common/logger/logger.module';
 import { ConfigModule } from '../common/config/config.module';
-import { RequestModule } from '../request/request.module';
+import { RequestModule } from '../common/request/request.module';
 
 export const RabbitMQModuleConfig = {
   imports: [LoggerModule, ConfigModule, RequestModule],

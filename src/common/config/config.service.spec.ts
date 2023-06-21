@@ -18,12 +18,20 @@ describe('ConfigService', () => {
   });
 
   describe('get config', () => {
-    test('hasModuleDispatcher()', async () => {
-      expect(configService.hasModuleDispatcher()).toBe(true);
+    test('isDispatcherEnabled()', async () => {
+      expect(configService.isDispatcherEnabled()).toBe(true);
     });
 
-    test('hasModuleQueuer()', async () => {
-      expect(configService.hasModuleQueuer()).toBe(true);
+    test('isStorageEnabled()', async () => {
+      expect(configService.isStorageEnabled()).toBe(true);
+    });
+
+    test('isQueuerEnabled()', async () => {
+      expect(configService.isQueuerEnabled()).toBe(true);
+    });
+
+    test('getDispatchTarget()', async () => {
+      expect(configService.getDispatchTarget()).toBe('https://example.com');
     });
 
     test('getEnv()', async () => {

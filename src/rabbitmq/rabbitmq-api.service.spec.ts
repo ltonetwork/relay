@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { RabbitMQModuleConfig } from './rabbitmq.module';
 import { RabbitMQApiService } from './rabbitmq-api.service';
-import { RequestService } from '../request/request.service';
+import { RequestService } from '../common/request/request.service';
 
 describe('RabbitMQApiService', () => {
   let module: TestingModule;

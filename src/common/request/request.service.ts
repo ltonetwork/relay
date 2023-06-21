@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { ConfigService } from '../common/config/config.service';
-import { LoggerService } from '../common/logger/logger.service';
+import { ConfigService } from '../config/config.service';
+import { LoggerService } from '../logger/logger.service';
 import { AxiosRequestConfig, AxiosResponse } from 'axios';
 import { HttpService } from '@nestjs/axios';
 

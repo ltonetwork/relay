@@ -19,16 +19,43 @@ export default {
     default: '',
     env: 'API_PREFIX',
   },
-  modules: {
-    dispatcher: {
-      doc: 'Configure which dispatcher modules should be enabled',
-      default: 1,
-      env: 'MODULES_DISPATCHER',
+  accept: {
+    accounts: {
+      docs: 'List of account for which the service accepts messages',
+      format: 'comma-separated-string',
+      default: [],
+      env: 'ACCEPT_ACCOUNTS',
     },
-    queuer: {
-      doc: 'Configure which queuer modules should be enabled',
-      default: 1,
-      env: 'MODULES_QUEUER',
+    all: {
+      docs: 'Accept messages from all accounts',
+      default: false,
+      env: 'ACCEPT_ALL',
+    }
+  },
+  dispatcher: {
+    target: {
+      doc: 'The target url for the dispatcher',
+      default: '',
+      env: 'DISPATCHER_TARGET',
+    }
+  },
+  storage: {
+    enabled: {
+      doc: 'Enable storage module',
+      default: true,
+      env: 'STORAGE_ENABLED',
+    },
+    path: {
+      doc: 'The path to the storage directory',
+      default: './storage',
+      env: 'STORAGE_PATH',
+    }
+  },
+  queuer: {
+    enabled: {
+      doc: 'Enable queue module',
+      default: true,
+      env: 'QUEUER_ENABLED',
     },
   },
   rabbitmq: {
@@ -57,6 +84,9 @@ export default {
       default: 'default',
       env: 'RABBITMQ_SHOVEL',
     },
+  },
+  webhook: {
+
   },
   log: {
     level: {

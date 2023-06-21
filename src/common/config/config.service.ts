@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigLoaderService } from './config-loader.service';
 import { ConnectionString } from 'connection-string';
-import { boolean } from 'boolean';
 import { camelCase } from '../../utils/transform-case';
 
 @Injectable()
@@ -14,14 +13,28 @@ export class ConfigService {
     this.app = { name: camelCase(name), description, version };
   }
 
-  hasModuleDispatcher(): boolean {
-    const flag = this.config.get('modules.dispatcher');
-    return boolean(flag);
+  isDispatcherEnabled(): boolean {
+    return !!this.config.get('dispatcher.target') || this.config.get('storage.enabled');
   }
 
-  hasModuleQueuer(): boolean {
-    const flag = this.config.get('modules.queuer');
-    return boolean(flag);
+  isStorageEnabled(): boolean {
+    return this.config.get('storage.enabled');
+  }
+
+  isQueuerEnabled(): boolean {
+    return this.config.get('queuer.enabled');
+  }
+
+  hasDispatchTarget(): boolean {
+    return !!this.config.get('dispatcher.target');
+  }
+
+  getDispatchTarget(): string {
+    return this.config.get('dispatcher.target');
+  }
+
+  isAcceptedAccount(account: string): boolean {
+    return this.config.get('accept.all') || this.config.get('accept.accounts').includes(account);
   }
 
   getEnv(): string {
