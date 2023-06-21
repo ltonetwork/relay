@@ -1,20 +1,17 @@
 import { Injectable, Inject, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { RabbitMQConnection } from './classes/rabbitmq.connection';
-import { LoggerService } from '../logger/logger.service';
+import { LoggerService } from '../common/logger/logger.service';
 import { AMQPLIB } from '../constants';
 import amqplib from 'amqplib';
-import delay from 'delay';
+import { setTimeout } from 'node:timers/promises';
 
 @Injectable()
 export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
   public readonly connections: { [key: string]: RabbitMQConnection } = {};
 
-  constructor(
-    @Inject(AMQPLIB) private readonly _amqplib: typeof amqplib,
-    private readonly logger: LoggerService,
-  ) { }
+  constructor(@Inject(AMQPLIB) private readonly _amqplib: typeof amqplib, private readonly logger: LoggerService) {}
 
-  async onModuleInit() { }
+  async onModuleInit() {}
 
   async onModuleDestroy() {
     await this.close();
@@ -42,7 +39,7 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
       return this.connections[key];
     } catch (e) {
       this.logger.error(`rabbitmq: failed to connect ${key} '${e}'`);
-      await delay(2000);
+      await setTimeout(2000);
       return this.connect(config);
     }
   }
@@ -55,15 +52,13 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
       const connection = await this._amqplib.connect(config);
       const channel = await connection.createChannel();
       this.onError(channel, config);
-      this.connections[key]
-        .setChannel(channel)
-        .setConnection(connection);
+      this.connections[key].setChannel(channel).setConnection(connection);
       this.connections[key].open = true;
       this.logger.info(`rabbitmq: successfully reopened connection ${key}`);
       return this.connections[key];
     } catch (e) {
       this.logger.error(`rabbitmq: failed to reopen connection ${key} '${e}'`);
-      await delay(1000);
+      await setTimeout(1000);
       return this.reopen(config);
     }
   }

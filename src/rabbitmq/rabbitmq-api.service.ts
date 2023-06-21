@@ -1,15 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import querystring from 'querystring';
 import { AxiosResponse } from 'axios';
-import { ConfigService } from '../config/config.service';
+import { ConfigService } from '../common/config/config.service';
 import { RequestService } from '../request/request.service';
 
 @Injectable()
 export class RabbitMQApiService {
-  constructor(
-    private readonly requestService: RequestService,
-    private readonly config: ConfigService,
-  ) { }
+  constructor(private readonly requestService: RequestService, private readonly config: ConfigService) {}
 
   async addDynamicShovel(srcQueue: string, destUri: string): Promise<AxiosResponse | Error> {
     const srcUri = this.config.getRabbitMQClient();

@@ -1,14 +1,41 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { DispatcherService } from './dispatcher/dispatcher.service';
-import { json } from 'body-parser';
+import { INestApplication } from '@nestjs/common';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { ConfigService } from './common/config/config.service';
+import { LoggerService } from './common/logger/logger.service';
+
+function swagger(app: INestApplication, config: ConfigService) {
+  const options = new DocumentBuilder()
+    .setTitle(config.app.name)
+    .setDescription(config.app.description)
+    .setVersion(config.app.version !== '0.0.0' ? config.app.version : process.env.NODE_ENV)
+    .build();
+
+  const document = SwaggerModule.createDocument(app, options);
+  SwaggerModule.setup('/api-docs', app, document);
+}
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  app.use(json({ limit: '5mb' }));
-  await app.listen(process.env.PORT || 80);
+  const config = app.get<ConfigService>(ConfigService);
 
-  const dispatcherService = app.get<DispatcherService>(DispatcherService);
-  await dispatcherService.start();
+  if (config.getApiPrefix()) app.setGlobalPrefix(config.getApiPrefix());
+
+  // app.enableCors();
+  app.enableCors();
+
+  swagger(app, config);
+  app.enableShutdownHooks();
+
+  const logger = app.get<LoggerService>(LoggerService).build('App');
+  logger.info(`running on http://localhost:${config.getPort()}`);
+  logger.info(`using env ${config.getEnv()}`);
+
+  await app.listen(config.getPort());
 }
-bootstrap();
+
+bootstrap().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});

@@ -1,8 +1,10 @@
-# event-dispatcher
+![LTO github readme](https://user-images.githubusercontent.com/100821/196711741-96cd4ba5-932a-4e95-b420-42d4d61c21fd.png)
 
-## Description
+# Relay
 
-Event dispatcher
+[![Build Status](https://travis-ci.com/ltonetwork/relay.svg?branch=master)](https://travis-ci.com/ltonetwork/indexer)
+
+Communication service for the LTO Network private layer. Relays encrypted messages between accounts.
 
 ## Installation
 

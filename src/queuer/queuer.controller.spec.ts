@@ -11,7 +11,7 @@ describe('QueuerController', () => {
 
   function spy() {
     const qService = {
-      add: jest.spyOn(queuerService, 'add').mockImplementation(() => { }),
+      add: jest.spyOn(queuerService, 'add').mockImplementation(() => {}),
     };
 
     return { qService };
@@ -34,9 +34,7 @@ describe('QueuerController', () => {
       const spies = spy();
 
       const event = { id: 'fakeid' };
-      const res = await request(app.getHttpServer())
-        .post('/queue')
-        .send(event);
+      const res = await request(app.getHttpServer()).post('/queue').send(event);
 
       expect(res.status).toBe(204);
       expect(res.header['content-type']).toBeUndefined();
@@ -52,10 +50,7 @@ describe('QueuerController', () => {
 
       const event = { id: 'fakeid' };
       const to = ['amqp://ext1', 'amqp://ext2'];
-      const res = await request(app.getHttpServer())
-        .post('/queue')
-        .query({ to })
-        .send(event);
+      const res = await request(app.getHttpServer()).post('/queue').query({ to }).send(event);
 
       expect(res.status).toBe(204);
       expect(res.header['content-type']).toBeUndefined();

@@ -52,7 +52,7 @@ describe('QueuerService', () => {
       expect(spies.rmqConnection.init.mock.calls.length).toBe(0);
 
       expect(spies.rmqConnection.publish.mock.calls.length).toBe(1);
-      expect(spies.rmqConnection.publish.mock.calls[0][0]).toBe('\'\'');
+      expect(spies.rmqConnection.publish.mock.calls[0][0]).toBe("''");
       expect(spies.rmqConnection.publish.mock.calls[0][1]).toBe('default');
       expect(spies.rmqConnection.publish.mock.calls[0][2]).toBeInstanceOf(EventChain);
       expect(spies.rmqConnection.publish.mock.calls[0][2]).toMatchObject({
@@ -80,14 +80,14 @@ describe('QueuerService', () => {
       expect(spies.rmqConnection.init.mock.calls.length).toBe(2);
 
       expect(spies.rmqConnection.publish.mock.calls.length).toBe(2);
-      expect(spies.rmqConnection.publish.mock.calls[0][0]).toBe('\'\'');
+      expect(spies.rmqConnection.publish.mock.calls[0][0]).toBe("''");
       expect(spies.rmqConnection.publish.mock.calls[0][1]).toBe('amqp://ext1');
       expect(spies.rmqConnection.publish.mock.calls[0][2]).toBeInstanceOf(EventChain);
       expect(spies.rmqConnection.publish.mock.calls[0][2]).toMatchObject({
         id: 'fakeid',
         events: [{ body: 'fakebody', origin: 'amqp://guest:guest@localhost:5672', signkey: 'fakesignkey' }],
       });
-      expect(spies.rmqConnection.publish.mock.calls[1][0]).toBe('\'\'');
+      expect(spies.rmqConnection.publish.mock.calls[1][0]).toBe("''");
       expect(spies.rmqConnection.publish.mock.calls[1][1]).toBe('amqp://ext2');
       expect(spies.rmqConnection.publish.mock.calls[1][2]).toBeInstanceOf(EventChain);
       expect(spies.rmqConnection.publish.mock.calls[1][2]).toMatchObject({

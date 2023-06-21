@@ -1,27 +1,18 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { ConfigModule } from './config/config.module';
-import { LoggerModule } from './logger/logger.module';
+import { ConfigModule } from './common/config/config.module';
+import { LoggerModule } from './common/logger/logger.module';
 import { RabbitMQModule } from './rabbitmq/rabbitmq.module';
-import { LegalEventsModule } from './legalevents/legalevents.module';
 import { DispatcherModule } from './dispatcher/dispatcher.module';
 import { QueuerModule } from './queuer/queuer.module';
 import { RequestModule } from './request/request.module';
 
 export const AppModuleConfig = {
-  imports: [
-    LoggerModule,
-    ConfigModule,
-    RequestModule,
-    RabbitMQModule,
-    LegalEventsModule,
-    DispatcherModule,
-    QueuerModule,
-  ],
+  imports: [LoggerModule, ConfigModule, RequestModule, RabbitMQModule, DispatcherModule, QueuerModule],
   controllers: [AppController],
   providers: [AppService],
 };
 
 @Module(AppModuleConfig)
-export class AppModule { }
+export class AppModule {}

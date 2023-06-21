@@ -1,7 +1,8 @@
-import { Injectable, HttpService } from '@nestjs/common';
-import { ConfigService } from '../config/config.service';
-import { LoggerService } from '../logger/logger.service';
+import { Injectable } from '@nestjs/common';
+import { ConfigService } from '../common/config/config.service';
+import { LoggerService } from '../common/logger/logger.service';
 import { AxiosRequestConfig, AxiosResponse } from 'axios';
+import { HttpService } from '@nestjs/axios';
 
 @Injectable()
 export class RequestService {
@@ -9,15 +10,14 @@ export class RequestService {
     private readonly http: HttpService,
     private readonly config: ConfigService,
     private readonly logger: LoggerService,
-  ) { }
+  ) {}
 
   async send(config: AxiosRequestConfig): Promise<AxiosResponse | Error> {
     const url = config.url;
     const method = config.method;
 
     try {
-      const response = await this.http.request(config as any).toPromise();
-      return response;
+      return await this.http.request(config as any).toPromise();
     } catch (e) {
       this.log(e, method, url);
       return e;

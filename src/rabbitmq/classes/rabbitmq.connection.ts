@@ -1,7 +1,6 @@
 import amqplib from 'amqplib';
-import util from 'util';
-import { LoggerService } from '../../logger/logger.service';
-import delay from 'delay';
+import { LoggerService } from '../../common/logger/logger.service';
+import { setTimeout } from 'node:timers/promises';
 
 export class RabbitMQConnection {
   public open: boolean;
@@ -27,15 +26,19 @@ export class RabbitMQConnection {
   async consume(exchange: string, queue: string, callback: (msg: amqplib.Message) => void) {
     await this.init(exchange, queue, queue);
 
-    await this.channel.consume(queue, async (msg: amqplib.Message) => {
-      await callback(msg);
-    }, { noAck: false });
+    await this.channel.consume(
+      queue,
+      async (msg: amqplib.Message) => {
+        await callback(msg);
+      },
+      { noAck: false },
+    );
   }
 
   async publish(exchange: string, queue: string, msg: string | object) {
     await this.init(exchange, queue, queue);
 
-    const data = util.isString(msg) ? msg : JSON.stringify(msg);
+    const data = typeof msg === 'string' ? msg : JSON.stringify(msg);
     const buffer = Buffer.from(data);
     await this.channel.publish(exchange, queue, buffer);
   }
@@ -54,8 +57,7 @@ export class RabbitMQConnection {
 
   async checkQueue(queue: string): Promise<amqplib.Replies.AssertQueue | null> {
     try {
-      const result = await this.channel.checkQueue(queue);
-      return result;
+      return await this.channel.checkQueue(queue);
     } catch (e) {
       // does not exist
       return null;
@@ -64,8 +66,7 @@ export class RabbitMQConnection {
 
   async checkExchange(exchange: string): Promise<amqplib.Replies.Empty | null> {
     try {
-      const result = await this.channel.checkExchange(exchange);
-      return result;
+      return await this.channel.checkExchange(exchange);
     } catch (e) {
       // does not exist
       return null;
@@ -73,39 +74,36 @@ export class RabbitMQConnection {
   }
 
   async init(exchange: string, queue: string, pattern: string) {
-      // deadletter
-      await this.assertExchange(`${exchange}.deadletter`);
-      await this.assertQueue(`${queue}.deadletter`);
-      await this.bindQueue(`${exchange}.deadletter`, `${queue}.deadletter`, `${pattern}.deadletter`);
+    // deadletter
+    await this.assertExchange(`${exchange}.deadletter`);
+    await this.assertQueue(`${queue}.deadletter`);
+    await this.bindQueue(`${exchange}.deadletter`, `${queue}.deadletter`, `${pattern}.deadletter`);
 
-      // regular
-      await this.assertExchange(exchange);
-      await this.assertQueue(queue, {
-        durable: true,
-        deadLetterExchange: `${exchange}.deadletter`,
-        deadLetterRoutingKey: `${queue}.deadletter`,
-      });
-      await this.bindQueue(exchange, queue, pattern);
-    }
+    // regular
+    await this.assertExchange(exchange);
+    await this.assertQueue(queue, {
+      durable: true,
+      deadLetterExchange: `${exchange}.deadletter`,
+      deadLetterRoutingKey: `${queue}.deadletter`,
+    });
+    await this.bindQueue(exchange, queue, pattern);
+  }
 
-  private async assertQueue(
-    queue: string,
-    options: amqplib.Options.AssertQueue = { durable: true },
-  ) {
+  private async assertQueue(queue: string, options: amqplib.Options.AssertQueue = { durable: true }) {
     try {
       this.log('debug', `rabbitmq-connection: attempting to assert queue '${queue}'`);
       await this.channel.assertQueue(queue, options);
       this.log('debug', `rabbitmq-connection: successfully asserted queue '${queue}'`);
     } catch (e) {
       this.log('error', `rabbitmq-connection: failed to assert queue '${e}'`);
-      await delay(1500);
+      await setTimeout(1500);
       return this.assertQueue(queue, options);
     }
   }
 
   private async assertExchange(
     exchange: string,
-    type: string = 'direct',
+    type = 'direct',
     options: amqplib.Options.AssertExchange = { durable: true },
   ) {
     try {
@@ -114,7 +112,7 @@ export class RabbitMQConnection {
       this.log('debug', `rabbitmq-connection: successfully asserted exchange '${exchange}'`);
     } catch (e) {
       this.log('error', `rabbitmq-connection: failed to assert exchange '${e}'`);
-      await delay(1500);
+      await setTimeout(1500);
       return this.assertExchange(exchange, type, options);
     }
   }

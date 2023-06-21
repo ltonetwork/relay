@@ -1,28 +1,47 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigLoaderService } from './config-loader.service';
 import { ConnectionString } from 'connection-string';
-import toBoolean from 'boolean';
+import { boolean } from 'boolean';
+import { camelCase } from '../../utils/transform-case';
 
 @Injectable()
 export class ConfigService {
-  constructor(private readonly config: ConfigLoaderService) { }
+  public readonly app: { name: string; description: string; version: string };
+
+  constructor(private readonly config: ConfigLoaderService) {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { name, description, version } = require('../../../package.json');
+    this.app = { name: camelCase(name), description, version };
+  }
 
   hasModuleDispatcher(): boolean {
-    const flag = this.config.get('dispatcher.modules.dispatcher');
-    return toBoolean(flag);
+    const flag = this.config.get('modules.dispatcher');
+    return boolean(flag);
   }
 
   hasModuleQueuer(): boolean {
-    const flag = this.config.get('dispatcher.modules.queuer');
-    return toBoolean(flag);
+    const flag = this.config.get('modules.queuer');
+    return boolean(flag);
   }
 
   getEnv(): string {
     return this.config.get('env');
   }
 
+  isEnv(env: string): boolean {
+    return this.getEnv() === env || this.getEnv().startsWith(`${env}.`);
+  }
+
   getHostname(): string {
     return this.config.get('hostname');
+  }
+
+  getPort(): number {
+    return this.config.get('port');
+  }
+
+  getApiPrefix(): string {
+    return this.config.get('api_prefix');
   }
 
   getRabbitMQPublicUrl(): string {
@@ -43,11 +62,16 @@ export class ConfigService {
   }
 
   getRabbitMQClient(): string {
-    return this.config.get('dispatcher.rabbitmq.client');
+    return this.config.get('rabbitmq.client');
   }
 
   getRabbitMQClientAsObject(): {
-    protocol, hostname, port, username, password, vhost,
+    protocol;
+    hostname;
+    port;
+    username;
+    password;
+    vhost;
   } {
     const string = this.getRabbitMQClient();
     const parsed = new ConnectionString(string);
@@ -68,11 +92,11 @@ export class ConfigService {
   }
 
   getRabbitMQVhost(): string {
-    return (this.getRabbitMQClientAsObject()).vhost;
+    return this.getRabbitMQClientAsObject().vhost;
   }
 
   getRabbitMQApiUrl(): string {
-    const config = this.config.get('dispatcher.rabbitmq.api');
+    const config = this.config.get('rabbitmq.api');
 
     if (config) {
       return config;
@@ -84,26 +108,18 @@ export class ConfigService {
   }
 
   getRabbitMQExchange(): string {
-    return this.config.get('dispatcher.rabbitmq.exchange');
+    return this.config.get('rabbitmq.exchange');
   }
 
   getRabbitMQQueue(): string {
-    return this.config.get('dispatcher.rabbitmq.queue');
+    return this.config.get('rabbitmq.queue');
   }
 
   getRabbitMQShovel(): string {
-    return this.config.get('dispatcher.rabbitmq.shovel');
+    return this.config.get('rabbitmq.shovel');
   }
 
-  getLegalEventsUrl(): string {
-    return this.config.get('dispatcher.legalevents.url');
-  }
-
-  getLoggerConsole(): { level } {
-    return this.config.get('dispatcher.logger.console');
-  }
-
-  getLoggerCombined(): { level } {
-    return this.config.get('dispatcher.logger.combined');
+  getLog(): { level: string; force: boolean } {
+    return this.config.get('log');
   }
 }

@@ -1,9 +1,8 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { LegalEventsService } from '../legalevents/legalevents.service';
 import { RabbitMQService } from '../rabbitmq/rabbitmq.service';
 import { RabbitMQConnection } from '../rabbitmq/classes/rabbitmq.connection';
-import { LoggerService } from '../logger/logger.service';
-import { ConfigService } from '../config/config.service';
+import { LoggerService } from '../common/logger/logger.service';
+import { ConfigService } from '../common/config/config.service';
 import { EventChain } from 'lto-api';
 import amqplib from 'amqplib';
 
@@ -15,10 +14,9 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
     private readonly logger: LoggerService,
     private readonly config: ConfigService,
     private readonly rabbitMQService: RabbitMQService,
-    private readonly legalEventsService: LegalEventsService,
-  ) { }
+  ) {}
 
-  async onModuleInit() { }
+  async onModuleInit() {}
 
   async onModuleDestroy() {
     await this.rabbitMQService.close();
@@ -73,12 +71,10 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
       return this.connection.deadletter(msg);
     }
 
-    const response = await this.legalEventsService.send(event);
+    // TODO Do something with the event
+    const response = { status: 200 };
 
-    if (
-      !response || response instanceof Error || !response.status ||
-      [200, 201, 204].indexOf(response.status) === - 1
-    ) {
+    if (!response || response instanceof Error || !response.status || [200, 201, 204].indexOf(response.status) === -1) {
       this.logger.warn(`dispatcher: message '${event.id}/${hash}' deadlettered, failed to send to legalevents`);
       return this.connection.deadletter(msg);
     }

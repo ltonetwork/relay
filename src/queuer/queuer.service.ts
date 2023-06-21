@@ -2,8 +2,8 @@ import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { RabbitMQService } from '../rabbitmq/rabbitmq.service';
 import { RabbitMQApiService } from '../rabbitmq/rabbitmq-api.service';
 import { RabbitMQConnection } from '../rabbitmq/classes/rabbitmq.connection';
-import { LoggerService } from '../logger/logger.service';
-import { ConfigService } from '../config/config.service';
+import { LoggerService } from '../common/logger/logger.service';
+import { ConfigService } from '../common/config/config.service';
 import { EventChain } from 'lto-api';
 import util from 'util';
 
@@ -16,9 +16,9 @@ export class QueuerService implements OnModuleInit, OnModuleDestroy {
     private readonly config: ConfigService,
     private readonly rabbitMQService: RabbitMQService,
     private readonly rabbitMQApiService: RabbitMQApiService,
-  ) { }
+  ) {}
 
-  async onModuleInit() { }
+  async onModuleInit() {}
 
   async onModuleDestroy() {
     await this.rabbitMQService.close();
@@ -33,7 +33,7 @@ export class QueuerService implements OnModuleInit, OnModuleDestroy {
       this.connection = await this.rabbitMQService.connect(this.config.getRabbitMQClient());
     }
 
-    const chain = (new EventChain()).setValues(input);
+    const chain = new EventChain().setValues(input);
     const hash = chain.getLatestHash();
 
     chain.events = chain.events.map((event: any) => {
@@ -55,11 +55,7 @@ export class QueuerService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async addLocal(chain: any): Promise<void> {
-    return await this.connection.publish(
-      this.config.getRabbitMQExchange(),
-      this.config.getRabbitMQQueue(),
-      chain,
-    );
+    return await this.connection.publish(this.config.getRabbitMQExchange(), this.config.getRabbitMQQueue(), chain);
   }
 
   private async addRemote(node: string, chain: any): Promise<void> {
@@ -68,17 +64,10 @@ export class QueuerService implements OnModuleInit, OnModuleDestroy {
 
     const response = await this.rabbitMQApiService.addDynamicShovel(node, node);
 
-    if (
-      !response || response instanceof Error || !response.status ||
-      [200, 201, 204].indexOf(response.status) === - 1
-    ) {
+    if (!response || response instanceof Error || !response.status || [200, 201, 204].indexOf(response.status) === -1) {
       throw new Error('queuer: failed to add shovel for remote node');
     }
 
-    return await this.connection.publish(
-      this.config.getRabbitMQExchange(),
-      node,
-      chain,
-    );
+    return await this.connection.publish(this.config.getRabbitMQExchange(), node, chain);
   }
 }

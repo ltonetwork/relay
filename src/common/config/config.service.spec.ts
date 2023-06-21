@@ -72,7 +72,7 @@ describe('ConfigService', () => {
     });
 
     test('getRabbitMQExchange()', async () => {
-      expect(configService.getRabbitMQExchange()).toBe('\'\'');
+      expect(configService.getRabbitMQExchange()).toBe("''");
     });
 
     test('getRabbitMQQueue()', async () => {

@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import util from 'util';
 import fs from 'fs';
-import { ConfigService } from './config/config.service';
+import { ConfigService } from './common/config/config.service';
 
 @Injectable()
 export class AppService {
-  constructor(private readonly config: ConfigService) { }
+  constructor(private readonly config: ConfigService) {}
 
   async info(): Promise<object> {
     const data = await util.promisify(fs.readFile)('package.json', { encoding: 'utf8' });

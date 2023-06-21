@@ -1,2 +1,1 @@
-export const queuerProviders = [
-];
+export const queuerProviders = [];

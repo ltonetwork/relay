@@ -1,2 +1,1 @@
-export const dispatcherProviders = [
-];
+export const dispatcherProviders = [];
