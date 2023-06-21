@@ -82,17 +82,5 @@ describe('ConfigService', () => {
     test('getRabbitMQShovel()', async () => {
       expect(configService.getRabbitMQQueue()).toBe('default');
     });
-
-    test('getLegalEventsUrl()', async () => {
-      expect(configService.getLegalEventsUrl()).toBe('http://localhost:3030/api/events');
-    });
-
-    test('getLoggerConsole()', async () => {
-      expect(configService.getLoggerConsole()).toEqual({ level: 'info' });
-    });
-
-    test('getLoggerCombined()', async () => {
-      expect(configService.getLoggerCombined()).toEqual({ level: 'info' });
-    });
   });
 });

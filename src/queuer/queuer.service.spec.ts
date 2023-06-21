@@ -17,10 +17,10 @@ describe('QueuerService', () => {
       init: jest.fn(),
     };
     const rmqService = {
-      connect: jest.spyOn(rabbitmqService, 'connect').mockImplementation(() => rmqConnection),
+      connect: jest.spyOn(rabbitmqService, 'connect').mockImplementation(() => rmqConnection as any),
     };
     const rmqApiService = {
-      addDynamicShovel: jest.spyOn(rabbitmqApiService, 'addDynamicShovel').mockImplementation(() => ({ status: 200 })),
+      addDynamicShovel: jest.spyOn(rabbitmqApiService, 'addDynamicShovel').mockImplementation(() => ({ status: 200 } as any)),
     };
 
     return { rmqConnection, rmqService, rmqApiService };

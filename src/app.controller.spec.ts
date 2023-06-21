@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { ConfigModule } from './config/config.module';
+import { ConfigModule } from './common/config/config.module';
 
 describe('AppController', () => {
   let module: TestingModule;
@@ -27,7 +27,7 @@ describe('AppController', () => {
   describe('info', () => {
     test('should return application info', async () => {
       const result = { name: 'foo' };
-      jest.spyOn(appService, 'info').mockImplementation(() => result);
+      jest.spyOn(appService, 'info').mockImplementation(() => result as any);
       expect(await appController.info()).toBe(result);
     });
   });

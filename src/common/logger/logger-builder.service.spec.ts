@@ -1,6 +1,6 @@
 import { Test } from '@nestjs/testing';
 import { LoggerBuilderService } from './logger-builder.service';
-import { ConfigService } from '../common/config/config.service';
+import { ConfigService } from '../config/config.service';
 import * as winston from 'winston';
 import TransportStream from 'winston-transport';
 import { WINSTON } from '../../constants';
@@ -21,9 +21,9 @@ class TestTransport extends TransportStream {
 }
 
 const mockConfigService = () => ({
-  node: { isEnv: jest.fn().mockImplementation(() => false) },
+  isEnv: jest.fn().mockImplementation(() => false),
   app: { name: 'TestApp' },
-  log: { level: 'info', force: false },
+  getLog: jest.fn().mockImplementation(() => ({ level: 'info', force: false })),
 });
 
 describe('LoggerBuilderService', () => {
@@ -86,23 +86,23 @@ describe('LoggerBuilderService', () => {
 
   describe('shouldLog', () => {
     it('should return true if not in test environment', () => {
-      (configService.node.isEnv as Mock).mockReturnValue(false);
+      (configService.isEnv as Mock).mockReturnValue(false);
       expect(loggerBuilderService.shouldLog()).toBe(true);
     });
 
     it('should return false if in test environment and no options provided', () => {
-      (configService.node.isEnv as Mock).mockReturnValue(true);
+      (configService.isEnv as Mock).mockReturnValue(true);
       expect(loggerBuilderService.shouldLog()).toBe(false);
     });
 
     it('should return true if in test environment and force option is provided', () => {
-      (configService.node.isEnv as Mock).mockReturnValue(true);
+      (configService.isEnv as Mock).mockReturnValue(true);
       expect(loggerBuilderService.shouldLog({ force: true })).toBe(true);
     });
 
     it('should return true if in test environment and config.log.force is true', () => {
-      (configService.node.isEnv as Mock).mockReturnValue(true);
-      configService.log.force = true;
+      (configService.isEnv as Mock).mockReturnValue(true);
+      (configService.getLog as Mock).mockReturnValue({ level: 'info', force: true });
       expect(loggerBuilderService.shouldLog()).toBe(true);
     });
   });

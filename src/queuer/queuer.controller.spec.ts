@@ -11,7 +11,7 @@ describe('QueuerController', () => {
 
   function spy() {
     const qService = {
-      add: jest.spyOn(queuerService, 'add').mockImplementation(() => {}),
+      add: jest.spyOn(queuerService, 'add').mockImplementation(() => Promise.resolve() ),
     };
 
     return { qService };

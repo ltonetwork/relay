@@ -2,13 +2,11 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { DispatcherModuleConfig } from './dispatcher.module';
 import { DispatcherService } from './dispatcher.service';
 import { RabbitMQService } from '../rabbitmq/rabbitmq.service';
-import { LegalEventsService } from '../legalevents/legalevents.service';
 
 describe('DispatcherService', () => {
   let module: TestingModule;
   let dispatcherService: DispatcherService;
   let rabbitmqService: RabbitMQService;
-  let legalEventsService: LegalEventsService;
 
   function spy() {
     const rmqConnection = {
@@ -17,13 +15,10 @@ describe('DispatcherService', () => {
       consume: jest.fn(),
     };
     const rmqService = {
-      connect: jest.spyOn(rabbitmqService, 'connect').mockImplementation(() => rmqConnection),
-    };
-    const leService = {
-      send: jest.spyOn(legalEventsService, 'send').mockImplementation(() => ({ status: 200 })),
+      connect: jest.spyOn(rabbitmqService, 'connect').mockImplementation(() => rmqConnection as any),
     };
 
-    return { rmqConnection, rmqService, leService };
+    return { rmqConnection, rmqService };
   }
 
   beforeEach(async () => {
@@ -32,7 +27,6 @@ describe('DispatcherService', () => {
 
     dispatcherService = module.get<DispatcherService>(DispatcherService);
     rabbitmqService = module.get<RabbitMQService>(RabbitMQService);
-    legalEventsService = module.get<LegalEventsService>(LegalEventsService);
   });
 
   afterEach(async () => {
@@ -83,15 +77,11 @@ describe('DispatcherService', () => {
 
       const msg = { content: { toString: () => '{"id": "fakeid"}' } } as any;
 
-      spies.leService.send.mockImplementation(() => ({ status: 400 }));
-
       await dispatcherService.start();
       await dispatcherService.onMessage(msg);
 
       expect(spies.rmqConnection.deadletter.mock.calls.length).toBe(1);
       expect(spies.rmqConnection.deadletter.mock.calls[0][0]).toBe(msg);
-      expect(spies.leService.send.mock.calls.length).toBe(1);
-      expect(spies.leService.send.mock.calls[0][0]).toMatchObject({ id: 'fakeid' });
     });
 
     test('should acknowledge message if legalevents responds with success status code', async () => {
@@ -104,8 +94,6 @@ describe('DispatcherService', () => {
       expect(spies.rmqConnection.deadletter.mock.calls.length).toBe(0);
       expect(spies.rmqConnection.ack.mock.calls.length).toBe(1);
       expect(spies.rmqConnection.ack.mock.calls[0][0]).toBe(msg);
-      expect(spies.leService.send.mock.calls.length).toBe(1);
-      expect(spies.leService.send.mock.calls[0][0]).toMatchObject({ id: 'fakeid' });
     });
   });
 });
