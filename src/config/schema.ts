@@ -85,8 +85,22 @@ export default {
       env: 'RABBITMQ_SHOVEL',
     },
   },
-  webhook: {
-
+  did_resolver: {
+    testnet: {
+      doc: 'DID resolver for LTO node url',
+      default: 'https://testnet.lto.network/index/identifiers',
+      env: 'DID_RESOLVER_TESTNET',
+    },
+    mainnet: {
+      doc: 'DID resolver for LTO node url',
+      default: 'https://nodes.lto.network/index/identifiers',
+      env: 'DID_RESOLVER_MAINNET',
+    },
+  },
+  default_service_endpoint: {
+    doc: 'The default service endpoint',
+    default: 'amqp://relay.lto.network',
+    env: 'DEFAULT_SERVICE_ENDPOINT',
   },
   log: {
     level: {

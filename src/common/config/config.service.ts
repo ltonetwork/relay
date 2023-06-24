@@ -132,6 +132,17 @@ export class ConfigService {
     return this.config.get('rabbitmq.shovel');
   }
 
+  getDidResolver(network: 'mainnet' | 'testnet' | 'L' | 'T'): string {
+    if (network === 'L') network = 'mainnet';
+    if (network === 'T') network = 'testnet';
+
+    return this.config.get(`did_resolver.${network}`);
+  }
+
+  getDefaultServiceEndpoint(): string {
+    return this.config.get('default_service_endpoint');
+  }
+
   getLog(): { level: string; force: boolean } {
     return this.config.get('log');
   }

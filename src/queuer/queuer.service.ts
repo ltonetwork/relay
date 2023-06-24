@@ -1,73 +1,65 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import { RabbitMQService } from '../rabbitmq/rabbitmq.service';
 import { RabbitMQApiService } from '../rabbitmq/rabbitmq-api.service';
 import { RabbitMQConnection } from '../rabbitmq/classes/rabbitmq.connection';
 import { LoggerService } from '../common/logger/logger.service';
 import { ConfigService } from '../common/config/config.service';
-import { EventChain } from 'lto-api';
-import util from 'util';
+import { Message } from '@ltonetwork/lto';
+import { DidResolverService } from '../common/did-resolver/did-resolver.service';
 
 @Injectable()
-export class QueuerService implements OnModuleInit, OnModuleDestroy {
+export class QueuerService implements OnModuleInit {
   private connection: RabbitMQConnection;
 
   constructor(
     private readonly logger: LoggerService,
     private readonly config: ConfigService,
+    private readonly resolver: DidResolverService,
     private readonly rabbitMQService: RabbitMQService,
     private readonly rabbitMQApiService: RabbitMQApiService,
   ) {}
 
-  async onModuleInit() {}
-
-  async onModuleDestroy() {
-    await this.rabbitMQService.close();
+  async onModuleInit() {
+    if (!this.config.isQueuerEnabled()) return;
+    this.connection = await this.rabbitMQService.connect(this.config.getRabbitMQClient());
   }
 
-  async add(input: any, destination?: string | string[]): Promise<void> {
-    if (!this.config.hasModuleQueuer()) {
-      return this.logger.debug(`queuer: module not enabled`);
-    }
+  isEnabled(): boolean {
+    return this.config.isQueuerEnabled();
+  }
 
-    if (!this.connection) {
-      this.connection = await this.rabbitMQService.connect(this.config.getRabbitMQClient());
-    }
+  private isLocalEndpoint(endpoint: string): boolean {
+    return new URL(endpoint).hostname === this.config.getHostname();
+  }
 
-    const chain = new EventChain().setValues(input);
-    const hash = chain.getLatestHash();
+  async send(message: Message): Promise<void> {
+    if (!this.isEnabled()) throw new Error(`queuer: module not enabled`);
 
-    chain.events = chain.events.map((event: any) => {
-      event.origin = this.config.getRabbitMQPublicUrl();
-      return event;
-    });
+    const endpoint = await this.resolver.getServiceEndpoint(message.recipient);
 
-    if (!destination || !destination.length) {
-      this.logger.info(`queuer: adding chain '${chain.id}/${hash}' for local node`);
-      return await this.addLocal(chain);
-    }
-
-    const to = util.isString(destination) ? [destination] : destination;
-
-    for (const node of to) {
-      this.logger.info(`queuer: adding chain '${chain.id}/${hash}' for remote node '${node}'`);
-      await this.addRemote(node, chain);
+    if (this.isLocalEndpoint(endpoint)) {
+      await this.addLocal(message);
+    } else {
+      await this.addRemote(endpoint, message);
     }
   }
 
-  private async addLocal(chain: any): Promise<void> {
-    return await this.connection.publish(this.config.getRabbitMQExchange(), this.config.getRabbitMQQueue(), chain);
+  private async addLocal(message: Message): Promise<void> {
+    this.logger.info(`queuer: delivering message '${message.hash}'`);
+    return await this.connection.publish(this.config.getRabbitMQExchange(), this.config.getRabbitMQQueue(), message);
   }
 
-  private async addRemote(node: string, chain: any): Promise<void> {
+  private async addRemote(endpoint: string, message: Message): Promise<void> {
     // explicitly init queue before shovel creates it
-    await this.connection.init(this.config.getRabbitMQExchange(), node, node);
+    await this.connection.init(this.config.getRabbitMQExchange(), endpoint, endpoint);
 
-    const response = await this.rabbitMQApiService.addDynamicShovel(node, node);
+    const response = await this.rabbitMQApiService.addDynamicShovel(endpoint, endpoint);
 
-    if (!response || response instanceof Error || !response.status || [200, 201, 204].indexOf(response.status) === -1) {
-      throw new Error('queuer: failed to add shovel for remote node');
+    if (!response || response instanceof Error || !response.status || ![200, 201, 204].includes(response.status)) {
+      throw new Error('queuer: failed to add shovel for remote endpoint');
     }
 
-    return await this.connection.publish(this.config.getRabbitMQExchange(), node, chain);
+    this.logger.info(`queuer: delivering message '${message.hash}' to '${endpoint}'`);
+    return await this.connection.publish(this.config.getRabbitMQExchange(), endpoint, message);
   }
 }
