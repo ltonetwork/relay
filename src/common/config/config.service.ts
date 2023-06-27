@@ -33,6 +33,10 @@ export class ConfigService {
     return this.config.get('dispatcher.target');
   }
 
+  verifyAnchorOnDispatch(): boolean {
+    return this.config.get('dispatcher.verify_anchor');
+  }
+
   isAcceptedAccount(account: string): boolean {
     return this.config.get('accept.all') || this.config.get('accept.accounts').includes(account);
   }
@@ -132,11 +136,18 @@ export class ConfigService {
     return this.config.get('rabbitmq.shovel');
   }
 
-  getDidResolver(network: 'mainnet' | 'testnet' | 'L' | 'T'): string {
-    if (network === 'L') network = 'mainnet';
-    if (network === 'T') network = 'testnet';
+  private networkName(network: 'mainnet' | 'testnet' | 'L' | 'T'): 'mainnet' | 'testnet' {
+    if (network === 'L') return 'mainnet';
+    if (network === 'T') return 'testnet';
+    return network;
+  }
 
-    return this.config.get(`did_resolver.${network}`);
+  getLTONode(network: 'mainnet' | 'testnet' | 'L' | 'T'): string {
+    return this.config.get(`lto.${this.networkName(network)}.node`);
+  }
+
+  getDidResolver(network: 'mainnet' | 'testnet' | 'L' | 'T'): string {
+    return this.config.get(`lto.${this.networkName(network)}.did_resolver`);
   }
 
   getDefaultServiceEndpoint(): string {

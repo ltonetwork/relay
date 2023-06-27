@@ -35,12 +35,13 @@ export class RabbitMQConnection {
     );
   }
 
-  async publish(exchange: string, queue: string, msg: string | object) {
+  async publish(exchange: string, queue: string, msg: string | object, options: amqplib.Options.Publish = {}) {
     await this.init(exchange, queue, queue);
 
     const data = typeof msg === 'string' ? msg : JSON.stringify(msg);
     const buffer = Buffer.from(data);
-    await this.channel.publish(exchange, queue, buffer);
+
+    this.channel.publish(exchange, queue, buffer, options);
   }
 
   ack(message: amqplib.Message) {
@@ -53,6 +54,26 @@ export class RabbitMQConnection {
 
   deadletter(message: amqplib.Message) {
     this.channel.reject(message, false);
+  }
+
+  retry(message: amqplib.Message) {
+    const timeouts = [5_000, 30_000, 60_000, 300_000, 900_000, 3600_000];
+
+    message.properties.headers['x-redelivered-count'] ??= 0;
+    message.properties.headers['x-redelivered-count']++;
+
+    const redeliveredCount = message.properties.headers['x-redelivered-count'];
+
+    this.channel.reject(message, false);
+
+    if (isNaN(redeliveredCount) || redeliveredCount > timeouts.length) {
+      this.log('warn', `message ${message.properties.messageId} deadlettered, it has been retried too many times`);
+      return;
+    }
+
+    setTimeout(timeouts[redeliveredCount - 1]).then(() => {
+      this.channel.sendToQueue(message.fields.routingKey, message.content, message.properties);
+    });
   }
 
   async checkQueue(queue: string): Promise<amqplib.Replies.AssertQueue | null> {

@@ -21,7 +21,7 @@ export class RequestService {
       return await lastValueFrom(this.http.request(config));
     } catch (e) {
       this.log(e, method, url);
-      return e;
+      throw e;
     }
   }
 

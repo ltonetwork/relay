@@ -32,7 +32,7 @@ export class QueuerService implements OnModuleInit {
     return new URL(endpoint).hostname === this.config.getHostname();
   }
 
-  async send(message: Message): Promise<void> {
+  async add(message: Message): Promise<void> {
     if (!this.isEnabled()) throw new Error(`queuer: module not enabled`);
 
     const endpoint = await this.resolver.getServiceEndpoint(message.recipient);
@@ -46,7 +46,7 @@ export class QueuerService implements OnModuleInit {
 
   private async addLocal(message: Message): Promise<void> {
     this.logger.info(`queuer: delivering message '${message.hash}'`);
-    return await this.connection.publish(this.config.getRabbitMQExchange(), this.config.getRabbitMQQueue(), message);
+    await this.publish(this.config.getRabbitMQQueue(), message);
   }
 
   private async addRemote(endpoint: string, message: Message): Promise<void> {
@@ -55,11 +55,26 @@ export class QueuerService implements OnModuleInit {
 
     const response = await this.rabbitMQApiService.addDynamicShovel(endpoint, endpoint);
 
-    if (!response || response instanceof Error || !response.status || ![200, 201, 204].includes(response.status)) {
+    if (response.status > 299) {
       throw new Error('queuer: failed to add shovel for remote endpoint');
     }
 
     this.logger.info(`queuer: delivering message '${message.hash}' to '${endpoint}'`);
-    return await this.connection.publish(this.config.getRabbitMQExchange(), endpoint, message);
+    await this.publish(endpoint, message);
+  }
+
+  private async publish(endpoint: string, message: Message): Promise<void> {
+    await this.connection.publish(
+      this.config.getRabbitMQExchange(),
+      endpoint,
+      message,
+      {
+        appId: 'lto-relay',
+        type: message.type,
+        contentType: 'application/json',
+        contentEncoding: 'utf-8',
+        messageId: message.hash.base58,
+      }
+    );
   }
 }

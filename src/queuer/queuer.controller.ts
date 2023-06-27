@@ -1,9 +1,8 @@
-import { Controller, Post, Req, Res } from '@nestjs/common';
+import { Post, Req, Res } from '@nestjs/common';
 import { Response, Request } from 'express';
 import { LoggerService } from '../common/logger/logger.service';
 import { QueuerService } from './queuer.service';
 
-@Controller('queue')
 export class QueuerController {
   constructor(private readonly logger: LoggerService, private readonly queuerService: QueuerService) {}
 
@@ -18,7 +17,7 @@ export class QueuerController {
     }
 
     try {
-      await this.queuerService.add(req.body, req.query.to.toString());
+      await this.queuerService.add(req.body);
     } catch (e) {
       this.logger.error(`failed to add chain to queue '${e}'`, { stack: e.stack });
       return res.status(500).send(`failed to add chain to queue '${e}'`);

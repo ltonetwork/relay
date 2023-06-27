@@ -37,6 +37,11 @@ export default {
       doc: 'The target url for the dispatcher',
       default: '',
       env: 'DISPATCHER_TARGET',
+    },
+    verify_anchor: {
+      doc: 'Verify anchor before dispatching',
+      default: false,
+      env: 'VERIFY_ANCHOR',
     }
   },
   storage: {
@@ -57,6 +62,11 @@ export default {
       default: true,
       env: 'QUEUER_ENABLED',
     },
+    verify_anchor: {
+      doc: 'Verify anchor before adding to queue',
+      default: false,
+      env: 'VERIFY_ANCHOR',
+    }
   },
   rabbitmq: {
     client: {
@@ -85,17 +95,31 @@ export default {
       env: 'RABBITMQ_SHOVEL',
     },
   },
-  did_resolver: {
+  lto: {
     testnet: {
-      doc: 'DID resolver for LTO node url',
-      default: 'https://testnet.lto.network/index/identifiers',
-      env: 'DID_RESOLVER_TESTNET',
+      node: {
+        doc: 'LTO testnet node url',
+        default: 'https://testnet.lto.network',
+        env: 'LTO_NODE_TESTNET',
+      },
+      did_resolver: {
+        doc: 'DID resolver for LTO node url',
+        default: 'https://testnet.lto.network/index/identifiers',
+        env: 'DID_RESOLVER_TESTNET',
+      }
     },
     mainnet: {
-      doc: 'DID resolver for LTO node url',
-      default: 'https://nodes.lto.network/index/identifiers',
-      env: 'DID_RESOLVER_MAINNET',
-    },
+      node: {
+        doc: 'LTO mainnet node url',
+        default: 'https://nodes.lto.network',
+        env: 'LTO_NODE_MAINNET',
+      },
+      did_resolver: {
+        doc: 'DID resolver for LTO node url',
+        default: 'https://nodes.lto.network/index/identifiers',
+        env: 'DID_RESOLVER_MAINNET',
+      }
+    }
   },
   default_service_endpoint: {
     doc: 'The default service endpoint',

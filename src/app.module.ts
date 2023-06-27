@@ -7,7 +7,6 @@ import { RabbitMQModule } from './rabbitmq/rabbitmq.module';
 import { DispatcherModule } from './dispatcher/dispatcher.module';
 import { QueuerModule } from './queuer/queuer.module';
 import { RequestModule } from './common/request/request.module';
-import { DidResolverModule } from './common/did-resolver/did-resolver.module';
 
 export const AppModuleConfig = {
   imports: [LoggerModule, ConfigModule, RequestModule, RabbitMQModule, DispatcherModule, QueuerModule],

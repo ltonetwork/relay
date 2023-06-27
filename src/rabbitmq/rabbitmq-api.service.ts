@@ -8,7 +8,7 @@ import { RequestService } from '../common/request/request.service';
 export class RabbitMQApiService {
   constructor(private readonly requestService: RequestService, private readonly config: ConfigService) {}
 
-  async addDynamicShovel(srcQueue: string, destUri: string): Promise<AxiosResponse | Error> {
+  async addDynamicShovel(srcQueue: string, destUri: string): Promise<AxiosResponse> {
     const srcUri = this.config.getRabbitMQClient();
     const api = this.config.getRabbitMQApiUrl();
     const shovel = this.config.getRabbitMQShovel();

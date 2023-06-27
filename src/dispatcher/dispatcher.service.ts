@@ -3,9 +3,10 @@ import { RabbitMQService } from '../rabbitmq/rabbitmq.service';
 import { RabbitMQConnection } from '../rabbitmq/classes/rabbitmq.connection';
 import { LoggerService } from '../common/logger/logger.service';
 import { ConfigService } from '../common/config/config.service';
-import { Message } from '@ltonetwork/lto';
+import { getNetwork, Message } from '@ltonetwork/lto';
 import amqplib from 'amqplib';
 import { RequestService } from '../common/request/request.service';
+import { LtoIndexService } from '../common/lto-index/lto-index.service';
 
 @Injectable()
 export class DispatcherService implements OnModuleInit, OnModuleDestroy {
@@ -14,8 +15,9 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly logger: LoggerService,
     private readonly config: ConfigService,
-    private readonly rabbitMQService: RabbitMQService,
-    private readonly requestService: RequestService,
+    private readonly rabbitMQ: RabbitMQService,
+    private readonly request: RequestService,
+    private readonly ltoIndex: LtoIndexService,
   ) {}
 
   async onModuleInit() {
@@ -23,7 +25,7 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleDestroy() {
-    await this.rabbitMQService.close();
+    await this.rabbitMQ.close();
   }
 
   async start(): Promise<void> {
@@ -32,7 +34,7 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
     }
 
     this.logger.debug(`dispatcher: starting connection`);
-    this.connection = await this.rabbitMQService.connect(this.config.getRabbitMQClient());
+    this.connection = await this.rabbitMQ.connect(this.config.getRabbitMQClient());
 
     await this.connection.consume(
       this.config.getRabbitMQExchange(),
@@ -41,12 +43,13 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
     );
   }
 
-  async onMessage(msg: amqplib.Message) {
-    this.logger.info(`dispatcher: message received`);
+  async onMessage(msg: amqplib.Message): Promise<boolean> {
+    const msgId = msg.properties.messageId;
+
+    this.logger.debug(`dispatcher: message ${msgId} received`);
 
     if (!msg || !msg.content) {
-      this.logger.warn(`dispatcher: message deadlettered, it is invalid`);
-      return this.connection.deadletter(msg);
+      return this.deadletter(msg, `dispatcher: message ${msgId} deadlettered, it is invalid`);
     }
 
     let message: Message;
@@ -55,19 +58,11 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
       const json = JSON.parse(msg.content.toString());
       message = Message.from(json);
     } catch (e) {
-      this.logger.warn(`dispatcher: message deadlettered, it is not valid json`);
-      return this.connection.deadletter(msg);
+      return this.deadletter(msg, `message ${msgId} deadlettered, it is not valid json`);
     }
 
-    if (!this.config.isAcceptedAccount(message.recipient)) {
-      this.logger.warn(`dispatcher: message ${message.hash} deadlettered, recipient is not accepted`);
-      return this.connection.deadletter(msg);
-    }
-
-    if (!message.verifySignature()) {
-      this.logger.warn(`dispatcher: message ${message.hash} deadlettered, invalid signature`);
-      return this.connection.deadletter(msg);
-    }
+    if (!this.validateMessage(message, msg)) return;
+    if (this.config.verifyAnchorOnDispatch() && !(await this.verifyAnchor(message, msg))) return;
 
     if (this.config.isStorageEnabled()) {
       // TODO Store the event
@@ -75,15 +70,69 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
 
     if (this.config.hasDispatchTarget()) {
       const target = this.config.getDispatchTarget();
-      const response = await this.requestService.post(target, message);
+      const response = await this.request.post(target, message);
 
-      if (!response || response instanceof Error || !response.status || ![200, 201, 204].includes(response.status)) {
-        this.logger.warn(`dispatcher: message ${message.hash} deadlettered, failed to send to ${target}`);
-        return this.connection.deadletter(msg);
+      if (response.status === 400) {
+        return this.deadletter(msg, `message ${msgId} deadlettered, ${target} returned 400`);
+      }
+
+      if (response.status > 299) {
+        return this.retry(msg,`dispatcher: message ${msgId} requeued, ${target} returned ${response.status}`);
       }
     }
 
     this.connection.ack(msg);
-    this.logger.info(`dispatcher: message ${message.hash} acknowledged`);
+    this.logger.info(`dispatcher: message ${msgId} acknowledged`);
+
+    return true;
+  }
+
+  private validateMessage(message: Message, msg: amqplib.Message): boolean {
+    const msgId = msg.properties.messageId;
+
+    if (message.hash.base58 !== msgId) {
+      return this.deadletter(msg, `message ${msgId} deadlettered, hash does not match message id`);
+    }
+
+    if (!message.verifyHash()) {
+      return this.deadletter(msg, `message ${msgId} deadlettered, invalid hash`);
+    }
+
+    if (!this.config.isAcceptedAccount(message.recipient)) {
+      return this.deadletter(msg, `message ${msgId} deadlettered, recipient is not accepted`);
+    }
+
+    if (!message.verifySignature()) {
+      return this.deadletter(msg, `message ${msgId} deadlettered, invalid signature`);
+    }
+
+    return true;
+  }
+
+  private async verifyAnchor(message: Message, msg: amqplib.Message): Promise<boolean> {
+    const msgId = msg.properties.messageId;
+    const networkId = getNetwork(message.recipient);
+
+    if (networkId !== 'L' && networkId !== 'T') {
+      return this.deadletter(msg, `message ${msgId} deadlettered, unsupported network ${networkId}`);
+    }
+
+    if (!(await this.ltoIndex.verifyAnchor(networkId, msgId))) {
+      return this.retry(msg, `message ${msgId} requeued, not anchored`);
+    }
+  }
+
+  private deadletter(msg: amqplib.Message, reason: string): boolean {
+    this.logger.warn(`dispatcher: ${reason}`);
+    this.connection.deadletter(msg);
+
+    return false;
+  }
+
+  private retry(msg: amqplib.Message, reason: string): boolean {
+    this.logger.warn(`dispatcher: ${reason}`);
+    this.connection.retry(msg);
+
+    return false;
   }
 }
