@@ -25,10 +25,6 @@ export class ConfigService {
     return this.config.get('queuer.enabled');
   }
 
-  hasDispatchTarget(): boolean {
-    return !!this.config.get('dispatcher.target');
-  }
-
   getDispatchTarget(): string {
     return this.config.get('dispatcher.target');
   }
