@@ -7,6 +7,7 @@ import { getNetwork, Message } from '@ltonetwork/lto';
 import amqplib from 'amqplib';
 import { RequestService } from '../common/request/request.service';
 import { LtoIndexService } from '../common/lto-index/lto-index.service';
+import { APP_ID } from '../constants';
 
 @Injectable()
 export class DispatcherService implements OnModuleInit, OnModuleDestroy {
@@ -44,22 +45,14 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onMessage(msg: amqplib.Message): Promise<boolean> {
-    const msgId = msg.properties.messageId;
+    if (!msg.content || !msg.properties.messageId) {
+      return this.deadletter(msg, `message deadlettered, it is invalid`);
+    }
 
+    const msgId = msg.properties.messageId;
     this.logger.debug(`dispatcher: message ${msgId} received`);
 
-    if (!msg || !msg.content) {
-      return this.deadletter(msg, `dispatcher: message ${msgId} deadlettered, it is invalid`);
-    }
-
-    let message: Message;
-
-    try {
-      const json = JSON.parse(msg.content.toString());
-      message = Message.from(json);
-    } catch (e) {
-      return this.deadletter(msg, `message ${msgId} deadlettered, it is not valid json`);
-    }
+    const message = this.decodeMessage(msg);
 
     if (!this.validateMessage(message, msg)) return;
     if (this.config.verifyAnchorOnDispatch() && !(await this.verifyAnchor(message, msg))) return;
@@ -77,7 +70,7 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
       }
 
       if (response.status > 299) {
-        return this.retry(msg,`dispatcher: message ${msgId} requeued, ${target} returned ${response.status}`);
+        return this.retry(msg,`message ${msgId} requeued, ${target} returned ${response.status}`);
       }
     }
 
@@ -87,8 +80,28 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
     return true;
   }
 
+  private decodeMessage(msg: amqplib.Message): Message | undefined {
+    switch (msg.properties.contentType) {
+      case 'application/json':
+        const json = JSON.parse(msg.content.toString());
+        return Message.from(json);
+      case 'application/octet-stream':
+        return Message.from(msg.content);
+      default:
+        this.deadletter(msg, `message ${msg.properties.messageId} deadlettered, content type is not supported`);
+    }
+  }
+
   private validateMessage(message: Message, msg: amqplib.Message): boolean {
     const msgId = msg.properties.messageId;
+
+    if (msg.properties.appId !== APP_ID) {
+      return this.deadletter(msg, `message ${msgId} deadlettered, invalid app id`);
+    }
+
+    if (message.type !== msg.properties.type) {
+      return this.deadletter(msg, `message ${msgId} deadlettered, type does not match message type`);
+    }
 
     if (message.hash.base58 !== msgId) {
       return this.deadletter(msg, `message ${msgId} deadlettered, hash does not match message id`);

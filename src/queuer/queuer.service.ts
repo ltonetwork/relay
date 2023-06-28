@@ -6,6 +6,7 @@ import { LoggerService } from '../common/logger/logger.service';
 import { ConfigService } from '../common/config/config.service';
 import { Message } from '@ltonetwork/lto';
 import { DidResolverService } from '../common/did-resolver/did-resolver.service';
+import { APP_ID } from '../constants';
 
 @Injectable()
 export class QueuerService implements OnModuleInit {
@@ -67,13 +68,11 @@ export class QueuerService implements OnModuleInit {
     await this.connection.publish(
       this.config.getRabbitMQExchange(),
       endpoint,
-      message,
+      message.toBinary(),
       {
-        appId: 'lto-relay',
-        type: message.type,
-        contentType: 'application/json',
-        contentEncoding: 'utf-8',
+        appId: APP_ID,
         messageId: message.hash.base58,
+        type: message.type,
       }
     );
   }

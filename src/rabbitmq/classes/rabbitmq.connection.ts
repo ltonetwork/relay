@@ -38,8 +38,14 @@ export class RabbitMQConnection {
   async publish(exchange: string, queue: string, msg: string | object, options: amqplib.Options.Publish = {}) {
     await this.init(exchange, queue, queue);
 
-    const data = typeof msg === 'string' ? msg : JSON.stringify(msg);
-    const buffer = Buffer.from(data);
+    if (typeof msg !== 'string' && !(msg instanceof Uint8Array)) {
+      options.contentType ??= 'application/json';
+      msg = JSON.stringify(msg);
+    } else {
+      options.contentType ??= 'application/octet-stream';
+    }
+
+    const buffer = Buffer.from(msg);
 
     this.channel.publish(exchange, queue, buffer, options);
   }
