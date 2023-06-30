@@ -13,11 +13,11 @@ export class QueuerService implements OnModuleInit {
   private connection: RabbitMQConnection;
 
   constructor(
-    private readonly logger: LoggerService,
     private readonly config: ConfigService,
     private readonly resolver: DidResolverService,
     private readonly rabbitMQService: RabbitMQService,
     private readonly rabbitMQApiService: RabbitMQApiService,
+    private readonly logger: LoggerService,
   ) {}
 
   async onModuleInit() {
@@ -51,6 +51,14 @@ export class QueuerService implements OnModuleInit {
   }
 
   private async addRemote(endpoint: string, message: Message): Promise<void> {
+    const queueInfo = await this.connection.checkQueue(endpoint);
+    if (!queueInfo) await this.createShovel(endpoint);
+
+    this.logger.info(`queuer: delivering message '${message.hash}' to '${endpoint}'`);
+    await this.publish(endpoint, message);
+  }
+
+  private async createShovel(endpoint: string): Promise<void> {
     // explicitly init queue before shovel creates it
     await this.connection.init(this.config.getRabbitMQExchange(), endpoint, endpoint);
 
@@ -59,9 +67,6 @@ export class QueuerService implements OnModuleInit {
     if (response.status > 299) {
       throw new Error('queuer: failed to add shovel for remote endpoint');
     }
-
-    this.logger.info(`queuer: delivering message '${message.hash}' to '${endpoint}'`);
-    await this.publish(endpoint, message);
   }
 
   private async publish(endpoint: string, message: Message): Promise<void> {

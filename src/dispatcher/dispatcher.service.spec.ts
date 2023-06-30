@@ -17,26 +17,26 @@ describe('DispatcherService', () => {
 
   let spies: {
     rmqConnection: {
-      ack: jest.Mock,
-      reject: jest.Mock,
-      retry: jest.Mock,
-      consume: jest.Mock,
-    },
+      ack: jest.Mock;
+      reject: jest.Mock;
+      retry: jest.Mock;
+      consume: jest.Mock;
+    };
     rmqService: {
-      connect: jest.Mock,
-      close: jest.Mock,
-    },
+      connect: jest.Mock;
+      close: jest.Mock;
+    };
     ltoIndexService: {
-      verifyAnchor: jest.Mock,
-    },
+      verifyAnchor: jest.Mock;
+    };
     requestService: {
-      post: jest.Mock,
-    },
+      post: jest.Mock;
+    };
     loggerService: {
-      debug: jest.Mock,
-      info: jest.Mock,
-      warn: jest.Mock,
-    }
+      debug: jest.Mock;
+      info: jest.Mock;
+      warn: jest.Mock;
+    };
   };
 
   let sender: Account;

@@ -4,13 +4,12 @@ import { QueuerController } from './queuer.controller';
 import { LoggerModule } from '../common/logger/logger.module';
 import { ConfigModule } from '../common/config/config.module';
 import { RabbitMQModule } from '../rabbitmq/rabbitmq.module';
+import { DidResolverModule } from '../common/did-resolver/did-resolver.module';
 
-export const QueuerModuleConfig = {
-  imports: [LoggerModule, ConfigModule, RabbitMQModule],
+@Module({
+  imports: [LoggerModule, ConfigModule, RabbitMQModule, DidResolverModule],
   controllers: [QueuerController],
   providers: [QueuerService],
   exports: [QueuerService],
-};
-
-@Module(QueuerModuleConfig)
+})
 export class QueuerModule {}

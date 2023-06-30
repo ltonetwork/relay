@@ -80,8 +80,8 @@ export default {
       env: 'RABBITMQ_QUEUE',
     },
     exchange: {
-      doc: 'The default exchange name used by rabbitmq. Note empty string has special meaning',
-      default: "''",
+      doc: 'The default exchange name used by rabbitmq',
+      default: "amq.direct",
       env: 'RABBITMQ_EXCHANGE',
     },
     shovel: {
