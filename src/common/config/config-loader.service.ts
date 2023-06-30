@@ -15,27 +15,23 @@ type PathValue<K extends Path> = K extends null | undefined
 export class ConfigLoaderService implements OnModuleInit, OnModuleDestroy {
   private config: convict.Config<Schema>;
   private readonly ttl: number = 300000; // 5 minutes in milliseconds
-  private config_reload_interval: NodeJS.Timer;
+  private configReloadInterval: NodeJS.Timer;
 
   constructor() {}
 
   async onModuleInit() {
-    console.log('config init');
-
     if (!this.config) {
       await this.load();
     }
 
-    if (!this.config_reload_interval) {
-      this.config_reload_interval = setInterval(async () => {
-        await this.load();
-      }, this.ttl);
-    }
+    this.configReloadInterval ??= setInterval(async () => {
+      await this.load();
+    }, this.ttl);
   }
 
   async onModuleDestroy() {
-    if (this.config_reload_interval) {
-      clearInterval(this.config_reload_interval);
+    if (this.configReloadInterval) {
+      clearInterval(this.configReloadInterval);
     }
   }
 

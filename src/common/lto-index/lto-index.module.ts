@@ -1,10 +1,10 @@
-import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '../config/config.module';
 import { LtoIndexService } from './lto-index.service';
+import { RequestModule } from '../request/request.module';
 
 @Module({
-  imports: [ConfigModule, HttpModule],
+  imports: [ConfigModule, RequestModule],
   providers: [LtoIndexService],
   exports: [LtoIndexService],
 })

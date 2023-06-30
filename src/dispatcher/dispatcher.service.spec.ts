@@ -1,44 +1,122 @@
+// noinspection DuplicatedCode
+
 import { Test, TestingModule } from '@nestjs/testing';
-import { DispatcherModuleConfig } from './dispatcher.module';
 import { DispatcherService } from './dispatcher.service';
 import { RabbitMQService } from '../rabbitmq/rabbitmq.service';
+import { ConfigModule } from '../common/config/config.module';
+import { LtoIndexService } from '../common/lto-index/lto-index.service';
+import { RequestService } from '../common/request/request.service';
+import { LoggerService } from '../common/logger/logger.service';
+import { Account, Message, AccountFactoryED25519, Binary } from '@ltonetwork/lto';
+import { ConfigService } from '../common/config/config.service';
 
 describe('DispatcherService', () => {
   let module: TestingModule;
   let dispatcherService: DispatcherService;
-  let rabbitmqService: RabbitMQService;
+  let configService: ConfigService;
 
-  function spy() {
+  let spies: {
+    rmqConnection: {
+      ack: jest.Mock,
+      reject: jest.Mock,
+      retry: jest.Mock,
+      consume: jest.Mock,
+    },
+    rmqService: {
+      connect: jest.Mock,
+      close: jest.Mock,
+    },
+    ltoIndexService: {
+      verifyAnchor: jest.Mock,
+    },
+    requestService: {
+      post: jest.Mock,
+    },
+    loggerService: {
+      debug: jest.Mock,
+      info: jest.Mock,
+      warn: jest.Mock,
+    }
+  };
+
+  let sender: Account;
+  let recipient: Account;
+  let message: Message;
+  let ampqMsg: any;
+
+  beforeEach(() => {
     const rmqConnection = {
       ack: jest.fn(),
-      deadletter: jest.fn(),
+      reject: jest.fn(),
+      retry: jest.fn(),
       consume: jest.fn(),
     };
+
     const rmqService = {
-      connect: jest.spyOn(rabbitmqService, 'connect').mockImplementation(() => rmqConnection as any),
+      connect: jest.fn().mockImplementation(() => rmqConnection as any),
+      close: jest.fn(),
     };
 
-    return { rmqConnection, rmqService };
-  }
+    const ltoIndexService = {
+      verifyAnchor: jest.fn(),
+    }
+
+    const requestService = {
+      post: jest.fn(),
+    }
+
+    const loggerService = {
+      debug: jest.fn(),
+      info: jest.fn(),
+      warn: jest.fn(),
+    }
+
+    spies = { rmqConnection, rmqService, ltoIndexService, requestService, loggerService };
+  });
 
   beforeEach(async () => {
-    module = await Test.createTestingModule(DispatcherModuleConfig).compile();
+    module = await Test.createTestingModule({
+      imports: [ConfigModule],
+      providers: [
+        DispatcherService,
+        { provide: RabbitMQService, useValue: spies.rmqService },
+        { provide: LtoIndexService, useValue: spies.ltoIndexService },
+        { provide: RequestService, useValue: spies.requestService },
+        { provide: LoggerService, useValue: spies.loggerService },
+      ]
+    }).compile();
     await module.init();
 
     dispatcherService = module.get<DispatcherService>(DispatcherService);
-    rabbitmqService = module.get<RabbitMQService>(RabbitMQService);
+    configService = module.get<ConfigService>(ConfigService);
   });
 
   afterEach(async () => {
+    jest.restoreAllMocks();
     await module.close();
+  });
+
+  beforeEach(() => {
+    const factory = new AccountFactoryED25519('T');
+    sender = factory.createFromSeed('sender');
+    recipient = factory.createFromSeed('recipient');
+    message = new Message('hello').to(recipient).signWith(sender);
+  });
+
+  beforeEach(() => {
+    ampqMsg = {
+      content: { toString: () => JSON.stringify(message) },
+      properties: {
+        contentType: 'application/json',
+        appId: 'lto-relay',
+        messageId: message.hash.base58,
+        type: message.type,
+      },
+    };
   });
 
   describe('start()', () => {
     test('should start the dispatcher which listens for rabbitmq messages', async () => {
-      const spies = spy();
-
-      await dispatcherService.start();
-
       expect(spies.rmqService.connect.mock.calls.length).toBe(1);
       expect(spies.rmqService.connect.mock.calls[0][0]).toBe('amqp://');
 
@@ -49,51 +127,216 @@ describe('DispatcherService', () => {
     });
   });
 
-  describe('onMessage()', () => {
-    test('should deadletter message if invalid or no message is received', async () => {
-      const spies = spy();
+  describe('validation', () => {
+    test('should reject if message has no id', async () => {
+      delete ampqMsg.properties.messageId;
 
-      const msg = null;
+      await dispatcherService.onMessage(ampqMsg);
 
-      await dispatcherService.onMessage(msg);
-
-      expect(spies.rmqConnection.deadletter.mock.calls.length).toBe(1);
-      expect(spies.rmqConnection.deadletter.mock.calls[0][0]).toBe(msg);
+      expect(spies.rmqConnection.reject).toHaveBeenCalledWith(ampqMsg);
+      expect(spies.loggerService.warn).toHaveBeenCalledWith(`dispatcher: message rejected, no message id`);
     });
 
-    test('should deadletter message if event has no id', async () => {
-      const spies = spy();
+    test('should reject if message has invalid app id', async () => {
+      ampqMsg.properties.appId = 'foo-bar';
 
-      const msg = { content: { toString: () => '{}' } } as any;
+      await dispatcherService.onMessage(ampqMsg);
 
-      await dispatcherService.onMessage(msg);
-
-      expect(spies.rmqConnection.deadletter.mock.calls.length).toBe(1);
-      expect(spies.rmqConnection.deadletter.mock.calls[0][0]).toBe(msg);
+      expect(spies.rmqConnection.reject).toHaveBeenCalledWith(ampqMsg);
+      expect(spies.loggerService.warn).toHaveBeenCalledWith(
+        `dispatcher: message ${message.hash.base58} rejected, invalid app id`
+      );
     });
 
-    test('should deadletter message if legalevents responds with bad status code', async () => {
-      const spies = spy();
+    test('should reject if message has a type mismatch', async () => {
+      ampqMsg.properties.type = 'foo';
 
-      const msg = { content: { toString: () => '{"id": "fakeid"}' } } as any;
+      await dispatcherService.onMessage(ampqMsg);
 
-      await dispatcherService.start();
-      await dispatcherService.onMessage(msg);
-
-      expect(spies.rmqConnection.deadletter.mock.calls.length).toBe(1);
-      expect(spies.rmqConnection.deadletter.mock.calls[0][0]).toBe(msg);
+      expect(spies.rmqConnection.reject).toHaveBeenCalledWith(ampqMsg);
+      expect(spies.loggerService.warn).toHaveBeenCalledWith(
+        `dispatcher: message ${message.hash.base58} rejected, type does not match message type`
+      );
     });
 
-    test('should acknowledge message if legalevents responds with success status code', async () => {
-      const spies = spy();
+    test('should reject if hash does not match message id', async () => {
+      ampqMsg.properties.messageId = 'foo';
 
-      const msg = { content: { toString: () => '{"id": "fakeid"}' } } as any;
+      await dispatcherService.onMessage(ampqMsg);
 
-      await dispatcherService.onMessage(msg);
+      expect(spies.rmqConnection.reject).toHaveBeenCalledWith(ampqMsg);
+      expect(spies.loggerService.warn).toHaveBeenCalledWith(
+        `dispatcher: message foo rejected, hash does not match message id`
+      );
+    });
 
-      expect(spies.rmqConnection.deadletter.mock.calls.length).toBe(0);
-      expect(spies.rmqConnection.ack.mock.calls.length).toBe(1);
-      expect(spies.rmqConnection.ack.mock.calls[0][0]).toBe(msg);
+    test('should reject if the recipient is not accepted', async () => {
+      jest.spyOn(configService, 'isAcceptedAccount').mockReturnValue(false);
+
+      await dispatcherService.onMessage(ampqMsg);
+
+      expect(spies.rmqConnection.reject).toHaveBeenCalledWith(ampqMsg);
+      expect(spies.loggerService.warn).toHaveBeenCalledWith(
+        `dispatcher: message ${message.hash.base58} rejected, recipient is not accepted`
+      );
+    });
+
+    test('should reject if message signature is invalid', async () => {
+      message.signature = sender.sign('');
+
+      await dispatcherService.onMessage(ampqMsg);
+
+      expect(spies.rmqConnection.reject).toHaveBeenCalledWith(ampqMsg);
+      expect(spies.loggerService.warn).toHaveBeenCalledWith(
+        `dispatcher: message ${message.hash.base58} rejected, invalid signature`
+      );
     });
   });
+
+  describe('verify anchor', () => {
+    it('will not verify if disabled',async () => {
+      jest.spyOn(configService, 'verifyAnchorOnDispatch').mockReturnValue(false);
+
+      const success = await dispatcherService.onMessage(ampqMsg);
+      expect(success).toBe(true);
+
+      expect(spies.ltoIndexService.verifyAnchor).not.toHaveBeenCalled();
+    });
+
+    it('will verify if enabled',async () => {
+      jest.spyOn(configService, 'verifyAnchorOnDispatch').mockReturnValue(true);
+      spies.ltoIndexService.verifyAnchor.mockReturnValue(true);
+
+      const success = await dispatcherService.onMessage(ampqMsg);
+      expect(success).toBe(true);
+
+      expect(spies.ltoIndexService.verifyAnchor).toHaveBeenCalledWith('T', message.hash);
+    });
+
+    it(`will retry the message if the anchor can't be verified`,async () => {
+      jest.spyOn(configService, 'verifyAnchorOnDispatch').mockReturnValue(true);
+      spies.ltoIndexService.verifyAnchor.mockReturnValue(false);
+
+      const success = await dispatcherService.onMessage(ampqMsg);
+      expect(success).toBe(false);
+
+      expect(spies.ltoIndexService.verifyAnchor).toHaveBeenCalledWith('T', message.hash);
+
+      expect(spies.rmqConnection.retry).toHaveBeenCalledWith(ampqMsg);
+      expect(spies.loggerService.warn).toHaveBeenCalledWith(
+        `dispatcher: message ${message.hash.base58} requeued, not anchored`
+      );
+    });
+  });
+
+  describe('dispatch', () => {
+    beforeEach(() => {
+      jest.spyOn(configService, 'getDispatchTarget').mockReturnValue('https://example.com');
+    });
+
+    it('should POST the contents to the dispatch target',async () => {
+      spies.requestService.post.mockReturnValue({ status: 200 });
+
+      const success = await dispatcherService.onMessage(ampqMsg);
+      expect(success).toBe(true);
+
+      const [ url, data, options ] = spies.requestService.post.mock.calls[0];
+
+      expect(url).toBe('https://example.com');
+      expect(data).toBeInstanceOf(Binary);
+      expect(data.toString()).toBe(message.data.toString());
+      expect(options.headers).toEqual({
+        'Content-Type': 'text/plain',
+        'LTO-Message-Type': 'message',
+        'LTO-Message-Sender': sender.address,
+        'LTO-Message-SenderKeyType': 'ed25519',
+        'LTO-Message-SenderPublicKey': sender.publicKey,
+        'LTO-Message-Recipient': recipient.address,
+        'LTO-Message-Signature': message.signature.base58,
+        'LTO-Message-Timestamp': message.timestamp.toString(),
+        'LTO-Message-Hash': message.hash.base58,
+      });
+
+      expect(spies.loggerService.debug).toHaveBeenCalledWith(
+        `dispatcher: message ${message.hash.base58} dispatched to https://example.com`
+      );
+
+      expect(spies.rmqConnection.ack).toHaveBeenCalledWith(ampqMsg);
+      expect(spies.loggerService.info).toHaveBeenCalledWith(
+        `dispatcher: message ${message.hash.base58} acknowledged`
+      );
+    });
+
+    it('should reject the message if the dispatch target returns a 400 error',async () => {
+      spies.requestService.post.mockReturnValue({ status: 400 });
+
+      const success = await dispatcherService.onMessage(ampqMsg);
+      expect(success).toBe(false);
+
+      expect(spies.rmqConnection.reject).toHaveBeenCalledWith(ampqMsg);
+      expect(spies.loggerService.warn).toHaveBeenCalledWith(
+        `dispatcher: message ${message.hash.base58} rejected, POST https://example.com gave a 400 response`
+      );
+    });
+
+    it('should retry the message if the dispatch target returns an error',async () => {
+      spies.requestService.post.mockReturnValue({ status: 500 });
+
+      const success = await dispatcherService.onMessage(ampqMsg);
+      expect(success).toBe(false);
+
+      expect(spies.rmqConnection.retry).toHaveBeenCalledWith(ampqMsg);
+      expect(spies.loggerService.warn).toHaveBeenCalledWith(
+        `dispatcher: message ${message.hash.base58} requeued, POST https://example.com gave a 500 response`
+      );
+    });
+  });
+
+  describe('decode message', () => {
+    it('should parse a JSON message', () => {
+      const ampqMsg: any = {
+        content: { toString: () => JSON.stringify(message) },
+        properties: { contentType: 'application/json' },
+      };
+
+      const decoded: Message = (dispatcherService as any).decodeMessage(ampqMsg);
+
+      expect(decoded.type).toEqual(message.type);
+      expect(decoded.sender).toEqual(message.sender);
+      expect(decoded.recipient).toEqual(message.recipient);
+      expect(decoded.timestamp).toEqual(message.timestamp);
+      expect(decoded.mediaType).toEqual(message.mediaType);
+      expect(decoded.data).toEqual(message.data);
+      expect(decoded.hash).toEqual(message.hash);
+    });
+
+    it('should parse a binary message', () => {
+      const ampqMsg: any = {
+        content: message.toBinary(),
+        properties: { contentType: 'application/octet-stream' },
+      };
+
+      const decoded: Message = (dispatcherService as any).decodeMessage(ampqMsg);
+
+      expect(decoded.type).toEqual(message.type);
+      expect(decoded.sender).toEqual(message.sender);
+      expect(decoded.recipient).toEqual(message.recipient);
+      expect(decoded.timestamp).toEqual(message.timestamp);
+      expect(decoded.mediaType).toEqual(message.mediaType);
+      expect(decoded.data).toEqual(message.data);
+      expect(decoded.hash).toEqual(message.hash);
+    });
+
+    it('should reject a message with an unknown content type',  async() => {
+      ampqMsg.properties.contentType = 'text/plain';
+
+      const success = await dispatcherService.onMessage(ampqMsg);
+      expect(success).toBe(false);
+
+      expect(spies.rmqConnection.reject).toHaveBeenCalledWith(ampqMsg);
+      expect(spies.loggerService.warn).toHaveBeenCalledWith(
+        `dispatcher: message ${message.hash.base58} rejected, content type is not supported`
+      );
+    });
+  })
 });

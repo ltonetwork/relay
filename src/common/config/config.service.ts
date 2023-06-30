@@ -34,7 +34,7 @@ export class ConfigService {
   }
 
   isAcceptedAccount(account: string): boolean {
-    return this.config.get('accept.all') || this.config.get('accept.accounts').includes(account);
+    return this.config.get('dispatcher.accept.all') || this.config.get('dispatcher.accept.accounts').includes(account);
   }
 
   getEnv(): string {

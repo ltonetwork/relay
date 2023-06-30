@@ -54,11 +54,7 @@ export class RabbitMQConnection {
     this.channel.ack(message);
   }
 
-  requeue(message: amqplib.Message) {
-    this.channel.reject(message, true);
-  }
-
-  deadletter(message: amqplib.Message) {
+  reject(message: amqplib.Message) {
     this.channel.reject(message, false);
   }
 

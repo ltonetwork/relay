@@ -14,11 +14,11 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
   private connection: RabbitMQConnection;
 
   constructor(
-    private readonly logger: LoggerService,
     private readonly config: ConfigService,
     private readonly rabbitMQ: RabbitMQService,
     private readonly request: RequestService,
     private readonly ltoIndex: LtoIndexService,
+    private readonly logger: LoggerService,
   ) {}
 
   async onModuleInit() {
@@ -29,7 +29,7 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
     await this.rabbitMQ.close();
   }
 
-  async start(): Promise<void> {
+  private async start(): Promise<void> {
     if (!this.config.isDispatcherEnabled()) {
       return this.logger.debug(`dispatcher: module not enabled`);
     }
@@ -45,23 +45,28 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onMessage(msg: amqplib.Message): Promise<boolean> {
-    if (!msg.content || !msg.properties.messageId) {
-      return this.deadletter(msg, `message deadlettered, it is invalid`);
+    if (!msg.properties.messageId) {
+      return this.reject(msg, `message rejected, no message id`);
     }
 
     const msgId = msg.properties.messageId;
     this.logger.debug(`dispatcher: message ${msgId} received`);
 
     const message = this.decodeMessage(msg);
+    if (!message) return false;
 
-    if (!this.validateMessage(message, msg)) return;
-    if (this.config.verifyAnchorOnDispatch() && !(await this.verifyAnchor(message, msg))) return;
+    if (!this.validateMessage(message, msg)) return false;
+
+    if (this.config.verifyAnchorOnDispatch()) {
+      const verified = await this.verifyAnchor(message, msg);
+      if (!verified) return false;
+    }
 
     if (this.config.isStorageEnabled()) {
       // TODO Store the event
     }
 
-    if (!(await this.dispatch(message, msg))) return;
+    if (!(await this.dispatch(message, msg))) return false;
 
     this.connection.ack(msg);
     this.logger.info(`dispatcher: message ${msgId} acknowledged`);
@@ -77,7 +82,7 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
       case 'application/octet-stream':
         return Message.from(msg.content);
       default:
-        this.deadletter(msg, `message ${msg.properties.messageId} deadlettered, content type is not supported`);
+        this.reject(msg, `message ${msg.properties.messageId} rejected, content type is not supported`);
     }
   }
 
@@ -85,27 +90,27 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
     const msgId = msg.properties.messageId;
 
     if (msg.properties.appId !== APP_ID) {
-      return this.deadletter(msg, `message ${msgId} deadlettered, invalid app id`);
+      return this.reject(msg, `message ${msgId} rejected, invalid app id`);
     }
 
     if (message.type !== msg.properties.type) {
-      return this.deadletter(msg, `message ${msgId} deadlettered, type does not match message type`);
+      return this.reject(msg, `message ${msgId} rejected, type does not match message type`);
     }
 
     if (message.hash.base58 !== msgId) {
-      return this.deadletter(msg, `message ${msgId} deadlettered, hash does not match message id`);
+      return this.reject(msg, `message ${msgId} rejected, hash does not match message id`);
     }
 
     if (!message.verifyHash()) {
-      return this.deadletter(msg, `message ${msgId} deadlettered, invalid hash`);
+      return this.reject(msg, `message ${msgId} rejected, invalid hash`);
     }
 
     if (!this.config.isAcceptedAccount(message.recipient)) {
-      return this.deadletter(msg, `message ${msgId} deadlettered, recipient is not accepted`);
+      return this.reject(msg, `message ${msgId} rejected, recipient is not accepted`);
     }
 
     if (!message.verifySignature()) {
-      return this.deadletter(msg, `message ${msgId} deadlettered, invalid signature`);
+      return this.reject(msg, `message ${msgId} rejected, invalid signature`);
     }
 
     return true;
@@ -116,12 +121,14 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
     const networkId = getNetwork(message.recipient);
 
     if (networkId !== 'L' && networkId !== 'T') {
-      return this.deadletter(msg, `message ${msgId} deadlettered, unsupported network ${networkId}`);
+      return this.reject(msg, `message ${msgId} rejected, unsupported network ${networkId}`);
     }
 
-    if (!(await this.ltoIndex.verifyAnchor(networkId, msgId))) {
+    if (!(await this.ltoIndex.verifyAnchor(networkId, message.hash))) {
       return this.retry(msg, `message ${msgId} requeued, not anchored`);
     }
+
+    return true;
   }
 
   private async dispatch(message: Message, msg: amqplib.Message): Promise<boolean> {
@@ -147,19 +154,21 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
     const response = await this.request.post(target, data, { headers });
 
     if (response.status === 400) {
-      return this.deadletter(msg, `message ${msgId} deadlettered, ${target} returned 400`);
+      return this.reject(msg, `message ${msgId} rejected, POST ${target} gave a 400 response`);
     }
 
     if (response.status > 299) {
-      return this.retry(msg,`message ${msgId} requeued, ${target} returned ${response.status}`);
+      return this.retry(msg,`message ${msgId} requeued, POST ${target} gave a ${response.status} response`);
     }
+
+    this.logger.debug(`dispatcher: message ${msgId} dispatched to ${target}`);
 
     return true;
   }
 
-  private deadletter(msg: amqplib.Message, reason: string): boolean {
+  private reject(msg: amqplib.Message, reason: string): boolean {
     this.logger.warn(`dispatcher: ${reason}`);
-    this.connection.deadletter(msg);
+    this.connection.reject(msg);
 
     return false;
   }

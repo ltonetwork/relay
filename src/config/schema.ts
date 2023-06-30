@@ -19,30 +19,30 @@ export default {
     default: '',
     env: 'API_PREFIX',
   },
-  accept: {
-    accounts: {
-      docs: 'List of account for which the service accepts messages',
-      format: 'comma-separated-string',
-      default: [],
-      env: 'ACCEPT_ACCOUNTS',
-    },
-    all: {
-      docs: 'Accept messages from all accounts',
-      default: false,
-      env: 'ACCEPT_ALL',
-    }
-  },
   dispatcher: {
     target: {
       doc: 'The target url for the dispatcher',
       default: '',
-      env: 'DISPATCHER_TARGET',
+      env: 'DISPATCH_TARGET',
     },
     verify_anchor: {
       doc: 'Verify anchor before dispatching',
       default: false,
       env: 'VERIFY_ANCHOR',
-    }
+    },
+    accept: {
+      accounts: {
+        docs: 'List of account for which the service accepts messages',
+        format: 'comma-separated-string',
+        default: [],
+        env: 'ACCEPT_ACCOUNTS',
+      },
+      all: {
+        docs: 'Accept messages from all accounts',
+        default: false,
+        env: 'ACCEPT_ALL',
+      }
+    },
   },
   storage: {
     enabled: {
@@ -62,11 +62,6 @@ export default {
       default: true,
       env: 'QUEUER_ENABLED',
     },
-    verify_anchor: {
-      doc: 'Verify anchor before adding to queue',
-      default: false,
-      env: 'VERIFY_ANCHOR',
-    }
   },
   rabbitmq: {
     client: {
