@@ -15,14 +15,14 @@ before_install:
 - git config --global user.email "travis-ci@legalthings.net"
 - git config --global user.name "Travis CI"
 
-before_script:
-  - sudo rabbitmqctl stop_app
-  - sudo rabbitmqctl reset
-  - sudo rabbitmqctl start_app
-  - sudo rabbitmq-plugins enable rabbitmq_management
-  - sudo rabbitmq-plugins enable rabbitmq_shovel
-  - sudo rabbitmq-plugins enable rabbitmq_shovel_management
-  - sudo service rabbitmq-server restart
+#before_script:
+#  - sudo rabbitmqctl stop_app
+#  - sudo rabbitmqctl reset
+#  - sudo rabbitmqctl start_app
+#  - sudo rabbitmq-plugins enable rabbitmq_management
+#  - sudo rabbitmq-plugins enable rabbitmq_shovel
+#  - sudo rabbitmq-plugins enable rabbitmq_shovel_management
+#  - sudo service rabbitmq-server restart
 
 script:
-  npm run test:all
+  npm run test
