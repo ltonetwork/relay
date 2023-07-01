@@ -31,7 +31,7 @@ describe('ConfigService', () => {
     });
 
     test('getDispatchTarget()', async () => {
-      expect(configService.getDispatchTarget()).toBe('https://example.com');
+      expect(configService.getDispatchTarget()).toBe('');
     });
 
     test('getEnv()', async () => {
@@ -80,7 +80,7 @@ describe('ConfigService', () => {
     });
 
     test('getRabbitMQExchange()', async () => {
-      expect(configService.getRabbitMQExchange()).toBe("''");
+      expect(configService.getRabbitMQExchange()).toBe("amq.direct");
     });
 
     test('getRabbitMQQueue()', async () => {

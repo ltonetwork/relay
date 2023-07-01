@@ -4,6 +4,7 @@ import { INestApplication } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ConfigService } from './common/config/config.service';
 import { LoggerService } from './common/logger/logger.service';
+import * as bodyParser from 'body-parser';
 
 function swagger(app: INestApplication, config: ConfigService) {
   const options = new DocumentBuilder()
@@ -17,12 +18,14 @@ function swagger(app: INestApplication, config: ConfigService) {
 }
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { bodyParser: false });
   const config = app.get<ConfigService>(ConfigService);
 
   if (config.getApiPrefix()) app.setGlobalPrefix(config.getApiPrefix());
 
-  // app.enableCors();
+  app.use(bodyParser.json({ limit: '128mb' }));
+  app.use(bodyParser.raw({ type: 'application/octet-stream', limit: '128mb' }));
+
   app.enableCors();
 
   swagger(app, config);

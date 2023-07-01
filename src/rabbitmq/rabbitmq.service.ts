@@ -7,7 +7,7 @@ import { setTimeout } from 'node:timers/promises';
 
 @Injectable()
 export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
-  public readonly connections: { [key: string]: RabbitMQConnection } = {};
+  public readonly connections: Record<string, RabbitMQConnection> = {};
 
   constructor(@Inject(AMQPLIB) private readonly _amqplib: typeof amqplib, private readonly logger: LoggerService) {}
 
@@ -74,12 +74,10 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
   }
 
   async close() {
-    for (const key in this.connections) {
-      if (this.connections.hasOwnProperty(key)) {
-        this.logger.info(`rabbitmq: closing connection ${key}`);
-        this.connections[key].close();
-        delete this.connections[key];
-      }
-    }
+    await Promise.all(Object.keys(this.connections).map((key) => {
+      this.logger.info(`rabbitmq: closing connection ${key}`);
+      this.connections[key].close();
+      delete this.connections[key];
+    }));
   }
 }

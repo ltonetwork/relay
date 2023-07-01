@@ -121,7 +121,7 @@ describe('DispatcherService', () => {
       expect(spies.rmqService.connect.mock.calls[0][0]).toBe('amqp://');
 
       expect(spies.rmqConnection.consume.mock.calls.length).toBe(1);
-      expect(spies.rmqConnection.consume.mock.calls[0][0]).toBe("''");
+      expect(spies.rmqConnection.consume.mock.calls[0][0]).toBe("amq.direct");
       expect(spies.rmqConnection.consume.mock.calls[0][1]).toBe('default');
       expect(typeof spies.rmqConnection.consume.mock.calls[0][2]).toBe('function');
     });

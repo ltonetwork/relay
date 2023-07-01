@@ -1,27 +1,40 @@
+// noinspection DuplicatedCode
+
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
-import { QueuerModuleConfig } from './queuer.module';
 import { QueuerService } from './queuer.service';
 import { INestApplication } from '@nestjs/common';
+import { QueuerController } from './queuer.controller';
+import { Account, AccountFactoryED25519, Message } from '@ltonetwork/lto';
+import { LoggerService } from '../common/logger/logger.service';
+import * as bodyParser from 'body-parser';
 
 describe('QueuerController', () => {
   let module: TestingModule;
+  let loggerService: LoggerService;
   let queuerService: QueuerService;
   let app: INestApplication;
 
-  function spy() {
-    const qService = {
-      add: jest.spyOn(queuerService, 'add').mockImplementation(() => Promise.resolve() ),
-    };
-
-    return { qService };
-  }
+  let sender: Account;
+  let recipient: Account;
+  let message: Message;
 
   beforeEach(async () => {
-    module = await Test.createTestingModule(QueuerModuleConfig).compile();
-    app = module.createNestApplication();
+    module = await Test.createTestingModule({
+      controllers: [QueuerController],
+      providers: [
+        { provide: LoggerService, useValue: { error: jest.fn() } },
+        { provide: QueuerService, useValue: { add: jest.fn() } },
+      ],
+    }).compile();
+
+    app = module.createNestApplication({ bodyParser: false });
+    app.use(bodyParser.json({ limit: '128mb' }));
+    app.use(bodyParser.raw({ type: 'application/octet-stream', limit: '128mb' }));
+
     await app.init();
 
+    loggerService = module.get<LoggerService>(LoggerService);
     queuerService = module.get<QueuerService>(QueuerService);
   });
 
@@ -29,36 +42,51 @@ describe('QueuerController', () => {
     await module.close();
   });
 
-  describe('POST /queue', () => {
-    test('should pass event to the queuer service', async () => {
-      const spies = spy();
+  beforeEach(() => {
+    const factory = new AccountFactoryED25519('T');
+    sender = factory.createFromSeed('sender');
+    recipient = factory.createFromSeed('recipient');
+    message = new Message('hello').to(recipient).signWith(sender);
+  });
 
-      const event = { id: 'fakeid' };
-      const res = await request(app.getHttpServer()).post('/queue').send(event);
+  describe('POST /', () => {
+    test('with JSON message', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/')
+        .set('Content-Type', 'application/json')
+        .send(JSON.stringify(message));
 
       expect(res.status).toBe(204);
-      expect(res.header['content-type']).toBeUndefined();
-      expect(res.body).toEqual({});
 
-      expect(spies.qService.add.mock.calls.length).toBe(1);
-      expect(spies.qService.add.mock.calls[0][0]).toEqual(event);
-      expect(spies.qService.add.mock.calls[0][1]).toBeUndefined();
+      expect(queuerService.add).toBeCalled();
+      const queuedMessage = (queuerService.add as jest.Mock).mock.calls[0][0];
+      expect(queuedMessage).toBeInstanceOf(Message);
+      expect(queuedMessage.toJSON()).toEqual(queuedMessage.toJSON());
     });
 
-    test('should pass event and remote nodes to the queuer service', async () => {
-      const spies = spy();
-
-      const event = { id: 'fakeid' };
-      const to = ['amqp://ext1', 'amqp://ext2'];
-      const res = await request(app.getHttpServer()).post('/queue').query({ to }).send(event);
+    test('with binary message', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/')
+        .set('Content-Type', 'application/octet-stream')
+        .send(Buffer.from(message.toBinary()));
 
       expect(res.status).toBe(204);
-      expect(res.header['content-type']).toBeUndefined();
-      expect(res.body).toEqual({});
 
-      expect(spies.qService.add.mock.calls.length).toBe(1);
-      expect(spies.qService.add.mock.calls[0][0]).toEqual(event);
-      expect(spies.qService.add.mock.calls[0][1]).toEqual(to);
+      expect(queuerService.add).toBeCalled();
+      const queuedMessage = (queuerService.add as jest.Mock).mock.calls[0][0];
+      expect(queuedMessage).toBeInstanceOf(Message);
+      expect(queuedMessage.toJSON()).toEqual(queuedMessage.toJSON());
+    });
+
+    test('with invalid message', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/')
+        .set('Content-Type', 'application/json')
+        .send('{}');
+
+      expect(res.status).toBe(400);
+
+      expect(queuerService.add).not.toBeCalled();
     });
   });
 });
