@@ -10,6 +10,8 @@ import { Message, AccountFactoryED25519, Account } from '@ltonetwork/lto';
 import { ConfigService } from '../common/config/config.service';
 
 describe('StorageService', () => {
+  let module: TestingModule;
+
   let service: StorageService;
   let redis: jest.Mocked<Redis>;
   let bucket: jest.Mocked<Bucket>;
@@ -19,7 +21,6 @@ describe('StorageService', () => {
   let sender: Account;
   let recipient: Account;
   let message: Message;
-
 
   beforeEach(() => {
     redis = {
@@ -41,7 +42,7 @@ describe('StorageService', () => {
   });
 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       imports: [ConfigModule],
       providers: [
         StorageService,
@@ -63,10 +64,14 @@ describe('StorageService', () => {
     message = new Message('hello').to(recipient).signWith(sender);
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
+  afterEach(async () => {
+    jest.restoreAllMocks();
+    await module.close();
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
 
   describe('list', () => {
     let data: Record<string, any>;
