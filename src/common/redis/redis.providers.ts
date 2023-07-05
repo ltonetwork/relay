@@ -5,9 +5,7 @@ export const redisProviders = [
   {
     provide: Redis,
     useFactory: async (config: ConfigService) => {
-      const redis = new Redis(config.getRedisUrl());
-      await redis.connect();
-      return redis;
+      return new Redis(config.getRedisUrl(), { lazyConnect: true });
     },
     inject: [ConfigService],
   }

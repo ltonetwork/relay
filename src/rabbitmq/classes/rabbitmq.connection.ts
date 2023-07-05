@@ -98,15 +98,16 @@ export class RabbitMQConnection {
 
   async init(exchange: string, queue: string, pattern: string) {
     // deadletter
-    await this.assertExchange(`${exchange}.deadletter`);
+    const deadLetterExchange = exchange === '' || exchange.startsWith('amq.') ? 'deadletter' : `${exchange}.deadletter`;
+    await this.assertExchange(deadLetterExchange);
     await this.assertQueue(`${queue}.deadletter`);
-    await this.bindQueue(`${exchange}.deadletter`, `${queue}.deadletter`, `${pattern}.deadletter`);
+    await this.bindQueue(deadLetterExchange, `${queue}.deadletter`, `${pattern}.deadletter`);
 
     // regular
     await this.assertExchange(exchange);
     await this.assertQueue(queue, {
       durable: true,
-      deadLetterExchange: `${exchange}.deadletter`,
+      deadLetterExchange,
       deadLetterRoutingKey: `${queue}.deadletter`,
     });
     await this.bindQueue(exchange, queue, pattern);

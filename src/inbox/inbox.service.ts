@@ -87,6 +87,6 @@ export class InboxService {
   }
 
   private async storeFile(message: Message): Promise<void> {
-    await this.bucket.set(message.hash.base58, message.toBinary());
+    await this.bucket.put(message.hash.base58, message.toBinary());
   }
 }

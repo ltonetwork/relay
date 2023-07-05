@@ -707,10 +707,13 @@
     "@jridgewell/resolve-uri" "3.1.0"
     "@jridgewell/sourcemap-codec" "1.4.14"
 
-"@ltonetwork/http-message-signatures@^0.1.0":
-  version "0.1.0"
-  resolved "https://registry.yarnpkg.com/@ltonetwork/http-message-signatures/-/http-message-signatures-0.1.0.tgz#da35a96c4cfca56b26dcc9c691cc87020a3dbd48"
-  integrity sha512-qN48/Ld9Wtwd41xxCOYpnJHog801dezGKSfsyRqpkNVsVrO9x7gcmzp67ucwYnE9wEQi9Ryu7hSriULTRBuctQ==
+"@ltonetwork/http-message-signatures@../http-message-signatures":
+  version "0.0.0"
+
+"@ltonetwork/http-message-signatures@^0.1.7":
+  version "0.1.7"
+  resolved "https://registry.yarnpkg.com/@ltonetwork/http-message-signatures/-/http-message-signatures-0.1.7.tgz#e91e78723ff14ddb850485364c42131dfd0c75a7"
+  integrity sha512-x9M1TzhT4HIvc1HewminGDxBww9AeuHjdaAM3Oldg38soWQD/E2rA+T6vtdj3JScr1AyMd11vDiK05qt9V9R3A==
 
 "@ltonetwork/lto@^0.14.6":
   version "0.14.6"
@@ -1522,10 +1525,10 @@ ansi-styles@^5.0.0:
   resolved "https://registry.yarnpkg.com/ansi-styles/-/ansi-styles-5.2.0.tgz#07449690ad45777d1924ac2abb2fc8895dba836b"
   integrity sha512-Cxwpt2SfTzTtXcfOlzGEee8O+c+MmUgGrNiBcXnuWxuFJHe6a5Hz7qwhwe5OgaSYI0IJvkLqWX1ASG+cJOkEiA==
 
-any-bucket@^0.1.4:
-  version "0.1.4"
-  resolved "https://registry.yarnpkg.com/any-bucket/-/any-bucket-0.1.4.tgz#4ff9ab052aff091843281e7d8826ea598827cb64"
-  integrity sha512-6IPp5CyRh9ASxXpHCJuTy0beHpRfwYJCQTKBQtFMtTwQR+tdHwRr5LSDfohEkccgFx7TkVEPAxy+Yow7AwpSrw==
+any-bucket@^0.1.6:
+  version "0.1.6"
+  resolved "https://registry.yarnpkg.com/any-bucket/-/any-bucket-0.1.6.tgz#2913f8d255e311e26286f11d0d0e918e5e519d5f"
+  integrity sha512-gy0fP0Z/l1wu5E2g8B1TvOGW4Rrmq+1IKszkOrQb6V19U2WARmM+at4deNBTyPGdQQLoDrBgREyiLPAKesWIQA==
 
 anymatch@^3.0.3, anymatch@~3.1.2:
   version "3.1.3"

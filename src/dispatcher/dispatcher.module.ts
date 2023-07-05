@@ -5,10 +5,10 @@ import { LoggerModule } from '../common/logger/logger.module';
 import { RabbitMQModule } from '../rabbitmq/rabbitmq.module';
 import { RequestModule } from '../common/request/request.module';
 import { LtoIndexModule } from '../common/lto-index/lto-index.module';
-import { StorageModule } from '../storage/storage.module';
+import { InboxModule } from '../inbox/inbox.module';
 
 @Module({
-  imports: [LoggerModule, ConfigModule, RabbitMQModule, StorageModule, RequestModule, LtoIndexModule],
+  imports: [LoggerModule, ConfigModule, RabbitMQModule, InboxModule, RequestModule, LtoIndexModule],
   controllers: [],
   providers: [DispatcherService],
   exports: [DispatcherService],

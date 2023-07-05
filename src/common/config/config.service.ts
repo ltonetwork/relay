@@ -77,10 +77,6 @@ export class ConfigService {
 
     if (!parsed.hosts[0].name || ['rabbitmq', 'localhost'].indexOf(parsed.hosts[0].name) > -1) {
       parsed.hosts[0].name = hostname;
-
-      parsed.hosts[0].port = (parsed.hosts && parsed.hosts[0].port) || 5672;
-      parsed.user = parsed.user || 'guest';
-      parsed.password = parsed.password || 'guest';
     }
 
     return parsed.toString();
@@ -144,17 +140,23 @@ export class ConfigService {
     return this.config.get('rabbitmq.shovel');
   }
 
+  getDefaultNetwork(): 'mainnet' | 'testnet' {
+    return this.config.get('lto.default_network').toLowerCase() as 'mainnet' | 'testnet';
+  }
+
   private networkName(network: 'mainnet' | 'testnet' | 'L' | 'T'): 'mainnet' | 'testnet' {
     if (network === 'L') return 'mainnet';
     if (network === 'T') return 'testnet';
     return network;
   }
 
-  getLTONode(network: 'mainnet' | 'testnet' | 'L' | 'T'): string {
+  getLTONode(network?: 'mainnet' | 'testnet' | 'L' | 'T'): string {
+    network ??= this.getDefaultNetwork();
     return this.config.get(`lto.${this.networkName(network)}.node`);
   }
 
-  getDidResolver(network: 'mainnet' | 'testnet' | 'L' | 'T'): string {
+  getDidResolver(network?: 'mainnet' | 'testnet' | 'L' | 'T'): string {
+    network ??= this.getDefaultNetwork();
     return this.config.get(`lto.${this.networkName(network)}.did_resolver`);
   }
 

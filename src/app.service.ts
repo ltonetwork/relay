@@ -7,7 +7,7 @@ import { ConfigService } from './common/config/config.service';
 export class AppService {
   constructor(private readonly config: ConfigService) {}
 
-  async info(): Promise<object> {
+  async info(): Promise<Record<string, any>> {
     const data = await util.promisify(fs.readFile)('package.json', { encoding: 'utf8' });
     const json = JSON.parse(data);
 
@@ -17,6 +17,7 @@ export class AppService {
       description: json.description,
       env: this.config.getEnv(),
       node: this.config.getRabbitMQPublicUrl(),
+      default_network: this.config.getDefaultNetwork(),
     };
   }
 }

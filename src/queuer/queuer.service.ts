@@ -7,6 +7,7 @@ import { ConfigService } from '../common/config/config.service';
 import { Message } from '@ltonetwork/lto';
 import { DidResolverService } from '../common/did-resolver/did-resolver.service';
 import { APP_ID } from '../constants';
+import { ApiTags } from '@nestjs/swagger';
 
 @Injectable()
 export class QueuerService implements OnModuleInit {

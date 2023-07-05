@@ -3,7 +3,9 @@ import { Response } from 'express';
 import { LoggerService } from '../common/logger/logger.service';
 import { QueuerService } from './queuer.service';
 import { Message } from '@ltonetwork/lto';
+import { ApiTags } from '@nestjs/swagger';
 
+@ApiTags('Send')
 @Controller()
 export class QueuerController {
   constructor(private readonly logger: LoggerService, private readonly queuerService: QueuerService) {}

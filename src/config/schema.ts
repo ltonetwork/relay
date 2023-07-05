@@ -13,6 +13,7 @@ export default {
   port: {
     doc: 'The port to bind.',
     default: 3000,
+    env: 'PORT',
   },
   api_prefix: {
     doc: 'The prefix for the API',
@@ -103,6 +104,11 @@ export default {
     },
   },
   lto: {
+    default_network: {
+      default: 'testnet',
+      env: 'LTO_NETWORK',
+      enum: ['testnet', 'mainnet'],
+    },
     testnet: {
       node: {
         doc: 'LTO testnet node url',

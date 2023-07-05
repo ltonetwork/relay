@@ -23,7 +23,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
-    "@ltonetwork/http-message-signatures": "^0.1.0",
+    "@ltonetwork/http-message-signatures": "../http-message-signatures",
     "@ltonetwork/lto": "^0.14.6",
     "@nestjs/axios": "^3.0.0",
     "@nestjs/common": "^9.0.0",
@@ -31,7 +31,7 @@
     "@nestjs/platform-express": "^9.0.0",
     "@nestjs/swagger": "^6.3.0",
     "amqplib": "^0.10.3",
-    "any-bucket": "^0.1.4",
+    "any-bucket": "^0.1.6",
     "axios": "^1.4.0",
     "boolean": "^3.2.0",
     "connection-string": "^4.3.6",
