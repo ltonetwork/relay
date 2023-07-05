@@ -1,7 +1,7 @@
 // noinspection DuplicatedCode
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { StorageService } from './storage.service';
+import { InboxService } from './inbox.service';
 import { ConfigModule } from '../common/config/config.module';
 import { LoggerService } from '../common/logger/logger.service';
 import Redis from 'ioredis';
@@ -9,10 +9,10 @@ import { Bucket } from 'any-bucket';
 import { Message, AccountFactoryED25519, Account } from '@ltonetwork/lto';
 import { ConfigService } from '../common/config/config.service';
 
-describe('StorageService', () => {
+describe('InboxService', () => {
   let module: TestingModule;
 
-  let service: StorageService;
+  let service: InboxService;
   let redis: jest.Mocked<Redis>;
   let bucket: jest.Mocked<Bucket>;
   let logger: jest.Mocked<LoggerService>;
@@ -45,14 +45,14 @@ describe('StorageService', () => {
     module = await Test.createTestingModule({
       imports: [ConfigModule],
       providers: [
-        StorageService,
+        InboxService,
         { provide: Redis, useValue: redis },
-        { provide: 'STORAGE_BUCKET', useValue: bucket },
+        { provide: 'INBOX_BUCKET', useValue: bucket },
         { provide: LoggerService, useValue: logger },
       ],
     }).compile();
 
-    service = module.get<StorageService>(StorageService);
+    service = module.get<InboxService>(InboxService);
     config = module.get<ConfigService>(ConfigService);
   });
 
@@ -185,7 +185,7 @@ describe('StorageService', () => {
 
   describe('store', () => {
     beforeEach(() => {
-      jest.spyOn(config, 'isStorageEnabled').mockReturnValue(true);
+      jest.spyOn(config, 'isInboxEnabled').mockReturnValue(true);
     });
 
     it('should index in Redis and the message in the bucket if not embedded', async () => {

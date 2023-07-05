@@ -23,7 +23,7 @@ describe('ConfigService', () => {
     });
 
     test('isStorageEnabled()', async () => {
-      expect(configService.isStorageEnabled()).toBe(true);
+      expect(configService.isInboxEnabled()).toBe(true);
     });
 
     test('isQueuerEnabled()', async () => {

@@ -3,15 +3,15 @@ import { ConfigService } from '../common/config/config.service';
 import { buildAddress, getNetwork, Message } from '@ltonetwork/lto';
 import { LoggerService } from '../common/logger/logger.service';
 import Redis from 'ioredis';
-import { MessageSummery } from './storage.dto';
+import { MessageSummery } from './inbox.dto';
 import { Bucket } from 'any-bucket';
 
 @Injectable()
-export class StorageService {
+export class InboxService {
   constructor(
     private config: ConfigService,
     private redis: Redis,
-    @Inject('STORAGE_BUCKET') private bucket: Bucket,
+    @Inject('INBOX_BUCKET') private bucket: Bucket,
     private logger: LoggerService,
   ) {}
 
@@ -57,7 +57,7 @@ export class StorageService {
   }
 
   async store(message: Message): Promise<void> {
-    if (!this.config.isStorageEnabled()) throw new Error(`storage: module not enabled`);
+    if (!this.config.isInboxEnabled()) throw new Error(`storage: module not enabled`);
     this.logger.debug(`storage: storing message '${message.hash}'`);
 
     const embed = (message.isEncrypted() ? message.encryptedData : message.data).length <=

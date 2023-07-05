@@ -10,7 +10,7 @@ import { LoggerService } from '../common/logger/logger.service';
 import { Account, Message, AccountFactoryED25519, Binary } from '@ltonetwork/lto';
 import { ConfigService } from '../common/config/config.service';
 import { RabbitMQConnection } from '../rabbitmq/classes/rabbitmq.connection';
-import { StorageService } from '../storage/storage.service';
+import { InboxService } from '../inbox/inbox.service';
 
 describe('DispatcherService', () => {
   let module: TestingModule;
@@ -20,7 +20,7 @@ describe('DispatcherService', () => {
   let spies: {
     rmqConnection: jest.Mocked<RabbitMQConnection>;
     rmqService: jest.Mocked<RabbitMQService>;
-    storageService: jest.Mocked<StorageService>;
+    inboxService: jest.Mocked<InboxService>;
     ltoIndexService: jest.Mocked<LtoIndexService>;
     requestService: jest.Mocked<RequestService>;
     loggerService: jest.Mocked<LoggerService>;
@@ -44,7 +44,7 @@ describe('DispatcherService', () => {
       close: jest.fn(),
     } as any;
 
-    const storageService = {
+    const inboxService = {
       store: jest.fn().mockResolvedValue(undefined),
     } as any;
 
@@ -62,7 +62,7 @@ describe('DispatcherService', () => {
       warn: jest.fn(),
     } as any;
 
-    spies = { rmqConnection, rmqService, storageService, ltoIndexService, requestService, loggerService };
+    spies = { rmqConnection, rmqService, inboxService, ltoIndexService, requestService, loggerService };
   });
 
   beforeEach(async () => {
@@ -71,7 +71,7 @@ describe('DispatcherService', () => {
       providers: [
         DispatcherService,
         { provide: RabbitMQService, useValue: spies.rmqService },
-        { provide: StorageService, useValue: spies.storageService },
+        { provide: InboxService, useValue: spies.inboxService },
         { provide: LtoIndexService, useValue: spies.ltoIndexService },
         { provide: RequestService, useValue: spies.requestService },
         { provide: LoggerService, useValue: spies.loggerService },
@@ -285,22 +285,22 @@ describe('DispatcherService', () => {
   });
 
   describe('store message', () => {
-    it('should store a message if storage is enabled',async () => {
-      jest.spyOn(configService, 'isStorageEnabled').mockReturnValue(true);
+    it('should store a message if inbox is enabled',async () => {
+      jest.spyOn(configService, 'isInboxEnabled').mockReturnValue(true);
 
       const success = await dispatcherService.onMessage(ampqMsg);
       expect(success).toBe(true);
 
-      expect(spies.storageService.store).toHaveBeenCalledWith(message);
+      expect(spies.inboxService.store).toHaveBeenCalledWith(message);
     });
 
-    it('should not store a message if storage is disabled',async () => {
-      jest.spyOn(configService, 'isStorageEnabled').mockReturnValue(false);
+    it('should not store a message if inbox is disabled',async () => {
+      jest.spyOn(configService, 'isInboxEnabled').mockReturnValue(false);
 
       const success = await dispatcherService.onMessage(ampqMsg);
       expect(success).toBe(true);
 
-      expect(spies.storageService.store).not.toHaveBeenCalled();
+      expect(spies.inboxService.store).not.toHaveBeenCalled();
     });
   });
 

@@ -51,21 +51,21 @@ export default {
       }
     },
   },
-  storage: {
+  inbox: {
     enabled: {
-      doc: 'Enable storage module',
+      doc: 'Enable inbox module',
       default: true,
-      env: 'STORAGE_ENABLED',
+      env: 'INBOX_ENABLED',
     },
-    path: {
-      doc: 'The path to the storage directory',
+    storage: {
+      doc: 'Path or bucket DSN for the inbox storage',
       default: './storage',
-      env: 'STORAGE_PATH',
+      env: 'INBOX_STORAGE',
     },
     embed_max_size: {
       doc: 'The maximum size for which the message content is embedded in the index',
       default: 1024,
-      env: 'STORAGE_EMBED_MAX_SIZE',
+      env: 'INBOX_EMBED_MAX_SIZE',
     },
   },
   queuer: {

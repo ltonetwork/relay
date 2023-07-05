@@ -14,11 +14,11 @@ export class ConfigService {
   }
 
   isDispatcherEnabled(): boolean {
-    return !!this.config.get('dispatcher.target') || this.config.get('storage.enabled');
+    return !!this.config.get('dispatcher.target') || this.config.get('inbox.enabled');
   }
 
-  isStorageEnabled(): boolean {
-    return this.config.get('storage.enabled');
+  isInboxEnabled(): boolean {
+    return this.config.get('inbox.enabled');
   }
 
   isQueuerEnabled(): boolean {
@@ -30,11 +30,11 @@ export class ConfigService {
   }
 
   getStoragePath(): string {
-    return this.config.get('storage.path');
+    return this.config.get('inbox.storage');
   }
 
   getStorageEmbedMaxSize(): number {
-    return this.config.get('storage.embed_max_size');
+    return this.config.get('inbox.embed_max_size');
   }
 
   verifyAnchorOnDispatch(): boolean {
