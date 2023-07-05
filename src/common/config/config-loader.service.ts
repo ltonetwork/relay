@@ -48,7 +48,7 @@ export class ConfigLoaderService implements OnModuleInit, OnModuleDestroy {
     this.config = config;
   }
 
-  set(key: string, value: any): void {
+  set<K extends Path>(key: K, value: any): void {
     this.config.set(key, value);
   }
 

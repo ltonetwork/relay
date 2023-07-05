@@ -16,6 +16,7 @@ describe('Queuer e2e test', () => {
 
   beforeAll(async () => {
     const module = await Test.createTestingModule(AppModuleConfig).compile();
+
     app = module.createNestApplication({ bodyParser: false });
     app.use(bodyParser.json({ limit: '128mb' }));
     app.use(bodyParser.raw({ type: 'application/octet-stream', limit: '128mb' }));
@@ -23,6 +24,7 @@ describe('Queuer e2e test', () => {
     await app.init();
 
     config = module.get<ConfigLoaderService>(ConfigLoaderService);
+    config.set('storage.enabled', false);
   });
 
   afterAll(async () => {
@@ -36,7 +38,7 @@ describe('Queuer e2e test', () => {
     message = new Message('hello').to(recipient).signWith(sender);
   });
 
-  describe('POST /queue', () => {
+  describe('POST /', () => {
     it('should add chain to the queue for local node', async () => {
       const res = await request(app.getHttpServer()).post('/').send(message);
       expect(res.status).toBe(204);

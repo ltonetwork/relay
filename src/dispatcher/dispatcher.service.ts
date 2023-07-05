@@ -8,6 +8,7 @@ import amqplib from 'amqplib';
 import { RequestService } from '../common/request/request.service';
 import { LtoIndexService } from '../common/lto-index/lto-index.service';
 import { APP_ID } from '../constants';
+import { StorageService } from '../storage/storage.service';
 
 @Injectable()
 export class DispatcherService implements OnModuleInit, OnModuleDestroy {
@@ -17,6 +18,7 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
     private readonly config: ConfigService,
     private readonly rabbitMQ: RabbitMQService,
     private readonly request: RequestService,
+    private readonly storage: StorageService,
     private readonly ltoIndex: LtoIndexService,
     private readonly logger: LoggerService,
   ) {}
@@ -63,7 +65,7 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
     }
 
     if (this.config.isStorageEnabled()) {
-      // TODO Store the event
+      await this.storage.store(message);
     }
 
     if (!(await this.dispatch(message, msg))) return false;

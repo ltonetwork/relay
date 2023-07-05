@@ -19,6 +19,13 @@ export default {
     default: '',
     env: 'API_PREFIX',
   },
+  redis: {
+    url: {
+      doc: 'The Redis DSN',
+      default: 'redis://localhost:6379',
+      env: 'REDIS_URL',
+    },
+  },
   dispatcher: {
     target: {
       doc: 'The target url for the dispatcher',
@@ -54,7 +61,12 @@ export default {
       doc: 'The path to the storage directory',
       default: './storage',
       env: 'STORAGE_PATH',
-    }
+    },
+    embed_max_size: {
+      doc: 'The maximum size for which the message content is embedded in the index',
+      default: 1024,
+      env: 'STORAGE_EMBED_MAX_SIZE',
+    },
   },
   queuer: {
     enabled: {

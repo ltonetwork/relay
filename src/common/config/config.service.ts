@@ -29,6 +29,14 @@ export class ConfigService {
     return this.config.get('dispatcher.target');
   }
 
+  getStoragePath(): string {
+    return this.config.get('storage.path');
+  }
+
+  getStorageEmbedMaxSize(): number {
+    return this.config.get('storage.embed_max_size');
+  }
+
   verifyAnchorOnDispatch(): boolean {
     return this.config.get('dispatcher.verify_anchor');
   }
@@ -55,6 +63,10 @@ export class ConfigService {
 
   getApiPrefix(): string {
     return this.config.get('api_prefix');
+  }
+
+  getRedisUrl(): string {
+    return this.config.get('redis.url');
   }
 
   getRabbitMQPublicUrl(): string {

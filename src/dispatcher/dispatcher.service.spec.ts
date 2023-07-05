@@ -9,6 +9,8 @@ import { RequestService } from '../common/request/request.service';
 import { LoggerService } from '../common/logger/logger.service';
 import { Account, Message, AccountFactoryED25519, Binary } from '@ltonetwork/lto';
 import { ConfigService } from '../common/config/config.service';
+import { RabbitMQConnection } from '../rabbitmq/classes/rabbitmq.connection';
+import { StorageService } from '../storage/storage.service';
 
 describe('DispatcherService', () => {
   let module: TestingModule;
@@ -16,27 +18,12 @@ describe('DispatcherService', () => {
   let configService: ConfigService;
 
   let spies: {
-    rmqConnection: {
-      ack: jest.Mock;
-      reject: jest.Mock;
-      retry: jest.Mock;
-      consume: jest.Mock;
-    };
-    rmqService: {
-      connect: jest.Mock;
-      close: jest.Mock;
-    };
-    ltoIndexService: {
-      verifyAnchor: jest.Mock;
-    };
-    requestService: {
-      post: jest.Mock;
-    };
-    loggerService: {
-      debug: jest.Mock;
-      info: jest.Mock;
-      warn: jest.Mock;
-    };
+    rmqConnection: jest.Mocked<RabbitMQConnection>;
+    rmqService: jest.Mocked<RabbitMQService>;
+    storageService: jest.Mocked<StorageService>;
+    ltoIndexService: jest.Mocked<LtoIndexService>;
+    requestService: jest.Mocked<RequestService>;
+    loggerService: jest.Mocked<LoggerService>;
   };
 
   let sender: Account;
@@ -50,28 +37,32 @@ describe('DispatcherService', () => {
       reject: jest.fn(),
       retry: jest.fn(),
       consume: jest.fn(),
-    };
+    } as any;
 
     const rmqService = {
       connect: jest.fn().mockImplementation(() => rmqConnection as any),
       close: jest.fn(),
-    };
+    } as any;
+
+    const storageService = {
+      store: jest.fn().mockResolvedValue(undefined),
+    } as any;
 
     const ltoIndexService = {
       verifyAnchor: jest.fn(),
-    }
+    } as any;
 
     const requestService = {
       post: jest.fn(),
-    }
+    } as any;
 
     const loggerService = {
       debug: jest.fn(),
       info: jest.fn(),
       warn: jest.fn(),
-    }
+    } as any;
 
-    spies = { rmqConnection, rmqService, ltoIndexService, requestService, loggerService };
+    spies = { rmqConnection, rmqService, storageService, ltoIndexService, requestService, loggerService };
   });
 
   beforeEach(async () => {
@@ -80,6 +71,7 @@ describe('DispatcherService', () => {
       providers: [
         DispatcherService,
         { provide: RabbitMQService, useValue: spies.rmqService },
+        { provide: StorageService, useValue: spies.storageService },
         { provide: LtoIndexService, useValue: spies.ltoIndexService },
         { provide: RequestService, useValue: spies.requestService },
         { provide: LoggerService, useValue: spies.loggerService },
@@ -205,7 +197,7 @@ describe('DispatcherService', () => {
 
     it('will verify if enabled',async () => {
       jest.spyOn(configService, 'verifyAnchorOnDispatch').mockReturnValue(true);
-      spies.ltoIndexService.verifyAnchor.mockReturnValue(true);
+      spies.ltoIndexService.verifyAnchor.mockResolvedValue(true);
 
       const success = await dispatcherService.onMessage(ampqMsg);
       expect(success).toBe(true);
@@ -215,7 +207,7 @@ describe('DispatcherService', () => {
 
     it(`will retry the message if the anchor can't be verified`,async () => {
       jest.spyOn(configService, 'verifyAnchorOnDispatch').mockReturnValue(true);
-      spies.ltoIndexService.verifyAnchor.mockReturnValue(false);
+      spies.ltoIndexService.verifyAnchor.mockResolvedValue(false);
 
       const success = await dispatcherService.onMessage(ampqMsg);
       expect(success).toBe(false);
@@ -235,7 +227,7 @@ describe('DispatcherService', () => {
     });
 
     it('should POST the contents to the dispatch target',async () => {
-      spies.requestService.post.mockReturnValue({ status: 200 });
+      spies.requestService.post.mockResolvedValue({ status: 200 } as any);
 
       const success = await dispatcherService.onMessage(ampqMsg);
       expect(success).toBe(true);
@@ -268,7 +260,7 @@ describe('DispatcherService', () => {
     });
 
     it('should reject the message if the dispatch target returns a 400 error',async () => {
-      spies.requestService.post.mockReturnValue({ status: 400 });
+      spies.requestService.post.mockResolvedValue({ status: 400 } as any);
 
       const success = await dispatcherService.onMessage(ampqMsg);
       expect(success).toBe(false);
@@ -280,7 +272,7 @@ describe('DispatcherService', () => {
     });
 
     it('should retry the message if the dispatch target returns an error',async () => {
-      spies.requestService.post.mockReturnValue({ status: 500 });
+      spies.requestService.post.mockResolvedValue({ status: 500 } as any);
 
       const success = await dispatcherService.onMessage(ampqMsg);
       expect(success).toBe(false);
@@ -289,6 +281,26 @@ describe('DispatcherService', () => {
       expect(spies.loggerService.warn).toHaveBeenCalledWith(
         `dispatcher: message ${message.hash.base58} requeued, POST https://example.com gave a 500 response`
       );
+    });
+  });
+
+  describe('store message', () => {
+    it('should store a message if storage is enabled',async () => {
+      jest.spyOn(configService, 'isStorageEnabled').mockReturnValue(true);
+
+      const success = await dispatcherService.onMessage(ampqMsg);
+      expect(success).toBe(true);
+
+      expect(spies.storageService.store).toHaveBeenCalledWith(message);
+    });
+
+    it('should not store a message if storage is disabled',async () => {
+      jest.spyOn(configService, 'isStorageEnabled').mockReturnValue(false);
+
+      const success = await dispatcherService.onMessage(ampqMsg);
+      expect(success).toBe(true);
+
+      expect(spies.storageService.store).not.toHaveBeenCalled();
     });
   });
 
