@@ -1,6 +1,6 @@
-import { Controller, Get, NotFoundException, Param, Res, UseGuards } from '@nestjs/common';
+import { Controller, Get, NotFoundException, Param, Query, UseGuards } from '@nestjs/common';
 import { InboxService } from './inbox.service';
-import { ApiProduces, ApiTags } from '@nestjs/swagger';
+import { ApiParam, ApiProduces, ApiTags } from '@nestjs/swagger';
 import { InboxGuard } from './inbox.guard';
 import { MessageSummery } from './inbox.dto';
 import { Message } from '@ltonetwork/lto';
@@ -12,13 +12,16 @@ export class InboxController {
   constructor(private readonly inbox: InboxService) {}
 
   @Get('/:address')
-  async list(@Param() address: string): Promise<MessageSummery[]> {
-    return this.inbox.list(address);
+  @ApiParam({ name: 'address', description: 'Address to get inbox for' })
+  @ApiParam({ name: 'type', description: 'Type of messages to get', required: false })
+  @ApiProduces('application/json')
+  async list(@Param('address') address: string, @Query('type') type?: string): Promise<MessageSummery[]> {
+    return this.inbox.list(address, type);
   }
 
   @Get('/:address/:hash')
   @ApiProduces('application/json')
-  async get(@Param() address: string, @Param('hash') hash: string): Promise<Message> {
+  async get(@Param('address') address: string, @Param('hash') hash: string): Promise<Message> {
     if (!await this.inbox.has(address, hash)) {
       throw new NotFoundException({ message: 'Message not found' });
     }

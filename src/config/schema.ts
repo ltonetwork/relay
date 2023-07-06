@@ -30,7 +30,12 @@ export default {
       doc: 'Accept unsigned messages in development mode',
       default: false,
       env: 'ACCEPT_UNSIGNED',
-    }
+    },
+    force_local_delivery: {
+      doc: 'Force local delivery in development mode',
+      default: false,
+      env: 'FORCE_LOCAL_DELIVERY',
+    },
   },
   redis: {
     url: {

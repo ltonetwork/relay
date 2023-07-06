@@ -111,7 +111,11 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
       return this.reject(msg, `message ${msgId} rejected, recipient is not accepted`);
     }
 
-    if (!message.verifySignature()) {
+    if (!this.config.acceptUnsigned() && !message.isSigned()) {
+      return this.reject(msg, `message ${msgId} rejected, message is not signed`);
+    }
+
+    if (message.isSigned() && !message.verifySignature()) {
       return this.reject(msg, `message ${msgId} rejected, invalid signature`);
     }
 

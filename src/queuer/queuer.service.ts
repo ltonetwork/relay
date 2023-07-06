@@ -7,7 +7,6 @@ import { ConfigService } from '../common/config/config.service';
 import { Message } from '@ltonetwork/lto';
 import { DidResolverService } from '../common/did-resolver/did-resolver.service';
 import { APP_ID } from '../constants';
-import { ApiTags } from '@nestjs/swagger';
 
 @Injectable()
 export class QueuerService implements OnModuleInit {
@@ -37,6 +36,11 @@ export class QueuerService implements OnModuleInit {
   async add(message: Message): Promise<void> {
     if (!this.isEnabled()) throw new Error(`queuer: module not enabled`);
 
+    if (this.config.forceLocalDelivery()) {
+      await this.addLocal(message);
+      return;
+    }
+
     const endpoint = await this.resolver.getServiceEndpoint(message.recipient);
 
     if (this.isLocalEndpoint(endpoint)) {
@@ -47,7 +51,7 @@ export class QueuerService implements OnModuleInit {
   }
 
   private async addLocal(message: Message): Promise<void> {
-    this.logger.info(`queuer: delivering message '${message.hash}'`);
+    this.logger.info(`queuer: delivering message '${message.hash.base58}'`);
     await this.publish(this.config.getRabbitMQQueue(), message);
   }
 
@@ -55,7 +59,7 @@ export class QueuerService implements OnModuleInit {
     const queueInfo = await this.connection.checkQueue(endpoint);
     if (!queueInfo) await this.createShovel(endpoint);
 
-    this.logger.info(`queuer: delivering message '${message.hash}' to '${endpoint}'`);
+    this.logger.info(`queuer: delivering message '${message.hash.base58}' to '${endpoint}'`);
     await this.publish(endpoint, message);
   }
 
@@ -74,12 +78,12 @@ export class QueuerService implements OnModuleInit {
     await this.connection.publish(
       this.config.getRabbitMQExchange(),
       endpoint,
-      message.toBinary(),
+      message.toBinary(message.isSigned()),
       {
         appId: APP_ID,
         messageId: message.hash.base58,
         type: message.type,
-      }
+      },
     );
   }
 }

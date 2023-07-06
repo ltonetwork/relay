@@ -148,6 +148,10 @@ export class ConfigService {
     return this.config.get('rabbitmq.shovel');
   }
 
+  forceLocalDelivery(): boolean {
+    return this.config.get('dev.force_local_delivery');
+  }
+
   private networkName(network: 'mainnet' | 'testnet' | 'L' | 'T'): 'mainnet' | 'testnet' {
     if (network === 'L') return 'mainnet';
     if (network === 'T') return 'testnet';

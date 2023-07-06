@@ -14,14 +14,15 @@ export class RequestService {
   ) {}
 
   async send(config: AxiosRequestConfig): Promise<AxiosResponse> {
-    const url = config.url;
-    const method = config.method;
-
     try {
       return await lastValueFrom(this.http.request(config));
-    } catch (e) {
-      this.log(e, method, url);
-      throw e;
+    } catch (error) {
+      if (!error.response) {
+        this.log(error, config.method, config.url);
+        throw error;
+      }
+
+      return error.response;
     }
   }
 

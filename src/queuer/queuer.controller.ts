@@ -3,7 +3,7 @@ import { Response } from 'express';
 import { LoggerService } from '../common/logger/logger.service';
 import { QueuerService } from './queuer.service';
 import { Message } from '@ltonetwork/lto';
-import { ApiBody, ApiTags } from '@nestjs/swagger';
+import { ApiBody, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ConfigService } from '../common/config/config.service';
 
 @ApiTags('Send')
@@ -21,6 +21,7 @@ export class QueuerController {
     try {
       message = Message.from(data);
     } catch (e) {
+      this.logger.debug(`queuer: invalid message given. ${e.message}`, { data });
       throw new BadRequestException({ error: 'invalid body given' });
     }
 
@@ -41,7 +42,20 @@ export class QueuerController {
   @ApiBody({
     description: 'Message to send',
     required: true,
+    examples: {
+      'application/json': {
+        value: {
+          type: 'basic',
+          sender: { keyType: 'ed25519', publicKey: '3ct1eeZg1ryzz24VHk4CigJxW6Adxh7Syfm459CmGNv2' },
+          recipient: '3MsAuZ59xHHa5vmoPG45fBGC7PxLCYQZnbM',
+          timestamp: '2023-06-20T21:40:40.268Z',
+          mediaType: 'text/plain',
+          data: 'test',
+        },
+      },
+    },
   })
+  @ApiResponse({ status: 204, description: 'Message added to queue for delivery' })
   async add(@Body() data: any, @Res() res: Response): Promise<Response> {
     const message = this.messageFrom(data);
 

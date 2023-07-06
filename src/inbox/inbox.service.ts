@@ -57,8 +57,13 @@ export class InboxService {
   }
 
   async store(message: Message): Promise<void> {
+    if (await this.has(message.recipient, message.hash.base58)) {
+      this.logger.debug(`storage: message '${message.hash.base58}' already stored`);
+      return;
+    }
+
     if (!this.config.isInboxEnabled()) throw new Error(`storage: module not enabled`);
-    this.logger.debug(`storage: storing message '${message.hash}'`);
+    this.logger.debug(`storage: storing message '${message.hash.base58}'`);
 
     const embed = (message.isEncrypted() ? message.encryptedData : message.data).length <=
       this.config.getStorageEmbedMaxSize();
