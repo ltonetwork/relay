@@ -212,10 +212,10 @@ describe('InboxService', () => {
         signature: message.signature.base58,
       });
 
-      expect(bucket.set).toHaveBeenCalled();
-      expect(bucket.set.mock.calls[0][0]).toBe(message.hash.base58);
-      expect(bucket.set.mock.calls[0][1]).toBeInstanceOf(Uint8Array);
-      expect(bucket.set.mock.calls[0][1]).toEqual(message.toBinary());
+      expect(bucket.put).toHaveBeenCalled();
+      expect(bucket.put.mock.calls[0][0]).toBe(message.hash.base58);
+      expect(bucket.put.mock.calls[0][1]).toBeInstanceOf(Uint8Array);
+      expect(bucket.put.mock.calls[0][1]).toEqual(message.toBinary());
     });
 
     it('should store the message and index in Redis if storage is enabled and embedded', async () => {
@@ -243,7 +243,7 @@ describe('InboxService', () => {
         signature: message.signature.base58,
       });
 
-      expect(bucket.set).not.toHaveBeenCalled();
+      expect(bucket.put).not.toHaveBeenCalled();
     });
   });
 });

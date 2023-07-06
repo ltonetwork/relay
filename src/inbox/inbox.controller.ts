@@ -1,30 +1,28 @@
-import { Controller, Get, Param, Res } from '@nestjs/common';
+import { Controller, Get, NotFoundException, Param, Res, UseGuards } from '@nestjs/common';
 import { InboxService } from './inbox.service';
-import { Signer } from '../common/http-signature/signer';
-import { Account, Message } from '@ltonetwork/lto';
-import { MessageSummery } from './inbox.dto';
 import { ApiProduces, ApiTags } from '@nestjs/swagger';
-import { Response } from 'express';
+import { InboxGuard } from './inbox.guard';
+import { MessageSummery } from './inbox.dto';
+import { Message } from '@ltonetwork/lto';
 
 @ApiTags('Inbox')
-@Controller('inbox')
+@Controller('inboxes')
+@UseGuards(InboxGuard)
 export class InboxController {
-  constructor(private storage: InboxService) {}
+  constructor(private readonly inbox: InboxService) {}
 
-  @Get()
-  async list(@Signer() signer: Account): Promise<MessageSummery[]> {
-    return this.storage.list(signer.address);
+  @Get('/:address')
+  async list(@Param() address: string): Promise<MessageSummery[]> {
+    return this.inbox.list(address);
   }
 
-  @Get('/:hash')
+  @Get('/:address/:hash')
   @ApiProduces('application/json')
-  async get(@Signer() signer: Account, @Param('hash') hash: string, @Res() res: Response) {
-    if (!await this.storage.has(signer.address, hash)) {
-      return res.status(404).send('Message not found');
+  async get(@Param() address: string, @Param('hash') hash: string): Promise<Message> {
+    if (!await this.inbox.has(address, hash)) {
+      throw new NotFoundException({ message: 'Message not found' });
     }
 
-    const message = await this.storage.get(signer.address, hash);
-
-    return res.status(200).json(message);
+    return await this.inbox.get(address, hash);
   }
 }

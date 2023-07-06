@@ -17,7 +17,6 @@ export class AppService {
       description: json.description,
       env: this.config.getEnv(),
       node: this.config.getRabbitMQPublicUrl(),
-      default_network: this.config.getDefaultNetwork(),
     };
   }
 }

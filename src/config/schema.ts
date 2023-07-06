@@ -20,6 +20,18 @@ export default {
     default: '',
     env: 'API_PREFIX',
   },
+  dev: {
+    disable_auth: {
+      doc: 'Disable authentication in development mode',
+      default: false,
+      env: 'DISABLE_AUTH',
+    },
+    accept_unsigned: {
+      doc: 'Accept unsigned messages in development mode',
+      default: false,
+      env: 'ACCEPT_UNSIGNED',
+    }
+  },
   redis: {
     url: {
       doc: 'The Redis DSN',
@@ -104,11 +116,6 @@ export default {
     },
   },
   lto: {
-    default_network: {
-      default: 'testnet',
-      env: 'LTO_NETWORK',
-      enum: ['testnet', 'mainnet'],
-    },
     testnet: {
       node: {
         doc: 'LTO testnet node url',

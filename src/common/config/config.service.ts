@@ -45,12 +45,20 @@ export class ConfigService {
     return this.config.get('dispatcher.accept.all') || this.config.get('dispatcher.accept.accounts').includes(account);
   }
 
+  acceptUnsigned(): boolean {
+    return this.config.get('dev.accept_unsigned');
+  }
+
   getEnv(): string {
     return this.config.get('env');
   }
 
   isEnv(env: string): boolean {
     return this.getEnv() === env || this.getEnv().startsWith(`${env}.`);
+  }
+
+  disableAuth(): boolean {
+    return this.config.get('dev.disable_auth');
   }
 
   getHostname(): string {
@@ -140,23 +148,17 @@ export class ConfigService {
     return this.config.get('rabbitmq.shovel');
   }
 
-  getDefaultNetwork(): 'mainnet' | 'testnet' {
-    return this.config.get('lto.default_network').toLowerCase() as 'mainnet' | 'testnet';
-  }
-
   private networkName(network: 'mainnet' | 'testnet' | 'L' | 'T'): 'mainnet' | 'testnet' {
     if (network === 'L') return 'mainnet';
     if (network === 'T') return 'testnet';
     return network;
   }
 
-  getLTONode(network?: 'mainnet' | 'testnet' | 'L' | 'T'): string {
-    network ??= this.getDefaultNetwork();
+  getLTONode(network: 'mainnet' | 'testnet' | 'L' | 'T'): string {
     return this.config.get(`lto.${this.networkName(network)}.node`);
   }
 
-  getDidResolver(network?: 'mainnet' | 'testnet' | 'L' | 'T'): string {
-    network ??= this.getDefaultNetwork();
+  getDidResolver(network: 'mainnet' | 'testnet' | 'L' | 'T'): string {
     return this.config.get(`lto.${this.networkName(network)}.did_resolver`);
   }
 
