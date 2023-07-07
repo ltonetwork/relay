@@ -29,7 +29,7 @@ export class LoggerBuilderService {
     ];
 
     for (const key in info) {
-      if (['timestamp', 'message', 'level', 'label', 'context'].includes(key)) {
+      if (['timestamp', 'basic', 'level', 'label', 'context'].includes(key)) {
         continue;
       }
 

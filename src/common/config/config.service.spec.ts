@@ -58,10 +58,10 @@ describe('ConfigService', () => {
     });
 
     test('getRabbitMQPublicUrl()', async () => {
-      expect(configService.getRabbitMQPublicUrl()).toBe('amqp://guest:guest@localhost:5672');
+      expect(configService.getRabbitMQPublicUrl()).toBe('amqp://localhost');
 
       configService.getHostname = jest.fn(() => 'example.com');
-      expect(configService.getRabbitMQPublicUrl()).toBe('amqp://guest:guest@example.com:5672');
+      expect(configService.getRabbitMQPublicUrl()).toBe('amqp://example.com');
     });
 
     test('getRabbitMQCredentials()', async () => {

@@ -80,7 +80,7 @@ describe('InboxService', () => {
       data = {
         'hash1': JSON.stringify({
           hash: 'hash1',
-          type: 'message',
+          type: 'basic',
           timestamp: 1672531200,
           sender: 'sender1',
           recipient: 'recipient1',
@@ -108,7 +108,7 @@ describe('InboxService', () => {
       const result = await service.list(recipientAddress);
 
       expect(result).toEqual([
-        { hash: 'hash1', type: 'message', timestamp: 1672531200, sender: 'sender1', recipient: 'recipient1', size: 10 },
+        { hash: 'hash1', type: 'basic', timestamp: 1672531200, sender: 'sender1', recipient: 'recipient1', size: 10 },
         { hash: 'hash2', type: 'other', timestamp: 1672531210, sender: 'sender2', recipient: 'recipient2', size: 20 },
       ]);
       expect(redis.hgetall).toHaveBeenCalledWith(`inbox:${recipientAddress}`);
@@ -116,13 +116,13 @@ describe('InboxService', () => {
 
     it('should return filtered messages by type if type is specified', async () => {
       const recipientAddress = recipient.address;
-      const type = 'message';
+      const type = 'basic';
       redis.hgetall.mockResolvedValue(data);
 
       const result = await service.list(recipientAddress, type);
 
       expect(result).toEqual([
-        { hash: 'hash1', type: 'message', timestamp: 1672531200, sender: 'sender1', recipient: 'recipient1', size: 10 }
+        { hash: 'hash1', type: 'basic', timestamp: 1672531200, sender: 'sender1', recipient: 'recipient1', size: 10 }
       ]);
       expect(redis.hgetall).toHaveBeenCalledWith(`inbox:${recipientAddress}`);
     });
@@ -194,14 +194,14 @@ describe('InboxService', () => {
 
       await service.store(message);
 
-      expect(logger.debug).toHaveBeenCalledWith(`storage: storing message '${message.hash}'`);
+      expect(logger.debug).toHaveBeenCalledWith(`storage: storing message '${message.hash.base58}'`);
 
       expect(redis.hset).toHaveBeenCalled();
       expect(redis.hset.mock.calls[0][0]).toBe(`inbox:${recipientAddress}`);
       expect(redis.hset.mock.calls[0][1]).toBe(message.hash.base58);
       expect(JSON.parse(redis.hset.mock.calls[0][2] as string)).toEqual({
         hash: message.hash.base58,
-        type: 'message',
+        type: 'basic',
         timestamp: message.timestamp.toJSON(),
         sender: sender.address,
         senderKeyType: sender.keyType,
@@ -224,14 +224,14 @@ describe('InboxService', () => {
 
       await service.store(message);
 
-      expect(logger.debug).toHaveBeenCalledWith(`storage: storing message '${message.hash}'`);
+      expect(logger.debug).toHaveBeenCalledWith(`storage: storing message '${message.hash.base58}'`);
 
       expect(redis.hset).toHaveBeenCalled();
       expect(redis.hset.mock.calls[0][0]).toBe(`inbox:${recipientAddress}`);
       expect(redis.hset.mock.calls[0][1]).toBe(message.hash.base58);
       expect(JSON.parse(redis.hset.mock.calls[0][2] as string)).toEqual({
         hash: message.hash.base58,
-        type: 'message',
+        type: 'basic',
         timestamp: message.timestamp.toJSON(),
         sender: sender.address,
         senderKeyType: sender.keyType,

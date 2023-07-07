@@ -20,22 +20,22 @@ class TestTransport extends TransportStream {
   }
 }
 
-const mockConfigService = () => ({
-  isEnv: jest.fn().mockImplementation(() => false),
-  app: { name: 'TestApp' },
-  getLog: jest.fn().mockImplementation(() => ({ level: 'info', force: false })),
-});
-
 describe('LoggerBuilderService', () => {
   let loggerBuilderService: LoggerBuilderService;
   let configService: ConfigService;
   let testTransport: TestTransport;
 
   beforeEach(async () => {
+    const mockConfigService = {
+      app: { name: 'TestApp' },
+      isEnv: jest.fn().mockImplementation(() => false),
+      getLog: jest.fn().mockImplementation(() => ({ level: 'info', force: false })),
+    }
+
     const moduleRef = await Test.createTestingModule({
       providers: [
         LoggerBuilderService,
-        { provide: ConfigService, useFactory: mockConfigService },
+        { provide: ConfigService, useValue: mockConfigService },
         { provide: WINSTON, useValue: winston },
       ],
     }).compile();

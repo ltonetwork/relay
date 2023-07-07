@@ -239,7 +239,7 @@ describe('DispatcherService', () => {
       expect(data.toString()).toBe(message.data.toString());
       expect(options.headers).toEqual({
         'Content-Type': 'text/plain',
-        'LTO-Message-Type': 'message',
+        'LTO-Message-Type': 'basic',
         'LTO-Message-Sender': sender.address,
         'LTO-Message-SenderKeyType': 'ed25519',
         'LTO-Message-SenderPublicKey': sender.publicKey,

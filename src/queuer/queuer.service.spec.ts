@@ -98,7 +98,7 @@ describe('QueuerService', () => {
         {
           appId: 'lto-relay',
           messageId: message.hash.base58,
-          type: 'message',
+          type: 'basic',
         },
       );
     });
@@ -118,7 +118,7 @@ describe('QueuerService', () => {
         {
           appId: 'lto-relay',
           messageId: message.hash.base58,
-          type: 'message',
+          type: 'basic',
         },
       );
     });
@@ -139,7 +139,7 @@ describe('QueuerService', () => {
         {
           appId: 'lto-relay',
           messageId: message.hash.base58,
-          type: 'message',
+          type: 'basic',
         },
       );
     });

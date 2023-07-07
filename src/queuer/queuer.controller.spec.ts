@@ -8,6 +8,7 @@ import { QueuerController } from './queuer.controller';
 import { Account, AccountFactoryED25519, Message } from '@ltonetwork/lto';
 import { LoggerService } from '../common/logger/logger.service';
 import * as bodyParser from 'body-parser';
+import { ConfigModule } from '../common/config/config.module';
 
 describe('QueuerController', () => {
   let module: TestingModule;
@@ -21,9 +22,10 @@ describe('QueuerController', () => {
 
   beforeEach(async () => {
     module = await Test.createTestingModule({
+      imports: [ConfigModule],
       controllers: [QueuerController],
       providers: [
-        { provide: LoggerService, useValue: { error: jest.fn() } },
+        { provide: LoggerService, useValue: { error: jest.fn(), debug: jest.fn() } },
         { provide: QueuerService, useValue: { add: jest.fn() } },
       ],
     }).compile();
