@@ -1,7 +1,7 @@
 // noinspection DuplicatedCode
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { QueuerService } from './queuer.service';
+import { QueueService } from './queue.service';
 import { Account, AccountFactoryED25519, Message } from '@ltonetwork/lto';
 import { ConfigModule } from '../common/config/config.module';
 import { LoggerService } from '../common/logger/logger.service';
@@ -9,9 +9,9 @@ import { DidResolverService } from '../common/did-resolver/did-resolver.service'
 import { RabbitMQApiService } from '../rabbitmq/rabbitmq-api.service';
 import { RabbitMQService } from '../rabbitmq/rabbitmq.service';
 
-describe('QueuerService', () => {
+describe('QueueService', () => {
   let module: TestingModule;
-  let queuerService: QueuerService;
+  let queueService: QueueService;
 
   let spies: {
     rmqConnection: {
@@ -63,7 +63,7 @@ describe('QueuerService', () => {
     module = await Test.createTestingModule({
       imports: [ConfigModule],
       providers: [
-        QueuerService,
+        QueueService,
         { provide: RabbitMQService, useValue: spies.rmqService },
         { provide: RabbitMQApiService, useValue: spies.rmqApiService },
         { provide: DidResolverService, useValue: spies.resolver },
@@ -72,7 +72,7 @@ describe('QueuerService', () => {
     }).compile();
     await module.init();
 
-    queuerService = module.get<QueuerService>(QueuerService);
+    queueService = module.get<QueueService>(QueueService);
   });
 
   afterEach(async () => {
@@ -89,7 +89,7 @@ describe('QueuerService', () => {
 
   describe('add()', () => {
     test('should connect and publish event to local default queue', async () => {
-      await queuerService.add(message);
+      await queueService.add(message);
 
       expect(spies.rmqConnection.publish).toBeCalledWith(
         'amq.direct',
@@ -106,7 +106,7 @@ describe('QueuerService', () => {
     test('should create dynamic shovel and publish event to remote queue', async () => {
       spies.resolver.getServiceEndpoint.mockImplementationOnce(() => 'amqp://example.com');
 
-      await queuerService.add(message);
+      await queueService.add(message);
 
       expect(spies.resolver.getServiceEndpoint).toBeCalledWith(recipient.address);
       expect(spies.rmqApiService.addDynamicShovel).toBeCalledWith('amqp://example.com', 'amqp://example.com');
@@ -127,7 +127,7 @@ describe('QueuerService', () => {
       spies.resolver.getServiceEndpoint.mockImplementationOnce(() => 'amqp://example.com');
       spies.rmqConnection.checkQueue.mockReturnValueOnce({ messageCount: 0 });
 
-      await queuerService.add(message);
+      await queueService.add(message);
 
       expect(spies.resolver.getServiceEndpoint).toBeCalledWith(recipient.address);
       expect(spies.rmqApiService.addDynamicShovel).not.toBeCalled();

@@ -2,18 +2,18 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
-import { QueuerService } from './queuer.service';
+import { QueueService } from './queue.service';
 import { INestApplication } from '@nestjs/common';
-import { QueuerController } from './queuer.controller';
+import { QueueController } from './queue.controller';
 import { Account, AccountFactoryED25519, Message } from '@ltonetwork/lto';
 import { LoggerService } from '../common/logger/logger.service';
 import * as bodyParser from 'body-parser';
 import { ConfigModule } from '../common/config/config.module';
 
-describe('QueuerController', () => {
+describe('QueueController', () => {
   let module: TestingModule;
   let loggerService: LoggerService;
-  let queuerService: QueuerService;
+  let queueService: QueueService;
   let app: INestApplication;
 
   let sender: Account;
@@ -23,10 +23,10 @@ describe('QueuerController', () => {
   beforeEach(async () => {
     module = await Test.createTestingModule({
       imports: [ConfigModule],
-      controllers: [QueuerController],
+      controllers: [QueueController],
       providers: [
         { provide: LoggerService, useValue: { error: jest.fn(), debug: jest.fn() } },
-        { provide: QueuerService, useValue: { add: jest.fn() } },
+        { provide: QueueService, useValue: { add: jest.fn() } },
       ],
     }).compile();
 
@@ -37,7 +37,7 @@ describe('QueuerController', () => {
     await app.init();
 
     loggerService = module.get<LoggerService>(LoggerService);
-    queuerService = module.get<QueuerService>(QueuerService);
+    queueService = module.get<QueueService>(QueueService);
   });
 
   afterEach(async () => {
@@ -60,8 +60,8 @@ describe('QueuerController', () => {
 
       expect(res.status).toBe(204);
 
-      expect(queuerService.add).toBeCalled();
-      const queuedMessage = (queuerService.add as jest.Mock).mock.calls[0][0];
+      expect(queueService.add).toBeCalled();
+      const queuedMessage = (queueService.add as jest.Mock).mock.calls[0][0];
       expect(queuedMessage).toBeInstanceOf(Message);
       expect(queuedMessage.toJSON()).toEqual(queuedMessage.toJSON());
     });
@@ -74,8 +74,8 @@ describe('QueuerController', () => {
 
       expect(res.status).toBe(204);
 
-      expect(queuerService.add).toBeCalled();
-      const queuedMessage = (queuerService.add as jest.Mock).mock.calls[0][0];
+      expect(queueService.add).toBeCalled();
+      const queuedMessage = (queueService.add as jest.Mock).mock.calls[0][0];
       expect(queuedMessage).toBeInstanceOf(Message);
       expect(queuedMessage.toJSON()).toEqual(queuedMessage.toJSON());
     });
@@ -88,7 +88,7 @@ describe('QueuerController', () => {
 
       expect(res.status).toBe(400);
 
-      expect(queuerService.add).not.toBeCalled();
+      expect(queueService.add).not.toBeCalled();
     });
   });
 });

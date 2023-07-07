@@ -1,17 +1,17 @@
 import { BadRequestException, Body, Controller, Post, Res } from '@nestjs/common';
 import { Response } from 'express';
 import { LoggerService } from '../common/logger/logger.service';
-import { QueuerService } from './queuer.service';
+import { QueueService } from './queue.service';
 import { Message } from '@ltonetwork/lto';
-import { ApiBody, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ConfigService } from '../common/config/config.service';
 
-@ApiTags('Send')
+@ApiTags('Queue')
 @Controller()
-export class QueuerController {
+export class QueueController {
   constructor(
     private readonly logger: LoggerService,
-    private readonly queuer: QueuerService,
+    private readonly queue: QueueService,
     private readonly config: ConfigService,
   ) {}
 
@@ -21,7 +21,7 @@ export class QueuerController {
     try {
       message = Message.from(data);
     } catch (e) {
-      this.logger.debug(`queuer: invalid message given. ${e.message}`, { data });
+      this.logger.debug(`queue: invalid message given. ${e.message}`, { data });
       throw new BadRequestException({ error: 'invalid body given' });
     }
 
@@ -39,6 +39,7 @@ export class QueuerController {
   }
 
   @Post()
+  @ApiOperation({ summary: 'Send a message to another account' })
   @ApiBody({
     description: 'Message to send',
     required: true,
@@ -60,7 +61,7 @@ export class QueuerController {
     const message = this.messageFrom(data);
 
     try {
-      await this.queuer.add(message);
+      await this.queue.add(message);
     } catch (e) {
       this.logger.warn(`failed to add message to queue '${e}'`, { stack: e.stack });
       return res.status(500).json({ message: `failed to add message to queue` });

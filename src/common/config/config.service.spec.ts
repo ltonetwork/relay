@@ -26,8 +26,8 @@ describe('ConfigService', () => {
       expect(configService.isInboxEnabled()).toBe(true);
     });
 
-    test('isQueuerEnabled()', async () => {
-      expect(configService.isQueuerEnabled()).toBe(true);
+    test('isQueueEnabled()', async () => {
+      expect(configService.isQueueEnabled()).toBe(true);
     });
 
     test('getDispatchTarget()', async () => {

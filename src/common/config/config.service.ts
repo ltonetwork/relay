@@ -21,8 +21,8 @@ export class ConfigService {
     return this.config.get('inbox.enabled');
   }
 
-  isQueuerEnabled(): boolean {
-    return this.config.get('queuer.enabled');
+  isQueueEnabled(): boolean {
+    return this.config.get('queue.enabled');
   }
 
   getDispatchTarget(): string {

@@ -86,11 +86,11 @@ export default {
       env: 'INBOX_EMBED_MAX_SIZE',
     },
   },
-  queuer: {
+  queue: {
     enabled: {
       doc: 'Enable queue module',
       default: true,
-      env: 'QUEUER_ENABLED',
+      env: 'QUEUE_ENABLED',
     },
   },
   rabbitmq: {
