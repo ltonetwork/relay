@@ -23,7 +23,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
-    "@ltonetwork/http-message-signatures": "../http-message-signatures",
+    "@ltonetwork/http-message-signatures": "^0.1.7",
     "@ltonetwork/lto": "^0.14.7",
     "@nestjs/axios": "^3.0.0",
     "@nestjs/common": "^9.0.0",

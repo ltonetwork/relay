@@ -707,8 +707,10 @@
     "@jridgewell/resolve-uri" "3.1.0"
     "@jridgewell/sourcemap-codec" "1.4.14"
 
-"@ltonetwork/http-message-signatures@../http-message-signatures":
-  version "0.0.0"
+"@ltonetwork/http-message-signatures@^0.1.7":
+  version "0.1.7"
+  resolved "https://registry.yarnpkg.com/@ltonetwork/http-message-signatures/-/http-message-signatures-0.1.7.tgz#e91e78723ff14ddb850485364c42131dfd0c75a7"
+  integrity sha512-x9M1TzhT4HIvc1HewminGDxBww9AeuHjdaAM3Oldg38soWQD/E2rA+T6vtdj3JScr1AyMd11vDiK05qt9V9R3A==
 
 "@ltonetwork/lto@^0.14.7":
   version "0.14.7"
