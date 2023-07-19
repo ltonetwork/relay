@@ -16,9 +16,9 @@ export class DidResolverService {
 
     const url = this.config.getDidResolver(getNetwork(address) as 'L' | 'T');
 
-    const response = await this.request.get(`${url}/${address}`);
+    const response = await this.request.get<DIDDocument>(`${url}/${address}`);
 
-    if (response.status === 404 && (await response.data).error === 'notFound') return null;
+    if (response.status === 404 && (await response.data as any).error === 'notFound') return null;
     if (response.status !== 200) throw new Error(`Failed to fetch DID document for ${address}`);
 
     const didDocument = response.data;

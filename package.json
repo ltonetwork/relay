@@ -9,7 +9,7 @@
   "license": "MIT",
   "scripts": {
     "build": "nest build",
-    "prebuild": "cp package.json dist/package.json",
+    "postbuild": "cp -r src/config dist/config/; cp package.json dist/",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
@@ -24,7 +24,7 @@
   },
   "dependencies": {
     "@ltonetwork/http-message-signatures": "^0.1.7",
-    "@ltonetwork/lto": "^0.14.7",
+    "@ltonetwork/lto": "^0.15.8",
     "@nestjs/axios": "^3.0.0",
     "@nestjs/common": "^9.0.0",
     "@nestjs/core": "^9.0.0",

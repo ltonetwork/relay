@@ -26,7 +26,7 @@ export class RequestService {
     }
   }
 
-  async get(url: string, config: AxiosRequestConfig = {}): Promise<AxiosResponse> {
+  async get<T>(url: string, config: AxiosRequestConfig = {}): Promise<AxiosResponse<T>> {
     config.method = 'get';
     config.url = url;
     return await this.send(config);

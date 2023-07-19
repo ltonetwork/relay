@@ -712,10 +712,10 @@
   resolved "https://registry.yarnpkg.com/@ltonetwork/http-message-signatures/-/http-message-signatures-0.1.7.tgz#e91e78723ff14ddb850485364c42131dfd0c75a7"
   integrity sha512-x9M1TzhT4HIvc1HewminGDxBww9AeuHjdaAM3Oldg38soWQD/E2rA+T6vtdj3JScr1AyMd11vDiK05qt9V9R3A==
 
-"@ltonetwork/lto@^0.14.7":
-  version "0.14.7"
-  resolved "https://registry.yarnpkg.com/@ltonetwork/lto/-/lto-0.14.7.tgz#c38fd14429c58199ca9898d4f6f2afd1da8aece2"
-  integrity sha512-rY74dIStAU+hD1nIAybmGkZpGxigbqV7oL80KFMVhCb5TBN03d0wHK+4aovLifLRKqjdmS90ANjG6zQDGP+9oQ==
+"@ltonetwork/lto@^0.15.8":
+  version "0.15.8"
+  resolved "https://registry.yarnpkg.com/@ltonetwork/lto/-/lto-0.15.8.tgz#dc1a70f96aac3fe24e2c6ead75e5d79a02ffed21"
+  integrity sha512-aGYJOuxn6QfXawuIDA3RndJQxkHEcpum9ufV87YUz0H1PeEasuV7C8zz+jt3dxnSpGYZje5KIadlEYBkWGdXvw==
   dependencies:
     "@noble/curves" "^1.0.0"
     "@noble/hashes" "^1.3.0"
