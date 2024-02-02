@@ -6,6 +6,7 @@
 
 Communication service for the LTO Network private layer. Relays encrypted messages between accounts.
 
+
 ## Installation
 
 ```bash
@@ -40,3 +41,25 @@ $ npm run test:cov
 # test all
 $ npm run test:all
 ```
+
+## Client usage
+
+```typescript
+import LTO from '@ltonetwork/lto';
+import { Relay, Message } from '@ltonetwork/lto/messages';
+
+const lto = new LTO('T');
+lto.relay = new Relay('http://localhost:3000'); // Connect to your local relay service
+
+const account = lto.account({ seed: "My seed phrase" });
+
+const message = new Message('hello')
+  .to('3MsAuZ59xHHa5vmoPG45fBGC7PxLCYQZnbM')
+  .signWith(account);
+
+await lto.anchor(account, message.hash);
+await lto.relay.send(message);
+```
+
+[See documentation](https://docs.ltonetwork.com/libraries/javascript/messages) for more information.
+
