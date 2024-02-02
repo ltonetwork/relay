@@ -40,3 +40,4 @@ logs
 
 # Data
 /storage
+.yarn

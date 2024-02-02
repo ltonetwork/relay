@@ -6,7 +6,7 @@ import { Account, AccountFactoryED25519, Message } from '@ltonetwork/lto';
 import { ConfigLoaderService } from '../src/common/config/config-loader.service';
 import * as bodyParser from 'body-parser';
 
-describe('Queuer e2e test', () => {
+describe('Queue e2e test', () => {
   let app: INestApplication;
   let config: ConfigLoaderService;
 
@@ -23,8 +23,8 @@ describe('Queuer e2e test', () => {
 
     await app.init();
 
-    config = module.get<ConfigLoaderService>(ConfigLoaderService);
-    config.set('storage.enabled', false);
+    //config = module.get<ConfigLoaderService>(ConfigLoaderService);
+    //config.set('storage.enabled', false);
   });
 
   afterAll(async () => {
