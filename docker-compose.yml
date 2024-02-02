@@ -1,30 +1,6 @@
 version: "3.2"
 
 services:
-  rabbitmq:
-    container_name: rabbitmq
-    build: ./docker/rabbitmq
-    profiles:
-      - rabbitmq
-    healthcheck:
-      test: ["CMD", "rabbitmqctl", "status"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-
-  redis:
-    container_name: redis
-    image: redis
-    volumes:
-      - relay-redis:/data
-    profiles:
-      - redis
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-
   relay:
     container_name: relay
     build: .
@@ -36,6 +12,31 @@ services:
       - INBOX_STORAGE=/storage
       - RABBITMQ_CLIENT=amqp://rabbitmq:5672
       - REDIS_URL=redis://redis:6379
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  rabbitmq:
+    container_name: rabbitmq
+    build: ./docker/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  redis:
+    container_name: redis
+    image: redis
+    volumes:
+      - relay-redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
 volumes:
   relay-storage:
