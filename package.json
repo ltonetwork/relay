@@ -23,6 +23,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.504.0",
     "@ltonetwork/http-message-signatures": "^0.1.8",
     "@ltonetwork/lto": "^0.15.8",
     "@nestjs/axios": "^3.0.0",
