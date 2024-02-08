@@ -15,7 +15,7 @@ type PathValue<K extends Path> = K extends null | undefined
 export class ConfigLoaderService implements OnModuleInit, OnModuleDestroy {
   private config: convict.Config<Schema>;
   private readonly ttl: number = 300000; // 5 minutes in milliseconds
-  private configReloadInterval: NodeJS.Timer;
+  private configReloadInterval: ReturnType<typeof setInterval>;
 
   constructor() {}
 
