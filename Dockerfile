@@ -4,18 +4,16 @@ FROM node:20-alpine
 WORKDIR /usr/src/app
 
 # Install app dependencies
-# A wildcard is used to ensure both package.json AND package-lock.json are copied
-# where available (npm@5+)
-COPY package*.json ./
+COPY package.json yarn.lock ./
 
-RUN npm install
+RUN yarn
 
-RUN npm i pm2 -g
+RUN yarn add pm2 -g
 
 # Bundle app source
 COPY . .
 
-RUN npm run build
+RUN yarn build
 
 EXPOSE 80
 CMD ["pm2-runtime", "dist/main.js"]

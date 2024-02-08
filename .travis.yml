@@ -15,6 +15,9 @@ before_install:
 - git config --global user.email "travis-ci@legalthings.net"
 - git config --global user.name "Travis CI"
 
+install:
+- yarn
+
 #before_script:
 #  - sudo rabbitmqctl stop_app
 #  - sudo rabbitmqctl reset
@@ -25,4 +28,5 @@ before_install:
 #  - sudo service rabbitmq-server restart
 
 script:
-  npm run test
+- yarn test
+
