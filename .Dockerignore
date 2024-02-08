@@ -1,6 +1,6 @@
 dist/
 node_modules/
 test/
-storage/
 Dockerfile
 README.md
+src/config/local
