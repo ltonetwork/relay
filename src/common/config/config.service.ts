@@ -9,7 +9,7 @@ export class ConfigService {
   public readonly app: { name: string; description: string; version: string };
 
   constructor(private readonly config: ConfigLoaderService) {
-    const path = fs.existsSync('../../../package.json') ? '../../../package.json' : '../../package.json';
+    const path = fs.existsSync(__dirname + '/../../../package.json') ? '../../../package.json' : '../../package.json';
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { name, description, version } =   require(path);
     this.app = { name: camelCase(name), description, version };
