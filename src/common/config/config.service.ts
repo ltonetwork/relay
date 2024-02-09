@@ -84,6 +84,8 @@ export class ConfigService {
     const string = this.getRabbitMQClient();
     const parsed = new ConnectionString(string);
     parsed.hosts = parsed.hosts || [{}];
+    parsed.user = 'relay';
+    parsed.password = undefined;
 
     if (!parsed.hosts[0].name || ['rabbitmq', 'localhost'].indexOf(parsed.hosts[0].name) > -1) {
       parsed.hosts[0].name = hostname;
