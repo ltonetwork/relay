@@ -119,6 +119,11 @@ export default {
       default: 'default',
       env: 'RABBITMQ_SHOVEL',
     },
+    public_url: {
+      doc: 'The public url of the rabbitmq server. Uses the client url if omitted.',
+      default: '',
+      env: 'RABBITMQ_PUBLIC_URL',
+    },
   },
   lto: {
     testnet: {

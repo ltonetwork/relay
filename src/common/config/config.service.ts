@@ -80,6 +80,9 @@ export class ConfigService {
   }
 
   getRabbitMQPublicUrl(): string {
+    const publicUrl = this.config.get('rabbitmq.public_url');
+    if (publicUrl) return publicUrl;
+
     const hostname = this.getHostname();
     const string = this.getRabbitMQClient();
     const parsed = new ConnectionString(string);
