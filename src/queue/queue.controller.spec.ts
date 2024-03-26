@@ -5,7 +5,8 @@ import request from 'supertest';
 import { QueueService } from './queue.service';
 import { INestApplication } from '@nestjs/common';
 import { QueueController } from './queue.controller';
-import { Account, AccountFactoryED25519, Message } from '@ltonetwork/lto';
+import { Account, AccountFactoryED25519 } from '@ltonetwork/lto/accounts';
+import { Message } from '@ltonetwork/lto/messages';
 import { LoggerService } from '../common/logger/logger.service';
 import * as bodyParser from 'body-parser';
 import { ConfigModule } from '../common/config/config.module';
@@ -81,10 +82,7 @@ describe('QueueController', () => {
     });
 
     test('with invalid message', async () => {
-      const res = await request(app.getHttpServer())
-        .post('/')
-        .set('Content-Type', 'application/json')
-        .send('{}');
+      const res = await request(app.getHttpServer()).post('/').set('Content-Type', 'application/json').send('{}');
 
       expect(res.status).toBe(400);
 

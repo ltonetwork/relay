@@ -6,7 +6,8 @@ import { ConfigModule } from '../common/config/config.module';
 import { LoggerService } from '../common/logger/logger.service';
 import Redis from 'ioredis';
 import { Bucket } from 'any-bucket';
-import { Message, AccountFactoryED25519, Account } from '@ltonetwork/lto';
+import { AccountFactoryED25519, Account } from '@ltonetwork/lto/accounts';
+import { Message } from '@ltonetwork/lto/messages';
 import { ConfigService } from '../common/config/config.service';
 
 describe('InboxService', () => {
@@ -78,7 +79,7 @@ describe('InboxService', () => {
 
     beforeEach(() => {
       data = {
-        'hash1': JSON.stringify({
+        hash1: JSON.stringify({
           hash: 'hash1',
           type: 'basic',
           timestamp: 1672531200,
@@ -88,15 +89,15 @@ describe('InboxService', () => {
           senderPublicKey: 'ed25519',
           publicKey: 'key1',
           mediaType: 'text/plain',
-          data: 'foo'
+          data: 'foo',
         }),
-        'hash2': JSON.stringify({
+        hash2: JSON.stringify({
           hash: 'hash2',
           type: 'other',
           timestamp: 1672531210,
           sender: 'sender2',
           recipient: 'recipient2',
-          size: 20
+          size: 20,
         }),
       };
     });
@@ -122,14 +123,14 @@ describe('InboxService', () => {
       const result = await service.list(recipientAddress, type);
 
       expect(result).toEqual([
-        { hash: 'hash1', type: 'basic', timestamp: 1672531200, sender: 'sender1', recipient: 'recipient1', size: 10 }
+        { hash: 'hash1', type: 'basic', timestamp: 1672531200, sender: 'sender1', recipient: 'recipient1', size: 10 },
       ]);
       expect(redis.hgetall).toHaveBeenCalledWith(`inbox:${recipientAddress}`);
     });
   });
 
   describe('has', () => {
-    it('should return true if the message exists in the recipient\'s inbox', async () => {
+    it("should return true if the message exists in the recipient's inbox", async () => {
       const recipientAddress = recipient.address;
       const hash = message.hash.base58;
       redis.hexists.mockResolvedValue(1);
@@ -140,7 +141,7 @@ describe('InboxService', () => {
       expect(redis.hexists).toHaveBeenCalledWith(`inbox:${recipientAddress}`, hash);
     });
 
-    it('should return false if the message does not exist in the recipient\'s inbox', async () => {
+    it("should return false if the message does not exist in the recipient's inbox", async () => {
       const recipientAddress = recipient.address;
       const hash = message.hash.base58;
       redis.hexists.mockResolvedValue(0);
@@ -153,7 +154,7 @@ describe('InboxService', () => {
   });
 
   describe('get', () => {
-    it('should return the message if it exists in the recipient\'s inbox', async () => {
+    it("should return the message if it exists in the recipient's inbox", async () => {
       const recipientAddress = recipient.address;
       const hash = message.hash.base58;
 
@@ -162,7 +163,7 @@ describe('InboxService', () => {
         ...data,
         size: message.data.length,
         senderPublicKey: sender.publicKey,
-        senderKeyType: sender.keyType
+        senderKeyType: sender.keyType,
       });
 
       redis.hget.mockResolvedValue(jsonMessage);
@@ -173,7 +174,7 @@ describe('InboxService', () => {
       expect(redis.hget).toHaveBeenCalledWith(`inbox:${recipientAddress}`, hash);
     });
 
-    it('should throw an error if the message does not exist in the recipient\'s inbox', async () => {
+    it("should throw an error if the message does not exist in the recipient's inbox", async () => {
       const recipientAddress = recipient.address;
       const hash = message.hash.base58;
       redis.hget.mockResolvedValue(null);

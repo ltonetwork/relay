@@ -1,22 +1,22 @@
 language: node_js
 dist: focal
 node_js:
-  - 18
+  - 20
 
 services:
   - rabbitmq
 
 branches:
   only:
-  - master
+    - master
 
 before_install:
-# Configure Git
-- git config --global user.email "travis-ci@legalthings.net"
-- git config --global user.name "Travis CI"
+  # Configure Git
+  - git config --global user.email "travis-ci@legalthings.net"
+  - git config --global user.name "Travis CI"
 
 install:
-- yarn
+  - yarn
 
 #before_script:
 #  - sudo rabbitmqctl stop_app
@@ -28,5 +28,4 @@ install:
 #  - sudo service rabbitmq-server restart
 
 script:
-- yarn test
-
+  - yarn test

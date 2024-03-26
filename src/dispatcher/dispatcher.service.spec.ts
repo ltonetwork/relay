@@ -7,7 +7,9 @@ import { ConfigModule } from '../common/config/config.module';
 import { LtoIndexService } from '../common/lto-index/lto-index.service';
 import { RequestService } from '../common/request/request.service';
 import { LoggerService } from '../common/logger/logger.service';
-import { Account, Message, AccountFactoryED25519, Binary } from '@ltonetwork/lto';
+import { Account, AccountFactoryED25519 } from '@ltonetwork/lto/accounts';
+import { Message } from '@ltonetwork/lto/messages';
+import { Binary } from '@ltonetwork/lto/';
 import { ConfigService } from '../common/config/config.service';
 import { RabbitMQConnection } from '../rabbitmq/classes/rabbitmq.connection';
 import { InboxService } from '../inbox/inbox.service';
@@ -75,7 +77,7 @@ describe('DispatcherService', () => {
         { provide: LtoIndexService, useValue: spies.ltoIndexService },
         { provide: RequestService, useValue: spies.requestService },
         { provide: LoggerService, useValue: spies.loggerService },
-      ]
+      ],
     }).compile();
     await module.init();
 
@@ -113,7 +115,7 @@ describe('DispatcherService', () => {
       expect(spies.rmqService.connect.mock.calls[0][0]).toBe('amqp://');
 
       expect(spies.rmqConnection.consume.mock.calls.length).toBe(1);
-      expect(spies.rmqConnection.consume.mock.calls[0][0]).toBe("amq.direct");
+      expect(spies.rmqConnection.consume.mock.calls[0][0]).toBe('amq.direct');
       expect(spies.rmqConnection.consume.mock.calls[0][1]).toBe('default');
       expect(typeof spies.rmqConnection.consume.mock.calls[0][2]).toBe('function');
     });
@@ -136,7 +138,7 @@ describe('DispatcherService', () => {
 
       expect(spies.rmqConnection.reject).toHaveBeenCalledWith(ampqMsg);
       expect(spies.loggerService.warn).toHaveBeenCalledWith(
-        `dispatcher: message ${message.hash.base58} rejected, invalid app id`
+        `dispatcher: message ${message.hash.base58} rejected, invalid app id`,
       );
     });
 
@@ -147,7 +149,7 @@ describe('DispatcherService', () => {
 
       expect(spies.rmqConnection.reject).toHaveBeenCalledWith(ampqMsg);
       expect(spies.loggerService.warn).toHaveBeenCalledWith(
-        `dispatcher: message ${message.hash.base58} rejected, type does not match message type`
+        `dispatcher: message ${message.hash.base58} rejected, type does not match message type`,
       );
     });
 
@@ -158,7 +160,7 @@ describe('DispatcherService', () => {
 
       expect(spies.rmqConnection.reject).toHaveBeenCalledWith(ampqMsg);
       expect(spies.loggerService.warn).toHaveBeenCalledWith(
-        `dispatcher: message foo rejected, hash does not match message id`
+        `dispatcher: message foo rejected, hash does not match message id`,
       );
     });
 
@@ -169,7 +171,7 @@ describe('DispatcherService', () => {
 
       expect(spies.rmqConnection.reject).toHaveBeenCalledWith(ampqMsg);
       expect(spies.loggerService.warn).toHaveBeenCalledWith(
-        `dispatcher: message ${message.hash.base58} rejected, recipient is not accepted`
+        `dispatcher: message ${message.hash.base58} rejected, recipient is not accepted`,
       );
     });
 
@@ -180,13 +182,13 @@ describe('DispatcherService', () => {
 
       expect(spies.rmqConnection.reject).toHaveBeenCalledWith(ampqMsg);
       expect(spies.loggerService.warn).toHaveBeenCalledWith(
-        `dispatcher: message ${message.hash.base58} rejected, invalid signature`
+        `dispatcher: message ${message.hash.base58} rejected, invalid signature`,
       );
     });
   });
 
   describe('verify anchor', () => {
-    it('will not verify if disabled',async () => {
+    it('will not verify if disabled', async () => {
       jest.spyOn(configService, 'verifyAnchorOnDispatch').mockReturnValue(false);
 
       const success = await dispatcherService.onMessage(ampqMsg);
@@ -195,7 +197,7 @@ describe('DispatcherService', () => {
       expect(spies.ltoIndexService.verifyAnchor).not.toHaveBeenCalled();
     });
 
-    it('will verify if enabled',async () => {
+    it('will verify if enabled', async () => {
       jest.spyOn(configService, 'verifyAnchorOnDispatch').mockReturnValue(true);
       spies.ltoIndexService.verifyAnchor.mockResolvedValue(true);
 
@@ -205,7 +207,7 @@ describe('DispatcherService', () => {
       expect(spies.ltoIndexService.verifyAnchor).toHaveBeenCalledWith('T', message.hash);
     });
 
-    it(`will retry the message if the anchor can't be verified`,async () => {
+    it(`will retry the message if the anchor can't be verified`, async () => {
       jest.spyOn(configService, 'verifyAnchorOnDispatch').mockReturnValue(true);
       spies.ltoIndexService.verifyAnchor.mockResolvedValue(false);
 
@@ -216,7 +218,7 @@ describe('DispatcherService', () => {
 
       expect(spies.rmqConnection.retry).toHaveBeenCalledWith(ampqMsg);
       expect(spies.loggerService.warn).toHaveBeenCalledWith(
-        `dispatcher: message ${message.hash.base58} requeued, not anchored`
+        `dispatcher: message ${message.hash.base58} requeued, not anchored`,
       );
     });
   });
@@ -226,13 +228,13 @@ describe('DispatcherService', () => {
       jest.spyOn(configService, 'getDispatchTarget').mockReturnValue('https://example.com');
     });
 
-    it('should POST the contents to the dispatch target',async () => {
+    it('should POST the contents to the dispatch target', async () => {
       spies.requestService.post.mockResolvedValue({ status: 200 } as any);
 
       const success = await dispatcherService.onMessage(ampqMsg);
       expect(success).toBe(true);
 
-      const [ url, data, options ] = spies.requestService.post.mock.calls[0];
+      const [url, data, options] = spies.requestService.post.mock.calls[0];
 
       expect(url).toBe('https://example.com');
       expect(data).toBeInstanceOf(Binary);
@@ -250,16 +252,14 @@ describe('DispatcherService', () => {
       });
 
       expect(spies.loggerService.debug).toHaveBeenCalledWith(
-        `dispatcher: message ${message.hash.base58} dispatched to https://example.com`
+        `dispatcher: message ${message.hash.base58} dispatched to https://example.com`,
       );
 
       expect(spies.rmqConnection.ack).toHaveBeenCalledWith(ampqMsg);
-      expect(spies.loggerService.info).toHaveBeenCalledWith(
-        `dispatcher: message ${message.hash.base58} acknowledged`
-      );
+      expect(spies.loggerService.info).toHaveBeenCalledWith(`dispatcher: message ${message.hash.base58} acknowledged`);
     });
 
-    it('should reject the message if the dispatch target returns a 400 error',async () => {
+    it('should reject the message if the dispatch target returns a 400 error', async () => {
       spies.requestService.post.mockResolvedValue({ status: 400 } as any);
 
       const success = await dispatcherService.onMessage(ampqMsg);
@@ -267,11 +267,11 @@ describe('DispatcherService', () => {
 
       expect(spies.rmqConnection.reject).toHaveBeenCalledWith(ampqMsg);
       expect(spies.loggerService.warn).toHaveBeenCalledWith(
-        `dispatcher: message ${message.hash.base58} rejected, POST https://example.com gave a 400 response`
+        `dispatcher: message ${message.hash.base58} rejected, POST https://example.com gave a 400 response`,
       );
     });
 
-    it('should retry the message if the dispatch target returns an error',async () => {
+    it('should retry the message if the dispatch target returns an error', async () => {
       spies.requestService.post.mockResolvedValue({ status: 500 } as any);
 
       const success = await dispatcherService.onMessage(ampqMsg);
@@ -279,13 +279,13 @@ describe('DispatcherService', () => {
 
       expect(spies.rmqConnection.retry).toHaveBeenCalledWith(ampqMsg);
       expect(spies.loggerService.warn).toHaveBeenCalledWith(
-        `dispatcher: message ${message.hash.base58} requeued, POST https://example.com gave a 500 response`
+        `dispatcher: message ${message.hash.base58} requeued, POST https://example.com gave a 500 response`,
       );
     });
   });
 
   describe('store message', () => {
-    it('should store a message if inbox is enabled',async () => {
+    it('should store a message if inbox is enabled', async () => {
       jest.spyOn(configService, 'isInboxEnabled').mockReturnValue(true);
 
       const success = await dispatcherService.onMessage(ampqMsg);
@@ -294,7 +294,7 @@ describe('DispatcherService', () => {
       expect(spies.inboxService.store).toHaveBeenCalledWith(message);
     });
 
-    it('should not store a message if inbox is disabled',async () => {
+    it('should not store a message if inbox is disabled', async () => {
       jest.spyOn(configService, 'isInboxEnabled').mockReturnValue(false);
 
       const success = await dispatcherService.onMessage(ampqMsg);
@@ -339,7 +339,7 @@ describe('DispatcherService', () => {
       expect(decoded.hash).toEqual(message.hash);
     });
 
-    it('should reject a message with an unknown content type',  async() => {
+    it('should reject a message with an unknown content type', async () => {
       ampqMsg.properties.contentType = 'text/plain';
 
       const success = await dispatcherService.onMessage(ampqMsg);
@@ -347,8 +347,8 @@ describe('DispatcherService', () => {
 
       expect(spies.rmqConnection.reject).toHaveBeenCalledWith(ampqMsg);
       expect(spies.loggerService.warn).toHaveBeenCalledWith(
-        `dispatcher: message ${message.hash.base58} rejected, content type is not supported`
+        `dispatcher: message ${message.hash.base58} rejected, content type is not supported`,
       );
     });
-  })
+  });
 });

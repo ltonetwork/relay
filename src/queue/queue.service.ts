@@ -4,7 +4,7 @@ import { RabbitMQApiService } from '../rabbitmq/rabbitmq-api.service';
 import { RabbitMQConnection } from '../rabbitmq/classes/rabbitmq.connection';
 import { LoggerService } from '../common/logger/logger.service';
 import { ConfigService } from '../common/config/config.service';
-import { Message } from '@ltonetwork/lto';
+import { Message } from '@ltonetwork/lto/messages';
 import { DidResolverService } from '../common/did-resolver/did-resolver.service';
 import { APP_ID } from '../constants';
 
@@ -75,15 +75,10 @@ export class QueueService implements OnModuleInit {
   }
 
   private async publish(endpoint: string, message: Message): Promise<void> {
-    await this.connection.publish(
-      this.config.getRabbitMQExchange(),
-      endpoint,
-      message.toBinary(message.isSigned()),
-      {
-        appId: APP_ID,
-        messageId: message.hash.base58,
-        type: message.type,
-      },
-    );
+    await this.connection.publish(this.config.getRabbitMQExchange(), endpoint, message.toBinary(message.isSigned()), {
+      appId: APP_ID,
+      messageId: message.hash.base58,
+      type: message.type,
+    });
   }
 }

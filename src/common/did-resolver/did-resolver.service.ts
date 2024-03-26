@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { DID_SERVICE_TYPE } from '../../constants';
-import { getNetwork, isValidAddress } from '@ltonetwork/lto';
+import { getNetwork, isValidAddress } from '@ltonetwork/lto/utils';
 import { DIDDocument } from './did-document.type';
 import { RequestService } from '../request/request.service';
 import { ConfigService } from '../config/config.service';
@@ -18,7 +18,7 @@ export class DidResolverService {
 
     const response = await this.request.get<DIDDocument>(`${url}/${address}`);
 
-    if (response.status === 404 && (await response.data as any).error === 'notFound') return null;
+    if (response.status === 404 && ((await response.data) as any).error === 'notFound') return null;
     if (response.status !== 200) throw new Error(`Failed to fetch DID document for ${address}`);
 
     const didDocument = response.data;
@@ -35,7 +35,7 @@ export class DidResolverService {
 
     const service = didDocument.service
       .sort((a, b) => (a.priority ?? 0) - (b.priority ?? 0))
-      .find(s => s.type === DID_SERVICE_TYPE);
+      .find((s) => s.type === DID_SERVICE_TYPE);
 
     return service?.serviceEndpoint ?? this.config.getDefaultServiceEndpoint();
   }
