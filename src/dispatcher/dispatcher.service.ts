@@ -3,7 +3,8 @@ import { RabbitMQService } from '../rabbitmq/rabbitmq.service';
 import { RabbitMQConnection } from '../rabbitmq/classes/rabbitmq.connection';
 import { LoggerService } from '../common/logger/logger.service';
 import { ConfigService } from '../common/config/config.service';
-import { buildAddress, getNetwork, Message } from '@ltonetwork/lto';
+import { buildAddress, getNetwork } from '@ltonetwork/lto/utils';
+import { Message } from '@ltonetwork/lto/messages';
 import amqplib from 'amqplib';
 import { RequestService } from '../common/request/request.service';
 import { LtoIndexService } from '../common/lto-index/lto-index.service';
@@ -164,7 +165,7 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
     }
 
     if (response.status > 299) {
-      return this.retry(msg,`message ${msgId} requeued, POST ${target} gave a ${response.status} response`);
+      return this.retry(msg, `message ${msgId} requeued, POST ${target} gave a ${response.status} response`);
     }
 
     this.logger.debug(`dispatcher: message ${msgId} dispatched to ${target}`);

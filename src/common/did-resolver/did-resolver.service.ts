@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { DID_SERVICE_TYPE } from '../../constants';
-import { getNetwork, isValidAddress } from '@ltonetwork/lto';
+import { getNetwork, isValidAddress } from '@ltonetwork/lto/utils';
 import { DIDDocument } from './did-document.type';
 import { RequestService } from '../request/request.service';
 import { ConfigService } from '../config/config.service';
