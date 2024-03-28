@@ -25,7 +25,6 @@ export class InboxController {
     if (!(await this.inbox.has(address, hash))) {
       throw new NotFoundException({ message: 'Message not found' });
     }
-
     return await this.inbox.get(address, hash);
   }
 }

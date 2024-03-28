@@ -45,7 +45,7 @@ export class InboxService {
 
     return 'data' in message || 'encryptedData' in message
       ? this.createFromEmbedded(message)
-      : await this.loadFromFile(message);
+      : await this.loadFromFile(hash);
   }
 
   private createFromEmbedded(data: any): Message {
