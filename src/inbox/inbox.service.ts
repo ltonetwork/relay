@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '../common/config/config.service';
-import { buildAddress, getNetwork, Message } from '@ltonetwork/lto';
+import { buildAddress, getNetwork } from '@ltonetwork/lto/utils';
+import { Message } from '@ltonetwork/lto/messages';
 import { LoggerService } from '../common/logger/logger.service';
 import Redis from 'ioredis';
 import { MessageSummery } from './inbox.dto';
@@ -44,7 +45,7 @@ export class InboxService {
 
     return 'data' in message || 'encryptedData' in message
       ? this.createFromEmbedded(message)
-      : await this.loadFromFile(message);
+      : await this.loadFromFile(hash);
   }
 
   private createFromEmbedded(data: any): Message {
@@ -65,8 +66,8 @@ export class InboxService {
     if (!this.config.isInboxEnabled()) throw new Error(`storage: module not enabled`);
     this.logger.debug(`storage: storing message '${message.hash.base58}'`);
 
-    const embed = (message.isEncrypted() ? message.encryptedData : message.data).length <=
-      this.config.getStorageEmbedMaxSize();
+    const embed =
+      (message.isEncrypted() ? message.encryptedData : message.data).length <= this.config.getStorageEmbedMaxSize();
 
     const promises: Promise<any>[] = [];
     promises.push(this.storeIndex(message, embed));

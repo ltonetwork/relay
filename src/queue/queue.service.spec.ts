@@ -2,7 +2,8 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { QueueService } from './queue.service';
-import { Account, AccountFactoryED25519, Message } from '@ltonetwork/lto';
+import { Account, AccountFactoryED25519 } from '@ltonetwork/lto/accounts';
+import { Message } from '@ltonetwork/lto/messages';
 import { ConfigModule } from '../common/config/config.module';
 import { LoggerService } from '../common/logger/logger.service';
 import { DidResolverService } from '../common/did-resolver/did-resolver.service';
@@ -27,10 +28,10 @@ describe('QueueService', () => {
     };
     resolver: {
       getServiceEndpoint: jest.Mock;
-    },
+    };
     logger: {
       info: jest.Mock;
-    }
+    };
   };
 
   let sender: Account;
@@ -51,10 +52,10 @@ describe('QueueService', () => {
     };
     const resolver = {
       getServiceEndpoint: jest.fn().mockImplementation(() => 'ampq://localhost'),
-    }
+    };
     const logger = {
       info: jest.fn(),
-    }
+    };
 
     spies = { rmqConnection, rmqService, rmqApiService, resolver, logger };
   });
@@ -91,16 +92,11 @@ describe('QueueService', () => {
     test('should connect and publish event to local default queue', async () => {
       await queueService.add(message);
 
-      expect(spies.rmqConnection.publish).toBeCalledWith(
-        'amq.direct',
-        'default',
-        message.toBinary(),
-        {
-          appId: 'lto-relay',
-          messageId: message.hash.base58,
-          type: 'basic',
-        },
-      );
+      expect(spies.rmqConnection.publish).toBeCalledWith('amq.direct', 'default', message.toBinary(), {
+        appId: 'lto-relay',
+        messageId: message.hash.base58,
+        type: 'basic',
+      });
     });
 
     test('should create dynamic shovel and publish event to remote queue', async () => {
@@ -111,16 +107,11 @@ describe('QueueService', () => {
       expect(spies.resolver.getServiceEndpoint).toBeCalledWith(recipient.address);
       expect(spies.rmqApiService.addDynamicShovel).toBeCalledWith('amqp://example.com', 'amqp://example.com');
 
-      expect(spies.rmqConnection.publish).toBeCalledWith(
-        'amq.direct',
-        'amqp://example.com',
-        message.toBinary(),
-        {
-          appId: 'lto-relay',
-          messageId: message.hash.base58,
-          type: 'basic',
-        },
-      );
+      expect(spies.rmqConnection.publish).toBeCalledWith('amq.direct', 'amqp://example.com', message.toBinary(), {
+        appId: 'lto-relay',
+        messageId: message.hash.base58,
+        type: 'basic',
+      });
     });
 
     test('should not create a shovel if the queue already exists', async () => {
@@ -132,16 +123,11 @@ describe('QueueService', () => {
       expect(spies.resolver.getServiceEndpoint).toBeCalledWith(recipient.address);
       expect(spies.rmqApiService.addDynamicShovel).not.toBeCalled();
 
-      expect(spies.rmqConnection.publish).toBeCalledWith(
-        'amq.direct',
-        'amqp://example.com',
-        message.toBinary(),
-        {
-          appId: 'lto-relay',
-          messageId: message.hash.base58,
-          type: 'basic',
-        },
-      );
+      expect(spies.rmqConnection.publish).toBeCalledWith('amq.direct', 'amqp://example.com', message.toBinary(), {
+        appId: 'lto-relay',
+        messageId: message.hash.base58,
+        type: 'basic',
+      });
     });
   });
 });

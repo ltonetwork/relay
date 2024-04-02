@@ -3,7 +3,7 @@ import { InboxService } from './inbox.service';
 import { ApiParam, ApiProduces, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { InboxGuard } from './inbox.guard';
 import { MessageSummery } from './inbox.dto';
-import { Message } from '@ltonetwork/lto';
+import { Message } from '@ltonetwork/lto/messages';
 
 @ApiTags('Inbox')
 @Controller('inboxes')
@@ -22,10 +22,9 @@ export class InboxController {
   @Get('/:address/:hash')
   @ApiProduces('application/json')
   async get(@Param('address') address: string, @Param('hash') hash: string): Promise<Message> {
-    if (!await this.inbox.has(address, hash)) {
+    if (!(await this.inbox.has(address, hash))) {
       throw new NotFoundException({ message: 'Message not found' });
     }
-
     return await this.inbox.get(address, hash);
   }
 }

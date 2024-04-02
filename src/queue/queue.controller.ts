@@ -2,7 +2,7 @@ import { BadRequestException, Body, Controller, Post, Res } from '@nestjs/common
 import { Response } from 'express';
 import { LoggerService } from '../common/logger/logger.service';
 import { QueueService } from './queue.service';
-import { Message } from '@ltonetwork/lto';
+import { Message } from '@ltonetwork/lto/messages';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ConfigService } from '../common/config/config.service';
 
