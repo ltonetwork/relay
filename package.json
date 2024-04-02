@@ -33,7 +33,7 @@
     "@nestjs/swagger": "^6.3.0",
     "amqplib": "^0.10.3",
     "any-bucket": "^0.1.6",
-    "axios": "^1.4.0",
+    "axios": "^1.6.8",
     "boolean": "^3.2.0",
     "connection-string": "^4.3.6",
     "convict": "^6.2.4",
