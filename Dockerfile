@@ -1,5 +1,8 @@
 FROM node:20 As build
 
+# Install specific Yarn version
+RUN npm install -g yarn@1.22.19
+
 # Create app directory
 WORKDIR /usr/src
 
@@ -28,4 +31,3 @@ COPY --from=build /usr/src/dist ./
 
 EXPOSE 3000
 CMD ["pm2-runtime", "main.js"]
-
