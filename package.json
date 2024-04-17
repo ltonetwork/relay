@@ -6,9 +6,6 @@
     "Moesjarraf J <moesjarraf@ltonetwork.com>",
     "Arnold Daniels <arnold@ltonetwork.com>"
   ],
-  "engines": {
-    "yarn": "^1.22.19"
-  },
   "license": "MIT",
   "scripts": {
     "build": "nest build",
