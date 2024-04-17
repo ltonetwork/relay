@@ -1,8 +1,8 @@
 FROM node:20 As build
 
 # Install specific versions of npm and yarn
-RUN npm install -g npm@10.5.2
-RUN npm install -g yarn@1.22.19
+#RUN npm install -g npm@10.5.2
+#RUN npm install -g yarn@1.22.19
 
 # Create app directory
 WORKDIR /usr/src
