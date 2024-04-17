@@ -1,7 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '../common/config/config.service';
-import { buildAddress, getNetwork } from '@ltonetwork/lto/utils';
-import { Message } from '@ltonetwork/lto/messages';
+import { buildAddress, getNetwork, Message } from '@ltonetwork/lto';
 import { LoggerService } from '../common/logger/logger.service';
 import Redis from 'ioredis';
 import { MessageSummery } from './inbox.dto';

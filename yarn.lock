@@ -1319,10 +1319,10 @@
   resolved "https://registry.yarnpkg.com/@ltonetwork/http-message-signatures/-/http-message-signatures-0.1.8.tgz#696a277cfeb589466c20337f896abbe703804e74"
   integrity sha512-TXuByV6yzCsM8SgmDs8jS2W1H/yu3vyqNv2VPbtyNMyGfGSq/BHcWJGnnfugg7r57vv8ynV7hQM7n6yQJa81nA==
 
-"@ltonetwork/lto@^0.16.6":
-  version "0.16.6"
-  resolved "https://registry.yarnpkg.com/@ltonetwork/lto/-/lto-0.16.6.tgz#3d0980212968c31d4f08ca739c5131bad5d1e7b6"
-  integrity sha512-TFCgPdN5UPUpXz1OKdM66WBnzXxQdwpvWczp0dvaFhJgZ2WpeXIMVIcwZRJtyApEJD7xhW5SOatDlfWs6YMTfQ==
+"@ltonetwork/lto@^0.15.16":
+  version "0.15.16"
+  resolved "https://registry.yarnpkg.com/@ltonetwork/lto/-/lto-0.15.16.tgz#c4c43844bfdd5d24e7667f2d99d6ec5333cade10"
+  integrity sha512-bAlKnSNTPSzZ8PCOFhaq/bYjZ0q2P2raQYl39Hq7xcYT1dJxf0SskEQdtfW11o6AML9fCfrLH7qvEQRhgmPLWA==
   dependencies:
     "@noble/curves" "^1.0.0"
     "@noble/hashes" "^1.3.0"

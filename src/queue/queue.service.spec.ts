@@ -2,8 +2,7 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { QueueService } from './queue.service';
-import { Account, AccountFactoryED25519 } from '@ltonetwork/lto/accounts';
-import { Message } from '@ltonetwork/lto/messages';
+import { Message, Account, AccountFactoryED25519 } from '@ltonetwork/lto';
 import { ConfigModule } from '../common/config/config.module';
 import { LoggerService } from '../common/logger/logger.service';
 import { DidResolverService } from '../common/did-resolver/did-resolver.service';
