@@ -6,8 +6,7 @@ import { ConfigModule } from '../common/config/config.module';
 import { LoggerService } from '../common/logger/logger.service';
 import Redis from 'ioredis';
 import { Bucket } from 'any-bucket';
-import { AccountFactoryED25519, Account } from '@ltonetwork/lto/accounts';
-import { Message } from '@ltonetwork/lto/messages';
+import { Message, AccountFactoryED25519, Account } from '@ltonetwork/lto';
 import { ConfigService } from '../common/config/config.service';
 
 describe('InboxService', () => {

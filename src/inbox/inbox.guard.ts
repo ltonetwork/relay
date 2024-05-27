@@ -1,6 +1,6 @@
 import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { LTO } from '@ltonetwork/lto';
-import { getNetwork } from '@ltonetwork/lto/utils';
+import { getNetwork } from '@ltonetwork/lto';
 import { ConfigService } from '../common/config/config.service';
 import { PublicKey } from '../common/http-signature/signer';
 

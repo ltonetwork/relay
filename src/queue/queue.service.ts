@@ -4,7 +4,7 @@ import { RabbitMQApiService } from '../rabbitmq/rabbitmq-api.service';
 import { RabbitMQConnection } from '../rabbitmq/classes/rabbitmq.connection';
 import { LoggerService } from '../common/logger/logger.service';
 import { ConfigService } from '../common/config/config.service';
-import { Message } from '@ltonetwork/lto/messages';
+import { Message } from '@ltonetwork/lto';
 import { DidResolverService } from '../common/did-resolver/did-resolver.service';
 import { APP_ID } from '../constants';
 

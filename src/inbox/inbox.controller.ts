@@ -3,7 +3,7 @@ import { InboxService } from './inbox.service';
 import { ApiParam, ApiProduces, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { InboxGuard } from './inbox.guard';
 import { MessageSummery } from './inbox.dto';
-import { Message } from '@ltonetwork/lto/messages';
+import { Message } from '@ltonetwork/lto';
 
 @ApiTags('Inbox')
 @Controller('inboxes')
