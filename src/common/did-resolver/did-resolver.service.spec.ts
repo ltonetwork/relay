@@ -3,6 +3,7 @@ import { DidResolverService } from './did-resolver.service';
 import { RequestService } from '../request/request.service';
 import { ConfigService } from '../config/config.service';
 import { DIDDocument } from './did-document.type';
+import { LoggerService } from '../logger/logger.service';
 
 describe('DidResolverService', () => {
   let service: DidResolverService;
@@ -26,6 +27,12 @@ describe('DidResolverService', () => {
             getDefaultServiceEndpoint: jest.fn().mockReturnValue('https://relay.lto.network'),
           },
         },
+        {
+          provide: LoggerService,
+          useValue: {
+            warn: jest.fn(),
+          }
+        }
       ],
     }).compile();
 
@@ -42,7 +49,35 @@ describe('DidResolverService', () => {
     it('should resolve valid address', async () => {
       const address = '3MsAuZ59xHHa5vmoPG45fBGC7PxLCYQZnbM';
       const url = 'https://example.com';
-      const response = { status: 200, data: { '@context': 'https://www.w3.org/ns/did/v1' } };
+      const response = {
+        status: 200,
+        data: { '@context': 'https://www.w3.org/ns/did/v1', id: 'did:lto:3MsAuZ59xHHa5vmoPG45fBGC7PxLCYQZnbM' }
+      };
+
+      jest.spyOn(configService, 'getDidResolver').mockReturnValue(url);
+      jest.spyOn(requestService, 'get').mockResolvedValue(response as any);
+
+      const result = await service.resolve(address);
+
+      expect(result).toEqual(response.data);
+      expect(configService.getDidResolver).toHaveBeenCalledWith('T');
+      expect(requestService.get).toHaveBeenCalledWith(`${url}/${address}`);
+    });
+
+    it('should resolve valid address with array context', async () => {
+      const address = '3MsAuZ59xHHa5vmoPG45fBGC7PxLCYQZnbM';
+      const url = 'https://example.com';
+      const response = {
+        status: 200,
+        data: {
+          '@context': [
+            "https://www.w3.org/ns/did/v1",
+            "https://w3id.org/security/suites/ed25519-2020/v1",
+            "https://w3id.org/security/suites/secp256k1-2019/v1"
+          ],
+          id: 'did:lto:3MsAuZ59xHHa5vmoPG45fBGC7PxLCYQZnbM'
+        }
+      };
 
       jest.spyOn(configService, 'getDidResolver').mockReturnValue(url);
       jest.spyOn(requestService, 'get').mockResolvedValue(response as any);
