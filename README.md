@@ -2,7 +2,7 @@
 
 # Relay
 
-[![Build Status](https://travis-ci.com/ltonetwork/relay.svg?branch=master)](https://travis-ci.com/ltonetwork/indexer)
+[![Build Status](https://app.travis-ci.com/ltonetwork/relay.svg?token=uXSzwRjzLQ9smewqbtDx&branch=master)](https://app.travis-ci.com/ltonetwork/relay)
 
 Communication service for the LTO Network private layer. Relays encrypted messages between accounts.
 
