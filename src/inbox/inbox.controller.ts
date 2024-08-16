@@ -1,4 +1,4 @@
-import { Controller, Get, NotFoundException, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Delete, Get, HttpCode, NotFoundException, Param, Query, UseGuards } from '@nestjs/common';
 import { InboxService } from './inbox.service';
 import { ApiParam, ApiProduces, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { InboxGuard } from './inbox.guard';
@@ -26,5 +26,16 @@ export class InboxController {
       throw new NotFoundException({ message: 'Message not found' });
     }
     return await this.inbox.get(address, hash);
+  }
+
+  @Delete('/:address/:hash')
+  @HttpCode(204)
+  @ApiParam({ name: 'address', description: 'Address of the recipient' })
+  @ApiParam({ name: 'hash', description: 'Hash of the message to delete' })
+  async delete(@Param('address') address: string, @Param('hash') hash: string): Promise<void> {
+    if (!(await this.inbox.has(address, hash))) {
+      throw new NotFoundException({ message: 'Message not found' });
+    }
+    await this.inbox.delete(address, hash);
   }
 }

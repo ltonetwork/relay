@@ -1,4 +1,4 @@
-version: "3.2"
+version: '3.2'
 
 services:
   relay:
@@ -7,7 +7,7 @@ services:
     volumes:
       - relay-storage:/storage
     ports:
-      - "3000:3000"
+      - '3000:3000'
     environment:
       - INBOX_STORAGE=/storage
       - RABBITMQ_CLIENT=amqp://rabbitmq:5672
@@ -22,7 +22,7 @@ services:
     container_name: rabbitmq
     build: ./docker/rabbitmq
     healthcheck:
-      test: ["CMD", "rabbitmqctl", "status"]
+      test: ['CMD', 'rabbitmqctl', 'status']
       interval: 30s
       timeout: 10s
       retries: 5
@@ -33,7 +33,7 @@ services:
     volumes:
       - relay-redis:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 30s
       timeout: 10s
       retries: 5
