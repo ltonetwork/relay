@@ -4,6 +4,7 @@ import { ApiParam, ApiProduces, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { InboxGuard } from './inbox.guard';
 import { MessageSummery } from './inbox.dto';
 import { Message } from '@ltonetwork/lto';
+import { Signer, PublicKey } from 'src/common/http-signature/signer';
 
 @ApiTags('Inbox')
 @Controller('inboxes')
@@ -28,14 +29,35 @@ export class InboxController {
     return await this.inbox.get(address, hash);
   }
 
+  // @Delete('/:address/:hash')
+  // @HttpCode(204)
+  // @ApiParam({ name: 'address', description: 'Address of the recipient' })
+  // @ApiParam({ name: 'hash', description: 'Hash of the message to delete' })
+  // async delete(@Param('address') address: string, @Param('hash') hash: string): Promise<void> {
+  //   if (!(await this.inbox.has(address, hash))) {
+  //     throw new NotFoundException({ message: 'Message not found' });
+  //   }
+  //   await this.inbox.delete(address, hash);
+  // }
+
   @Delete('/:address/:hash')
   @HttpCode(204)
   @ApiParam({ name: 'address', description: 'Address of the recipient' })
   @ApiParam({ name: 'hash', description: 'Hash of the message to delete' })
-  async delete(@Param('address') address: string, @Param('hash') hash: string): Promise<void> {
+  async delete(
+    @Param('address') address: string,
+    @Param('hash') hash: string,
+    @Signer() signer: PublicKey,
+  ): Promise<void> {
+    console.log(signer);
     if (!(await this.inbox.has(address, hash))) {
       throw new NotFoundException({ message: 'Message not found' });
     }
+
+    if (signer.publicKey !== address) {
+      throw new NotFoundException({ message: 'Unauthorized: Invalid signature for this address' });
+    }
+
     await this.inbox.delete(address, hash);
   }
 }

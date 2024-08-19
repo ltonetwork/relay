@@ -96,14 +96,12 @@ export class InboxService {
   }
 
   async delete(recipient: string, hash: string): Promise<void> {
-    // Check if the message exists in Redis
     const exists = await this.has(recipient, hash);
     if (!exists) {
       this.logger.warn(`delete: message '${hash}' not found for recipient '${recipient}'`);
       throw new Error(`Message not found`);
     }
 
-    // Delete
     await this.redis.hdel(`inbox:${recipient}`, hash);
     this.logger.debug(`delete: message '${hash}' deleted from Redis for recipient '${recipient}'`);
 
