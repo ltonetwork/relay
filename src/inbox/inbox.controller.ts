@@ -1,10 +1,21 @@
-import { Controller, Delete, Get, HttpCode, NotFoundException, Param, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Delete,
+  ForbiddenException,
+  Get,
+  HttpCode,
+  NotFoundException,
+  Param,
+  Query,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import { InboxService } from './inbox.service';
 import { ApiParam, ApiProduces, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { InboxGuard } from './inbox.guard';
 import { MessageSummery } from './inbox.dto';
-import { Message } from '@ltonetwork/lto';
-import { Signer, PublicKey } from 'src/common/http-signature/signer';
+import { Account, Message } from '@ltonetwork/lto';
+import { Signer } from '../common/http-signature/signer';
 
 @ApiTags('Inbox')
 @Controller('inboxes')
@@ -29,17 +40,6 @@ export class InboxController {
     return await this.inbox.get(address, hash);
   }
 
-  // @Delete('/:address/:hash')
-  // @HttpCode(204)
-  // @ApiParam({ name: 'address', description: 'Address of the recipient' })
-  // @ApiParam({ name: 'hash', description: 'Hash of the message to delete' })
-  // async delete(@Param('address') address: string, @Param('hash') hash: string): Promise<void> {
-  //   if (!(await this.inbox.has(address, hash))) {
-  //     throw new NotFoundException({ message: 'Message not found' });
-  //   }
-  //   await this.inbox.delete(address, hash);
-  // }
-
   @Delete('/:address/:hash')
   @HttpCode(204)
   @ApiParam({ name: 'address', description: 'Address of the recipient' })
@@ -47,15 +47,14 @@ export class InboxController {
   async delete(
     @Param('address') address: string,
     @Param('hash') hash: string,
-    @Signer() signer: PublicKey,
+    @Signer() signer: Account,
   ): Promise<void> {
-    console.log(signer);
-    if (!(await this.inbox.has(address, hash))) {
-      throw new NotFoundException({ message: 'Message not found' });
+    if (signer.address !== address) {
+      throw new ForbiddenException({ message: 'Unauthorized: Invalid signature for this address' });
     }
 
-    if (signer.publicKey !== address) {
-      throw new NotFoundException({ message: 'Unauthorized: Invalid signature for this address' });
+    if (!(await this.inbox.has(address, hash))) {
+      throw new NotFoundException({ message: 'Message not found' });
     }
 
     await this.inbox.delete(address, hash);

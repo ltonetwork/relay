@@ -11,7 +11,7 @@ export class ConfigService {
   constructor(private readonly config: ConfigLoaderService) {
     const path = fs.existsSync(__dirname + '/../../../package.json') ? '../../../package.json' : '../../package.json';
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { name, description, version } =   require(path);
+    const { name, description, version } = require(path);
     this.app = { name: camelCase(name), description, version };
   }
 
@@ -167,6 +167,10 @@ export class ConfigService {
 
   getLTONode(network: 'mainnet' | 'testnet' | 'L' | 'T'): string {
     return this.config.get(`lto.${this.networkName(network)}.node`);
+  }
+
+  getNetworkId(): string {
+    return this.config.get('lto.networkId');
   }
 
   getDidResolver(network: 'mainnet' | 'testnet' | 'L' | 'T'): string {

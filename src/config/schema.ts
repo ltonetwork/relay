@@ -7,7 +7,7 @@ export default {
   },
   hostname: {
     doc: 'Public hostname where the service is running on',
-    default: 'localhost',
+    default: 'http://localhost',
     env: 'PUBLIC_HOSTNAME',
   },
   port: {
@@ -66,7 +66,7 @@ export default {
         docs: 'Accept messages from all accounts',
         default: false,
         env: 'ACCEPT_ALL',
-      }
+      },
     },
   },
   inbox: {
@@ -111,7 +111,7 @@ export default {
     },
     exchange: {
       doc: 'The default exchange name used by rabbitmq',
-      default: "amq.direct",
+      default: 'amq.direct',
       env: 'RABBITMQ_EXCHANGE',
     },
     shovel: {
@@ -126,6 +126,10 @@ export default {
     },
   },
   lto: {
+    networkId: {
+      default: 'L',
+      env: 'NETWORK_ID',
+    },
     testnet: {
       node: {
         doc: 'LTO testnet node url',
@@ -136,7 +140,7 @@ export default {
         doc: 'DID resolver for LTO node url',
         default: 'https://testnet.lto.network/index/identifiers',
         env: 'DID_RESOLVER_TESTNET',
-      }
+      },
     },
     mainnet: {
       node: {
@@ -148,8 +152,8 @@ export default {
         doc: 'DID resolver for LTO node url',
         default: 'https://nodes.lto.network/index/identifiers',
         env: 'DID_RESOLVER_MAINNET',
-      }
-    }
+      },
+    },
   },
   default_service_endpoint: {
     doc: 'The default service endpoint',
