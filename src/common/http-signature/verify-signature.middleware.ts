@@ -7,7 +7,7 @@ import { ConfigService } from '../config/config.service';
 @Injectable()
 export class VerifySignatureMiddleware implements NestMiddleware {
   private readonly lto: LTO;
-  private readonly baseUrl: string;
+  private readonly hostUrl: string;
 
   constructor(private readonly config: ConfigService) {
     const { networkID, host, port, apiPrefix } = {
@@ -18,32 +18,12 @@ export class VerifySignatureMiddleware implements NestMiddleware {
     };
     this.lto = new LTO('T');
     const base = host === 'http://localhost' ? `${host}:${port}` : host;
-    this.baseUrl = apiPrefix ? `${base}${apiPrefix}` : base;
-  }
-
-  async transformRequest(req: Request, baseUrl: string) {
-    const signature = req.headers['signature'];
-    const signatureInput = req.headers['signature-input'];
-
-    if (!signature || !signatureInput) {
-      throw new Error('Missing required signature headers');
-    }
-
-    return {
-      method: req.method,
-      url: baseUrl,
-      headers: {
-        signature: signature,
-        'signature-input': signatureInput,
-      },
-    };
+    this.hostUrl = apiPrefix ? `${base}${apiPrefix}` : base;
   }
 
   async verify(req: Request, res: Response): Promise<boolean> {
     try {
-      // console.log(res);
-      // const url = `${this.baseUrl}${req.path}`;
-      // const signedRequest = await this.transformRequest(req, url);
+      req.url = this.hostUrl + req.url;
       const account = await verify(req, this.lto);
       req['signer'] = account;
     } catch (err) {
