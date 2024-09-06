@@ -16,7 +16,7 @@ export class VerifySignatureMiddleware implements NestMiddleware {
       port: this.config.getPort(),
       apiPrefix: this.config.getApiPrefix(),
     };
-    this.lto = new LTO('T');
+    this.lto = new LTO(networkID);
     const base = host === 'http://localhost' ? `${host}:${port}` : host;
     this.hostUrl = apiPrefix ? `${base}${apiPrefix}` : base;
   }
