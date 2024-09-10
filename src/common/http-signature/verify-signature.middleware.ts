@@ -7,23 +7,15 @@ import { ConfigService } from '../config/config.service';
 @Injectable()
 export class VerifySignatureMiddleware implements NestMiddleware {
   private readonly lto: LTO;
-  private readonly hostUrl: string;
 
   constructor(private readonly config: ConfigService) {
-    const { networkID, host, port, apiPrefix } = {
-      networkID: this.config.getNetworkId(),
-      host: this.config.getHostname(),
-      port: this.config.getPort(),
-      apiPrefix: this.config.getApiPrefix(),
-    };
-    this.lto = new LTO(networkID);
-    const base = host === 'http://localhost' ? `${host}:${port}` : host;
-    this.hostUrl = apiPrefix ? `${base}${apiPrefix}` : base;
+    this.lto = new LTO('T');
   }
 
   async verify(req: Request, res: Response): Promise<boolean> {
     try {
-      req.url = this.hostUrl + req.url;
+      const fullUrl = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
+      req.url = fullUrl;
       const account = await verify(req, this.lto);
       req['signer'] = account;
     } catch (err) {
