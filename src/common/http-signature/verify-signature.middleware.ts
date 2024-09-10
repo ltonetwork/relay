@@ -9,7 +9,8 @@ export class VerifySignatureMiddleware implements NestMiddleware {
   private readonly lto: LTO;
 
   constructor(private readonly config: ConfigService) {
-    this.lto = new LTO('T');
+    const networkID = this.config.getNetworkId();
+    this.lto = new LTO(networkID);
   }
 
   async verify(req: Request, res: Response): Promise<boolean> {
