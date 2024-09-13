@@ -7,7 +7,7 @@ export default {
   },
   hostname: {
     doc: 'Public hostname where the service is running on',
-    default: 'http://localhost',
+    default: 'localhost',
     env: 'PUBLIC_HOSTNAME',
   },
   port: {
