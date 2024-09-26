@@ -126,10 +126,6 @@ export default {
     },
   },
   lto: {
-    networkId: {
-      default: 'L',
-      env: 'NETWORK_ID',
-    },
     testnet: {
       node: {
         doc: 'LTO testnet node url',

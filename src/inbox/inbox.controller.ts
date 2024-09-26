@@ -27,13 +27,28 @@ export class InboxController {
   @ApiParam({ name: 'address', description: 'Address to get inbox for' })
   @ApiQuery({ name: 'type', description: 'Type of messages to get', required: false })
   @ApiProduces('application/json')
-  async list(@Param('address') address: string, @Query('type') type?: string): Promise<MessageSummery[]> {
+  async list(
+    @Signer() signer: Account,
+    @Param('address') address: string,
+    @Query('type') type?: string,
+  ): Promise<MessageSummery[]> {
+    if (signer.address !== address) {
+      throw new ForbiddenException({ message: 'Unauthorized: Invalid signature for this address' });
+    }
     return this.inbox.list(address, type);
   }
 
   @Get('/:address/:hash')
   @ApiProduces('application/json')
-  async get(@Param('address') address: string, @Param('hash') hash: string): Promise<Message> {
+  async get(
+    @Param('address') address: string,
+    @Param('hash') hash: string,
+    @Signer() signer: Account,
+  ): Promise<Message> {
+    if (signer.address !== address) {
+      throw new ForbiddenException({ message: 'Unauthorized: Invalid signature for this address' });
+    }
+
     if (!(await this.inbox.has(address, hash))) {
       throw new NotFoundException({ message: 'Message not found' });
     }

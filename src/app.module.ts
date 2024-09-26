@@ -7,7 +7,6 @@ import { DispatcherModule } from './dispatcher/dispatcher.module';
 import { QueueModule } from './queue/queue.module';
 import { InboxModule } from './inbox/inbox.module';
 import { VerifySignatureMiddleware } from './common/http-signature/verify-signature.middleware';
-import { InboxController } from './inbox/inbox.controller';
 
 export const AppModuleConfig = {
   imports: [ConfigModule, RabbitMQModule, QueueModule, DispatcherModule, InboxModule],
@@ -15,18 +14,9 @@ export const AppModuleConfig = {
   providers: [AppService],
 };
 
-// @Module(AppModuleConfig)
-// export class AppModule {
-//   configure(consumer: MiddlewareConsumer) {
-//     consumer.apply(VerifySignatureMiddleware).forRoutes(InboxController);
-//   }
-// }
-
 @Module(AppModuleConfig)
 export class AppModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer
-      .apply(VerifySignatureMiddleware)
-      .forRoutes({ path: 'inboxes/:address/:hash', method: RequestMethod.DELETE });
+    consumer.apply(VerifySignatureMiddleware).forRoutes({ path: 'inboxes/*', method: RequestMethod.ALL });
   }
 }

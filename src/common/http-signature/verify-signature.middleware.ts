@@ -1,22 +1,26 @@
 import { Injectable, NestMiddleware } from '@nestjs/common';
 import { NextFunction, Request, Response } from 'express';
-import { LTO } from '@ltonetwork/lto';
+import { LTO, getNetwork } from '@ltonetwork/lto';
 import { verify } from '@ltonetwork/http-message-signatures';
-import { ConfigService } from '../config/config.service';
 
+export const lto = new LTO();
 @Injectable()
 export class VerifySignatureMiddleware implements NestMiddleware {
-  private readonly lto: LTO;
+  private lto: LTO;
 
-  constructor(private readonly config: ConfigService) {
-    const networkID = this.config.getNetworkId();
-    this.lto = new LTO(networkID);
+  constructor() {
+    this.lto = new LTO();
   }
 
-  async verify(req: Request, res: Response): Promise<boolean> {
+  async verifyRequest(req: Request, res: Response): Promise<boolean> {
     try {
-      const fullUrl = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
-      req.url = fullUrl;
+      const path = req.path;
+      const walletAddress = path.match(/3[^\/]*/)?.[0];
+      const network = getNetwork(walletAddress);
+
+      //switch to testnet if address is testnet
+      if (network == 'T') this.lto = new LTO(network);
+
       const account = await verify(req, this.lto);
       req['signer'] = account;
     } catch (err) {
@@ -27,7 +31,7 @@ export class VerifySignatureMiddleware implements NestMiddleware {
   }
 
   async use(req: Request, res: Response, next: NextFunction): Promise<void> {
-    if ('signature' in req.headers && !(await this.verify(req, res))) return;
+    if ('signature' in req.headers && !(await this.verifyRequest(req, res))) return;
     next();
   }
 }

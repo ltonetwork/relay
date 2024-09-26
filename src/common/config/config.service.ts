@@ -169,10 +169,6 @@ export class ConfigService {
     return this.config.get(`lto.${this.networkName(network)}.node`);
   }
 
-  getNetworkId(): string {
-    return this.config.get('lto.networkId');
-  }
-
   getDidResolver(network: 'mainnet' | 'testnet' | 'L' | 'T'): string {
     return this.config.get(`lto.${this.networkName(network)}.did_resolver`);
   }
