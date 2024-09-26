@@ -31,7 +31,7 @@ export class VerifySignatureMiddleware implements NestMiddleware {
   }
 
   async use(req: Request, res: Response, next: NextFunction): Promise<void> {
-    if ('signature' in req.headers && !(await this.verifyRequest(req, res))) return;
+    if (!(await this.verifyRequest(req, res))) return;
     next();
   }
 }

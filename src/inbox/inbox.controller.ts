@@ -28,8 +28,8 @@ export class InboxController {
   @ApiQuery({ name: 'type', description: 'Type of messages to get', required: false })
   @ApiProduces('application/json')
   async list(
-    @Signer() signer: Account,
     @Param('address') address: string,
+    @Signer() signer: Account,
     @Query('type') type?: string,
   ): Promise<MessageSummery[]> {
     if (signer.address !== address) {
