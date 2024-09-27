@@ -8,7 +8,7 @@ export class VerifySignatureMiddleware implements NestMiddleware {
   async verifyRequest(req: Request, res: Response): Promise<boolean> {
     try {
       const path = req.path;
-      const walletAddress = path.match(/3[^\/]*/)?.[0];
+      const walletAddress = path.match(/\/(3\w{34})(\/|$)/)?.[1];
       const network = getNetwork(walletAddress);
       const lto = new LTO(network);
       const account = await verify(req, lto);
