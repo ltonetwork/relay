@@ -34,7 +34,6 @@ export class QueueController {
     if (!message.verifyHash()) {
       throw new BadRequestException({ message: 'invalid hash' });
     }
-
     return message;
   }
 
@@ -59,7 +58,6 @@ export class QueueController {
   @ApiResponse({ status: 204, description: 'Message added to queue for delivery' })
   async add(@Body() data: any, @Res() res: Response): Promise<Response> {
     const message = this.messageFrom(data);
-
     try {
       await this.queue.add(message);
     } catch (e) {

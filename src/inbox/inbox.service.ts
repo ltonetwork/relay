@@ -94,4 +94,26 @@ export class InboxService {
   private async storeFile(message: Message): Promise<void> {
     await this.bucket.put(message.hash.base58, message.toBinary());
   }
+
+  async delete(recipient: string, hash: string): Promise<void> {
+    const exists = await this.has(recipient, hash);
+    if (!exists) {
+      this.logger.warn(`delete: message '${hash}' not found for recipient '${recipient}'`);
+      throw new Error(`Message not found`);
+    }
+
+    await this.redis.hdel(`inbox:${recipient}`, hash);
+    this.logger.debug(`delete: message '${hash}' deleted from Redis for recipient '${recipient}'`);
+
+    try {
+      await this.bucket.delete(hash);
+      this.logger.debug(`delete: file '${hash}' deleted from bucket storage`);
+    } catch (error) {
+      if (error.code === 'NoSuchKey') {
+        this.logger.warn(`delete: file '${hash}' not found in bucket storage`);
+      } else {
+        this.logger.error(`delete: failed to delete file '${hash}' from bucket storage`, error);
+      }
+    }
+  }
 }
