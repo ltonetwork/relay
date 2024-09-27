@@ -3,7 +3,6 @@ import { NextFunction, Request, Response } from 'express';
 import { LTO, getNetwork } from '@ltonetwork/lto';
 import { verify } from '@ltonetwork/http-message-signatures';
 
-export const lto = new LTO();
 @Injectable()
 export class VerifySignatureMiddleware implements NestMiddleware {
   async verifyRequest(req: Request, res: Response): Promise<boolean> {
