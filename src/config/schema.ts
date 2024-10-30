@@ -15,6 +15,11 @@ export default {
     default: 3000,
     env: 'PORT',
   },
+  ws_port: {
+    doc: 'The WebSocket port to bind.',
+    default: 8080,
+    env: 'WS_PORT',
+  },
   api_prefix: {
     doc: 'The prefix for the API',
     default: '',

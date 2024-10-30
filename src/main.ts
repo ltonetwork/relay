@@ -4,6 +4,7 @@ import { INestApplication } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ConfigService } from './common/config/config.service';
 import { LoggerService } from './common/logger/logger.service';
+import { IoAdapter } from '@nestjs/platform-socket.io';
 import * as bodyParser from 'body-parser';
 
 function swagger(app: INestApplication, config: ConfigService) {
@@ -20,6 +21,8 @@ function swagger(app: INestApplication, config: ConfigService) {
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bodyParser: false });
   const config = app.get<ConfigService>(ConfigService);
+
+  app.useWebSocketAdapter(new IoAdapter(app));
 
   if (config.getApiPrefix()) app.setGlobalPrefix(config.getApiPrefix());
 
