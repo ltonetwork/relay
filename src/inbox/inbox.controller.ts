@@ -16,12 +16,39 @@ import { InboxGuard } from './inbox.guard';
 import { MessageSummery } from './inbox.dto';
 import { Account, Message } from '@ltonetwork/lto';
 import { Signer } from '../common/http-signature/signer';
+import { Response } from 'express';
 
 @ApiTags('Inbox')
 @Controller('inboxes')
 @UseGuards(InboxGuard)
 export class InboxController {
   constructor(private readonly inbox: InboxService) {}
+
+  @Get('/:address/hashes')
+  @ApiParam({ name: 'address', description: 'Address to get inbox hashes for' })
+  async getHashes(@Param('address') address: string, @Signer() signer: Account, @Res() res: Response) {
+    if (signer.address !== address) {
+      throw new ForbiddenException({ message: 'Unauthorized: Invalid signature for this address' });
+    }
+
+    // Fetch message hashes
+    const hashes = await this.inbox.getMessageHashes(address);
+
+    // Generate ETag for the current state of the hashes
+    const etag = await this.inbox.generateETag(address);
+
+    // Get the Last-Modified timestamp for the inbox
+    const lastModified = await this.inbox.getLastModified(address);
+
+    // Set response headers
+    res.set({
+      ETag: etag,
+      'Last-Modified': lastModified.toUTCString(),
+    });
+
+    // Return the hashes
+    return res.status(200).json({ hashes });
+  }
 
   @Get('/:address')
   @ApiParam({ name: 'address', description: 'Address to get inbox for' })

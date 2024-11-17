@@ -1,9 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { MessageService } from './message.service';
+import { DebugService } from './debug.service';
 import Redis from 'ioredis';
 
-describe('MessageService', () => {
-  let service: MessageService;
+describe('DebugService', () => {
+  let service: DebugService;
   let redis: jest.Mocked<Redis>;
 
   beforeEach(async () => {
@@ -15,10 +15,10 @@ describe('MessageService', () => {
     } as any;
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [MessageService, { provide: Redis, useValue: redis }],
+      providers: [DebugService, { provide: Redis, useValue: redis }],
     }).compile();
 
-    service = module.get<MessageService>(MessageService);
+    service = module.get<DebugService>(DebugService);
   });
 
   afterEach(() => {
@@ -29,7 +29,7 @@ describe('MessageService', () => {
     it('should return the message if it exists', async () => {
       const recipient = 'recipient1';
       const hash = 'hash1';
-      const messageData = JSON.stringify({ hash, data: 'test data' });
+      const messageData = JSON.stringify({ hash, data: 'test data', signature: 'testSignature' });
       redis.hget.mockResolvedValue(messageData);
 
       const result = await service.get(recipient, hash);
@@ -94,6 +94,24 @@ describe('MessageService', () => {
 
       expect(result).toEqual(hashes);
       expect(redis.hkeys).toHaveBeenCalledWith(`inbox:${recipient}`);
+    });
+  });
+
+  describe('getMessageHashes logging', () => {
+    it('should log the recipient name when calling getMessageHashes', async () => {
+      const recipient = 'recipient1';
+      const hashes = ['hash1', 'hash2'];
+      redis.hkeys.mockResolvedValue(hashes);
+
+      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+
+      const result = await service.getMessageHashes(recipient);
+
+      expect(result).toEqual(hashes);
+      expect(redis.hkeys).toHaveBeenCalledWith(`inbox:${recipient}`);
+      expect(consoleSpy).toHaveBeenCalledWith(`add ${recipient}`);
+
+      consoleSpy.mockRestore();
     });
   });
 });

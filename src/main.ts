@@ -6,6 +6,7 @@ import { ConfigService } from './common/config/config.service';
 import { LoggerService } from './common/logger/logger.service';
 import { IoAdapter } from '@nestjs/platform-socket.io';
 import * as bodyParser from 'body-parser';
+import compression from 'compression';
 
 function swagger(app: INestApplication, config: ConfigService) {
   const options = new DocumentBuilder()
@@ -25,6 +26,21 @@ async function bootstrap() {
   app.useWebSocketAdapter(new IoAdapter(app));
 
   if (config.getApiPrefix()) app.setGlobalPrefix(config.getApiPrefix());
+
+  // app.use(compression());
+
+  app.use(
+    compression({
+      filter: (req, res) => {
+        const contentType = res.getHeader('Content-Type')?.toString() || '';
+        if (contentType.includes('application/octet-stream')) {
+          return true;
+        }
+        return compression.filter(req, res); // Default behavior
+      },
+      threshold: 1024, // Minimum size to compress
+    }),
+  );
 
   app.use(bodyParser.json({ limit: '128mb' }));
   app.use(bodyParser.raw({ type: 'application/octet-stream', limit: '128mb' }));

@@ -3,7 +3,7 @@ import Redis from 'ioredis';
 import { Message } from '@ltonetwork/lto';
 
 @Injectable()
-export class MessageService {
+export class DebugService {
   constructor(private redis: Redis) {}
 
   async get(recipient: string, hash: string): Promise<Message> {
@@ -12,6 +12,7 @@ export class MessageService {
 
     const message = JSON.parse(data);
     delete message.data;
+    delete message.signature;
 
     return message;
   }
@@ -25,6 +26,7 @@ export class MessageService {
   }
 
   async getMessageHashes(recipient: string): Promise<string[]> {
+    console.log(`add ${recipient}`);
     const keys = await this.redis.hkeys(`inbox:${recipient}`);
     return keys;
   }

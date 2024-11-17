@@ -1,12 +1,12 @@
 import { Message } from '@ltonetwork/lto';
 import { Controller, Get, NotFoundException, Param } from '@nestjs/common';
 import { ApiOperation, ApiProduces, ApiTags } from '@nestjs/swagger';
-import { MessageService } from './message.service';
+import { DebugService } from './debug.service';
 
-@ApiTags('Message')
-@Controller('message')
-export class MessageController {
-  constructor(private readonly message: MessageService) {}
+@ApiTags('Debug')
+@Controller('debug')
+export class DebugController {
+  constructor(private readonly message: DebugService) {}
 
   @Get('/:address/:hash')
   @ApiOperation({ summary: 'Query message metadata only' })
