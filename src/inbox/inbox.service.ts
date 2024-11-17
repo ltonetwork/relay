@@ -84,8 +84,9 @@ export class InboxService {
     const sender = buildAddress(message.sender.publicKey, getNetwork(message.recipient));
     const recipient = message.recipient;
     const messageHash = message.hash.base58;
-    const logMessage = `Message Successfully Sent:\nSender: ${sender}\nRecipient: ${recipient}\nMessage Hash: ${messageHash}`;
-    console.log(logMessage);
+    const messageSizeBytes = message.isEncrypted() ? message.encryptedData.length : message.data.length;
+    const messageSizeMb = (messageSizeBytes / (1024 * 1024)).toFixed(2);
+    const logMessage = `Message Successfully Sent:\nSender: ${sender}\nRecipient: ${recipient}\nMessage Hash: ${messageHash}\nMessage Size: ${messageSizeMb} MB`;
 
     await this.telegramService.sendMessage(logMessage);
   }
