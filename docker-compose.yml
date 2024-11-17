@@ -13,6 +13,8 @@ services:
       - INBOX_STORAGE=/storage
       - RABBITMQ_CLIENT=amqp://rabbitmq:5672
       - REDIS_URL=redis://redis:6379
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
       - WS_PORT=${WS_PORT:-8080}
     depends_on:
       rabbitmq:

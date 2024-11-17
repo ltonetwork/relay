@@ -171,4 +171,16 @@ export default {
       env: 'LOG_FORCE',
     },
   },
+  telegram: {
+    botToken: {
+      doc: 'Telegram bot token for logging',
+      default: '',
+      env: 'TELEGRAM_BOT_TOKEN',
+    },
+    chatId: {
+      doc: 'Telegram chat ID for logging',
+      default: '',
+      env: 'TELEGRAM_CHAT_ID',
+    },
+  },
 };

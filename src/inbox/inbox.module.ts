@@ -6,10 +6,11 @@ import { RedisModule } from '../common/redis/redis.module';
 import { InboxController } from './inbox.controller';
 import { LoggerModule } from '../common/logger/logger.module';
 import { AwsModule } from '../common/aws/aws.module';
+import { TelegramService } from '../common/telegram/telegram.service';
 
 @Module({
   imports: [ConfigModule, RedisModule, LoggerModule, AwsModule],
-  providers: [InboxService, ...inboxProviders],
+  providers: [InboxService, ...inboxProviders, TelegramService],
   exports: [InboxService],
   controllers: [InboxController],
 })

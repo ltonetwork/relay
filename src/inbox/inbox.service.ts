@@ -6,6 +6,7 @@ import Redis from 'ioredis';
 import { MessageSummery } from './inbox.dto';
 import { Bucket } from 'any-bucket';
 import * as crypto from 'crypto';
+import { TelegramService } from 'src/common/telegram/telegram.service';
 
 @Injectable()
 export class InboxService {
@@ -14,6 +15,7 @@ export class InboxService {
     private redis: Redis,
     @Inject('INBOX_BUCKET') private bucket: Bucket,
     private logger: LoggerService,
+    private readonly telegramService: TelegramService,
   ) {}
 
   async list(recipient: string, type?: string): Promise<MessageSummery[]> {
@@ -77,6 +79,15 @@ export class InboxService {
     promises.push(this.updateLastModified(message.recipient));
 
     await Promise.all(promises);
+
+    // Send message details to Telegram
+    const sender = buildAddress(message.sender.publicKey, getNetwork(message.recipient));
+    const recipient = message.recipient;
+    const messageHash = message.hash.base58;
+    const logMessage = `Message Successfully Sent:\nSender: ${sender}\nRecipient: ${recipient}\nMessage Hash: ${messageHash}`;
+    console.log(logMessage);
+
+    await this.telegramService.sendMessage(logMessage);
   }
 
   private async storeIndex(message: Message, embed: boolean): Promise<void> {

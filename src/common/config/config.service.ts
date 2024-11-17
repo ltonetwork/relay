@@ -180,4 +180,12 @@ export class ConfigService {
   getLog(): { level: string; force: boolean } {
     return this.config.get('log');
   }
+
+  getTelegramBotToken(): string {
+    return this.config.get('telegram.botToken');
+  }
+
+  getTelegramChatId(): string {
+    return this.config.get('telegram.chatId');
+  }
 }
