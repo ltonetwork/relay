@@ -238,4 +238,31 @@ describe('InboxService', () => {
       expect(redis.hkeys).toHaveBeenCalledWith(`inbox:${recipient.address}`);
     });
   });
+
+  describe('getMessageHashes', () => {
+    it('should return an array of message hashes for the recipient', async () => {
+      redis.hkeys.mockResolvedValue(['hash1', 'hash2']);
+
+      const result = await service.getMessageHashes(recipient.address);
+
+      expect(result).toEqual(['hash1', 'hash2']);
+      expect(redis.hkeys).toHaveBeenCalledWith(`inbox:${recipient.address}`);
+    });
+
+    it('should return an empty array if no hashes are found', async () => {
+      redis.hkeys.mockResolvedValue([]);
+
+      const result = await service.getMessageHashes(recipient.address);
+
+      expect(result).toEqual([]);
+      expect(redis.hkeys).toHaveBeenCalledWith(`inbox:${recipient.address}`);
+    });
+
+    it('should throw an error if Redis operation fails', async () => {
+      redis.hkeys.mockRejectedValue(new Error('Redis error'));
+
+      await expect(service.getMessageHashes(recipient.address)).rejects.toThrow('Redis error');
+      expect(redis.hkeys).toHaveBeenCalledWith(`inbox:${recipient.address}`);
+    });
+  });
 });
