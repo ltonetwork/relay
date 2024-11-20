@@ -188,6 +188,18 @@ describe('InboxService', () => {
       await expect(service.get(recipient.address, 'hash1')).rejects.toThrow('message not found');
       expect(redis.hget).toHaveBeenCalledWith(`inbox:${recipient.address}`, 'hash1');
     });
+
+    it('should throw an error if senderPublicKey is missing', async () => {
+      const invalidData = {
+        ...message.toJSON(),
+        senderPublicKey: undefined,
+      };
+      redis.hget.mockResolvedValue(JSON.stringify(invalidData));
+
+      await expect(service.get(recipient.address, 'hash1')).rejects.toThrow(
+        'Invalid message data: senderPublicKey is missing',
+      );
+    });
   });
 
   describe('store', () => {
