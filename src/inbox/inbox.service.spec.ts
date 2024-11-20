@@ -6,6 +6,7 @@ import Redis from 'ioredis';
 import { Bucket } from 'any-bucket';
 import { Message, AccountFactoryED25519, Account } from '@ltonetwork/lto';
 import { ConfigService } from '../common/config/config.service';
+import { TelegramService } from '../common/telegram/telegram.service';
 
 describe('InboxService', () => {
   let module: TestingModule;
@@ -15,6 +16,7 @@ describe('InboxService', () => {
   let bucket: jest.Mocked<Bucket>;
   let logger: jest.Mocked<LoggerService>;
   let config: jest.Mocked<ConfigService>;
+  let telegramService: jest.Mocked<TelegramService>;
 
   let sender: Account;
   let recipient: Account;
@@ -48,6 +50,10 @@ describe('InboxService', () => {
       isInboxEnabled: jest.fn(),
       getStorageEmbedMaxSize: jest.fn(),
     } as any;
+
+    telegramService = {
+      formatMessageForTelegram: jest.fn(),
+    } as any;
   });
 
   beforeEach(async () => {
@@ -59,6 +65,7 @@ describe('InboxService', () => {
         { provide: 'INBOX_BUCKET', useValue: bucket },
         { provide: LoggerService, useValue: logger },
         { provide: ConfigService, useValue: config },
+        { provide: TelegramService, useValue: telegramService },
       ],
     }).compile();
 
@@ -219,6 +226,7 @@ describe('InboxService', () => {
         expect.stringContaining('"type":"basic"'),
       );
       expect(bucket.put).not.toHaveBeenCalled();
+      expect(telegramService.formatMessageForTelegram).toHaveBeenCalledWith(message);
     });
 
     it('should store the message in the bucket if not embedded', async () => {
@@ -229,6 +237,7 @@ describe('InboxService', () => {
 
       expect(bucket.put).toHaveBeenCalledWith(message.hash.base58, expect.any(Uint8Array));
       expect(redis.hset).toHaveBeenCalled();
+      expect(telegramService.formatMessageForTelegram).toHaveBeenCalledWith(message);
     });
   });
 
