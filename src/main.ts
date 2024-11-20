@@ -27,8 +27,6 @@ async function bootstrap() {
 
   if (config.getApiPrefix()) app.setGlobalPrefix(config.getApiPrefix());
 
-  // app.use(compression());
-
   app.use(
     compression({
       filter: (req, res) => {
@@ -36,9 +34,9 @@ async function bootstrap() {
         if (contentType.includes('application/octet-stream')) {
           return true;
         }
-        return compression.filter(req, res); // Default behavior
+        return compression.filter(req, res);
       },
-      threshold: 1024, // Minimum size to compress
+      threshold: 1024,
     }),
   );
 
