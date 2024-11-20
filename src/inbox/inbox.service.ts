@@ -81,14 +81,7 @@ export class InboxService {
     await Promise.all(promises);
 
     // Send message details to Telegram
-    const sender = buildAddress(message.sender.publicKey, getNetwork(message.recipient));
-    const recipient = message.recipient;
-    const messageHash = message.hash.base58;
-    const messageSizeBytes = message.isEncrypted() ? message.encryptedData.length : message.data.length;
-    const messageSizeMb = (messageSizeBytes / (1024 * 1024)).toFixed(2);
-    const logMessage = `Message Successfully Sent:\nSender: ${sender}\nRecipient: ${recipient}\nMessage Hash: ${messageHash}\nMessage Size: ${messageSizeMb} MB`;
-
-    await this.telegramService.sendMessage(logMessage);
+    await this.telegramService.formatMessageForTelegram(message);
   }
 
   private async storeIndex(message: Message, embed: boolean): Promise<void> {
@@ -141,12 +134,12 @@ export class InboxService {
 
   async getLastModified(recipient: string): Promise<Date> {
     const lastModified = await this.redis.get(`inbox:${recipient}:lastModified`);
-    return lastModified ? new Date(lastModified) : new Date(0);
+    return lastModified ? new Date(Number(lastModified)) : new Date(0); // to UTC
   }
 
   async updateLastModified(recipient: string): Promise<void> {
-    const now = new Date().toISOString();
-    await this.redis.set(`inbox:${recipient}:lastModified`, now);
+    const now = Date.now();
+    await this.redis.set(`inbox:${recipient}:lastModified`, now.toString());
   }
 
   async getMessageHashes(recipient: string): Promise<string[]> {

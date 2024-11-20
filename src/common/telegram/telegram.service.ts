@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import axios from 'axios';
 import { ConfigService } from '../config/config.service';
+import { buildAddress, getNetwork, Message } from '@ltonetwork/lto';
 
 @Injectable()
 export class TelegramService {
@@ -13,16 +14,14 @@ export class TelegramService {
   }
 
   async sendMessage(message: string): Promise<void> {
-    console.log('ENTERED');
     const url = `https://api.telegram.org/bot${this.botToken}/sendMessage`;
-    console.log(url);
-    const sanitizedMessage = this.sanitizeMessage(message);
+    const sanitizedMessage = this.sanitizeMessageForMarkdownV2(message);
 
     try {
       await axios.post(url, {
         chat_id: this.chatId,
         text: sanitizedMessage,
-        parse_mode: 'HTML',
+        parse_mode: 'MarkdownV2',
       });
     } catch (error) {
       console.error('Failed to send message to Telegram:', error.message);
@@ -30,8 +29,65 @@ export class TelegramService {
     }
   }
 
-  private sanitizeMessage(message: string): string {
-    // Escape HTML special characters to prevent injection
-    return message.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').slice(0, 4096); // Ensure the message does not exceed Telegram's max length
+  async formatMessageForTelegram(message: Message) {
+    const sender = buildAddress(message.sender.publicKey, getNetwork(message.recipient));
+    const recipient = message.recipient;
+    const messageHash = message.hash.base58;
+    const messageSizeBytes = message.isEncrypted() ? message.encryptedData.length : message.data.length;
+    const messageSizeMb = (messageSizeBytes / (1024 * 1024)).toFixed(2);
+    const network = sender.startsWith('3N') ? 'Testnet' : 'Mainnet';
+
+    const logMessage = `Message Successfully Sent ✅:
+_____________________________\n
+
+Network: [${network}]\n
+Sender: ${sender}\n
+Recipient: ${recipient}\n
+Message Hash: ${messageHash}\n
+Message Size: ${messageSizeMb} MB`;
+
+    await this.sendMessage(logMessage);
+  }
+
+  private sanitizeMessageForMarkdownV2(message: string): string {
+    /**
+     * - `_` -> `\_`
+     * - `*` -> `\*`
+     * - `[` -> `\[`
+     * - `]` -> `\]`
+     * - `(` -> `\(`
+     * - `)` -> `\)`
+     * - `~` -> `\~`
+     * - `>` -> `\>`
+     * - `#` -> `\#`
+     * - `+` -> `\+`
+     * - `-` -> `\-`
+     * - `=` -> `\=`
+     * - `|` -> `\|`
+     * - `{` -> `\{`
+     * - `}` -> `\}`
+     * - `.` -> `\.`
+     * - `!` -> `\!`
+     */
+    return message
+      .replace(/_/g, '\\_')
+      .replace(/\*/g, '\\*')
+      .replace(/\[/g, '\\[')
+      .replace(/\]/g, '\\]')
+      .replace(/\(/g, '\\(')
+      .replace(/\)/g, '\\)')
+      .replace(/~/g, '\\~')
+      .replace(/`/g, '\\`')
+      .replace(/>/g, '\\>')
+      .replace(/#/g, '\\#')
+      .replace(/\+/g, '\\+')
+      .replace(/-/g, '\\-')
+      .replace(/=/g, '\\=')
+      .replace(/\|/g, '\\|')
+      .replace(/{/g, '\\{')
+      .replace(/}/g, '\\}')
+      .replace(/\./g, '\\.')
+      .replace(/!/g, '\\!')
+      .slice(0, 4096);
   }
 }
