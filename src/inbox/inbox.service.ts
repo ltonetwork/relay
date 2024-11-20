@@ -49,6 +49,10 @@ export class InboxService {
   }
 
   private createFromEmbedded(data: any): Message {
+    if (!data.senderPublicKey) {
+      throw new Error('Invalid message data: senderPublicKey is missing');
+    }
+
     return Message.from({ ...data, sender: { keyType: data.senderKeyType, publicKey: data.senderPublicKey } });
   }
 
