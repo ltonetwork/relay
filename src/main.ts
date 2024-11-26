@@ -27,18 +27,7 @@ async function bootstrap() {
 
   if (config.getApiPrefix()) app.setGlobalPrefix(config.getApiPrefix());
 
-  app.use(
-    compression({
-      filter: (req, res) => {
-        const contentType = res.getHeader('Content-Type')?.toString() || '';
-        if (contentType.includes('application/octet-stream')) {
-          return true;
-        }
-        return compression.filter(req, res);
-      },
-      threshold: 1024,
-    }),
-  );
+  app.use(compression());
 
   app.use(bodyParser.json({ limit: '128mb' }));
   app.use(bodyParser.raw({ type: 'application/octet-stream', limit: '128mb' }));
