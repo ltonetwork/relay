@@ -48,7 +48,7 @@ export default {
     isEnabled: {
       doc: 'Enable or disable dispatcher',
       default: true,
-      env: 'DISPATCH_ENABLED',
+      env: 'DISPATCHER_ENABLED',
     },
     target: {
       doc: 'The target url for the dispatcher',
