@@ -15,11 +15,6 @@ export default {
     default: 3000,
     env: 'PORT',
   },
-  ws_port: {
-    doc: 'The WebSocket port to bind.',
-    default: 8080,
-    env: 'WS_PORT',
-  },
   api_prefix: {
     doc: 'The prefix for the API',
     default: '',
@@ -50,6 +45,11 @@ export default {
     },
   },
   dispatcher: {
+    isEnabled: {
+      doc: 'Enable or disable dispatcher',
+      default: true,
+      env: 'DISPATCH_ENABLED',
+    },
     target: {
       doc: 'The target url for the dispatcher',
       default: '',
