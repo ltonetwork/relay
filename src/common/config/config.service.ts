@@ -16,7 +16,8 @@ export class ConfigService {
   }
 
   isDispatcherEnabled(): boolean {
-    return !!this.config.get('dispatcher.target') || this.config.get('inbox.enabled');
+    return this.config.get('dispatcher.isEnabled');
+    //return !!this.config.get('dispatcher.target') || this.config.get('inbox.enabled');
   }
 
   isInboxEnabled(): boolean {

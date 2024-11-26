@@ -24,30 +24,40 @@ import { Response } from 'express';
 export class InboxController {
   constructor(private readonly inbox: InboxService) {}
 
-  @Get('/:address/hashes')
+  @Get('/:address/list')
   @ApiParam({ name: 'address', description: 'Address to get inbox hashes for' })
-  async getHashes(@Param('address') address: string, @Signer() signer: Account, @Res() res: Response) {
+  async listMetadata(
+    @Param('address') address: string,
+    @Signer() signer: Account,
+    @Res() res: Response,
+  ): Promise<void | Response> {
     if (signer.address !== address) {
       throw new ForbiddenException({ message: 'Unauthorized: Invalid signature for this address' });
     }
 
-    // Fetch message hashes
-    const hashes = await this.inbox.getMessageHashes(address);
+    const ifModifiedSince = res.req.headers['if-modified-since'];
+    let clientDate: Date | null = null;
 
-    // Generate ETag for the current state of the hashes
-    const etag = await this.inbox.generateETag(address);
+    if (ifModifiedSince) {
+      clientDate = new Date(ifModifiedSince);
+      if (isNaN(clientDate.getTime())) {
+        clientDate = null;
+      }
+    }
 
-    // Get the Last-Modified timestamp for the inbox
-    const lastModified = await this.inbox.getLastModified(address);
+    const lastModifiedDate = await this.inbox.getLastModified(address);
 
-    // Set response headers
+    if (clientDate && clientDate >= lastModifiedDate) {
+      return res.status(304).end();
+    }
+
+    const metadata = await this.inbox.getMessagesMetadata(address);
+
     res.set({
-      ETag: etag,
-      'Last-Modified': lastModified.toUTCString(),
+      'Last-Modified': lastModifiedDate.toUTCString(),
     });
 
-    // Return the hashes
-    return res.status(200).json({ hashes });
+    return res.status(200).json({ metadata });
   }
 
   @Get('/:address')

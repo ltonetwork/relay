@@ -249,41 +249,76 @@ describe('InboxService', () => {
     });
   });
 
-  describe('generateETag', () => {
-    it('should generate a valid ETag for the recipient', async () => {
-      redis.hkeys.mockResolvedValue(['hash1', 'hash2']);
+  describe('getMessagesMetadata', () => {
+    it('should return all messages without the data field', async () => {
+      const recipientAddress = recipient.address;
 
-      const result = await service.generateETag(recipient.address);
+      redis.hgetall.mockResolvedValue({
+        hash1: JSON.stringify({
+          hash: 'hash1',
+          type: 'basic',
+          timestamp: 1672531200,
+          sender: 'sender1',
+          recipient: recipientAddress,
+          size: 10,
+          data: 'some data',
+        }),
+        hash2: JSON.stringify({
+          hash: 'hash2',
+          type: 'other',
+          timestamp: 1672531210,
+          sender: 'sender2',
+          recipient: recipientAddress,
+          size: 20,
+          data: 'some other data',
+        }),
+      });
 
-      expect(result).toMatch(/^".+"$/); // Matches a quoted string
-      expect(redis.hkeys).toHaveBeenCalledWith(`inbox:${recipient.address}`);
+      const result = await service.getMessagesMetadata(recipientAddress);
+
+      expect(result).toEqual([
+        {
+          hash: 'hash1',
+          type: 'basic',
+          timestamp: 1672531200,
+          sender: 'sender1',
+          recipient: recipientAddress,
+          size: 10,
+        },
+        {
+          hash: 'hash2',
+          type: 'other',
+          timestamp: 1672531210,
+          sender: 'sender2',
+          recipient: recipientAddress,
+          size: 20,
+        },
+      ]);
+
+      expect(redis.hgetall).toHaveBeenCalledWith(`inbox:${recipientAddress}`);
     });
-  });
 
-  describe('getMessageHashes', () => {
-    it('should return an array of message hashes for the recipient', async () => {
-      redis.hkeys.mockResolvedValue(['hash1', 'hash2']);
+    it('should return an empty array if no messages exist', async () => {
+      const recipientAddress = recipient.address;
+      redis.hgetall.mockResolvedValue({});
 
-      const result = await service.getMessageHashes(recipient.address);
-
-      expect(result).toEqual(['hash1', 'hash2']);
-      expect(redis.hkeys).toHaveBeenCalledWith(`inbox:${recipient.address}`);
-    });
-
-    it('should return an empty array if no hashes are found', async () => {
-      redis.hkeys.mockResolvedValue([]);
-
-      const result = await service.getMessageHashes(recipient.address);
+      const result = await service.getMessagesMetadata(recipientAddress);
 
       expect(result).toEqual([]);
-      expect(redis.hkeys).toHaveBeenCalledWith(`inbox:${recipient.address}`);
+      expect(redis.hgetall).toHaveBeenCalledWith(`inbox:${recipientAddress}`);
     });
 
-    it('should throw an error if Redis operation fails', async () => {
-      redis.hkeys.mockRejectedValue(new Error('Redis error'));
+    it('should handle invalid JSON gracefully', async () => {
+      const recipientAddress = recipient.address;
 
-      await expect(service.getMessageHashes(recipient.address)).rejects.toThrow('Redis error');
-      expect(redis.hkeys).toHaveBeenCalledWith(`inbox:${recipient.address}`);
+      redis.hgetall.mockResolvedValue({
+        hash1: '{ invalid JSON',
+      });
+
+      const result = await service.getMessagesMetadata(recipientAddress);
+
+      expect(result).toEqual([]);
+      expect(redis.hgetall).toHaveBeenCalledWith(`inbox:${recipientAddress}`);
     });
   });
 });

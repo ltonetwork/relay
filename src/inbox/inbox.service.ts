@@ -130,12 +130,6 @@ export class InboxService {
     }
   }
 
-  async generateETag(recipient: string): Promise<string> {
-    const hashes = await this.getMessageHashes(recipient);
-    const hash = crypto.createHash('sha256').update(hashes.join(',')).digest('hex');
-    return `"${hash}"`;
-  }
-
   async getLastModified(recipient: string): Promise<Date> {
     const lastModified = await this.redis.get(`inbox:${recipient}:lastModified`);
     return lastModified ? new Date(Number(lastModified)) : new Date(0); // to UTC
@@ -146,7 +140,26 @@ export class InboxService {
     await this.redis.set(`inbox:${recipient}:lastModified`, now.toString());
   }
 
-  async getMessageHashes(recipient: string): Promise<string[]> {
-    return await this.redis.hkeys(`inbox:${recipient}`);
+  async getMessagesMetadata(recipient: string): Promise<MessageSummery[]> {
+    const data = await this.redis.hgetall(`inbox:${recipient}`);
+
+    if (!data || Object.keys(data).length === 0) {
+      return [];
+    }
+
+    const messages: MessageSummery[] = Object.values(data)
+      .map((item: string) => {
+        try {
+          const message = JSON.parse(item);
+          const { data, ...messageWithoutData } = message;
+          return messageWithoutData;
+        } catch (error) {
+          console.error(`Failed to parse message item: ${item}`, error);
+          return null;
+        }
+      })
+      .filter((message: any): message is MessageSummery => message !== null);
+
+    return messages;
   }
 }
