@@ -25,7 +25,7 @@ export class InboxController {
   constructor(private readonly inbox: InboxService) {}
 
   @Get('/:address/list')
-  @ApiParam({ name: 'address', description: 'Address to get inbox hashes for' })
+  @ApiParam({ name: 'address', description: 'Check for messages metadata' })
   async listMetadata(
     @Param('address') address: string,
     @Signer() signer: Account,
