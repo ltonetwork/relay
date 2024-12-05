@@ -19,13 +19,12 @@ import { MessageSummery } from './inbox.dto';
 import { Account, Message } from '@ltonetwork/lto';
 import { Signer } from '../common/http-signature/signer';
 import { Response } from 'express';
-import { TelegramService } from '../common/telegram/telegram.service';
 
 @ApiTags('Inbox')
 @Controller('inboxes')
 @UseGuards(InboxGuard)
 export class InboxController {
-  constructor(private readonly inbox: InboxService, private readonly telegramService: TelegramService) {}
+  constructor(private readonly inbox: InboxService) {}
 
   @Get('/:address/list')
   @ApiParam({ name: 'address', description: 'Address to get inbox metadata' })
