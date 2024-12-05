@@ -29,7 +29,7 @@ export class TelegramService {
     }
   }
 
-  async formatMessageForTelegram(message: Message) {
+  async formatMessageForTelegram(message: any) {
     const sender = buildAddress(message.sender.publicKey, getNetwork(message.recipient));
     const recipient = message.recipient;
     const messageHash = message.hash.base58;

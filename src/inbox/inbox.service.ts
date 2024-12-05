@@ -141,25 +141,30 @@ export class InboxService {
   }
 
   async getMessagesMetadata(recipient: string): Promise<MessageSummery[]> {
-    const data = await this.redis.hgetall(`inbox:${recipient}`);
+    try {
+      const data = await this.redis.hgetall(`inbox:${recipient}`);
 
-    if (!data || Object.keys(data).length === 0) {
-      return [];
+      if (!data || Object.keys(data).length === 0) {
+        return [];
+      }
+
+      const messages: MessageSummery[] = Object.values(data)
+        .map((item: string) => {
+          try {
+            const message = JSON.parse(item);
+            const { data, sensitive, ...safeMessage } = message;
+            return safeMessage;
+          } catch (error) {
+            console.warn(`Failed to parse message item for ${recipient}`, error);
+            return null;
+          }
+        })
+        .filter((message): message is MessageSummery => message !== null);
+
+      return messages;
+    } catch (error) {
+      console.error(`Error retrieving messages for ${recipient}`, error);
+      throw new Error('Failed to retrieve message metadata');
     }
-
-    const messages: MessageSummery[] = Object.values(data)
-      .map((item: string) => {
-        try {
-          const message = JSON.parse(item);
-          const { data, ...messageWithoutData } = message;
-          return messageWithoutData;
-        } catch (error) {
-          console.error(`Failed to parse message item: ${item}`, error);
-          return null;
-        }
-      })
-      .filter((message: any): message is MessageSummery => message !== null);
-
-    return messages;
   }
 }
