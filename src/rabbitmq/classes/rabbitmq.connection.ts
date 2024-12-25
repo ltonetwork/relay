@@ -96,21 +96,51 @@ export class RabbitMQConnection {
     }
   }
 
-  async init(exchange: string, queue: string, pattern: string) {
-    // deadletter
-    const deadLetterExchange = exchange === '' || exchange.startsWith('amq.') ? 'deadletter' : `${exchange}.deadletter`;
-    await this.assertExchange(deadLetterExchange);
-    await this.assertQueue(`${queue}.deadletter`);
-    await this.bindQueue(deadLetterExchange, `${queue}.deadletter`, `${pattern}.deadletter`);
+  // async init(exchange: string, queue: string, pattern: string) {
+  //   // deadletter
+  //   const deadLetterExchange = exchange === '' || exchange.startsWith('amq.') ? 'deadletter' : `${exchange}.deadletter`;
+  //   await this.assertExchange(deadLetterExchange);
+  //   await this.assertQueue(`${queue}.deadletter`);
+  //   await this.bindQueue(deadLetterExchange, `${queue}.deadletter`, `${pattern}.deadletter`);
 
-    // regular
-    await this.assertExchange(exchange);
-    await this.assertQueue(queue, {
-      durable: true,
-      deadLetterExchange,
-      deadLetterRoutingKey: `${queue}.deadletter`,
-    });
-    await this.bindQueue(exchange, queue, pattern);
+  //   // regular
+  //   await this.assertExchange(exchange);
+  //   await this.assertQueue(queue, {
+  //     durable: true,
+  //     deadLetterExchange,
+  //     deadLetterRoutingKey: `${queue}.deadletter`,
+  //   });
+  //   await this.bindQueue(exchange, queue, pattern);
+  // }
+
+  async init(exchange: string, queue: string, pattern: string) {
+    try {
+      if (!this.channel || !this.open) {
+        throw new Error('Channel not available');
+      }
+
+      // deadletter
+      const deadLetterExchange =
+        exchange === '' || exchange.startsWith('amq.') ? 'deadletter' : `${exchange}.deadletter`;
+      await this.assertExchange(deadLetterExchange);
+      await this.assertQueue(`${queue}.deadletter`);
+      await this.bindQueue(deadLetterExchange, `${queue}.deadletter`, `${pattern}.deadletter`);
+
+      // regular
+      await this.assertExchange(exchange);
+      await this.assertQueue(queue, {
+        durable: true,
+        deadLetterExchange,
+        deadLetterRoutingKey: `${queue}.deadletter`,
+      });
+      await this.bindQueue(exchange, queue, pattern);
+    } catch (e) {
+      if (e.message.includes('Channel closed')) {
+        this.open = false;
+        throw e; //trigger reconnection
+      }
+      throw e;
+    }
   }
 
   private async assertQueue(queue: string, options: amqplib.Options.AssertQueue = { durable: true }) {
@@ -131,11 +161,18 @@ export class RabbitMQConnection {
     options: amqplib.Options.AssertExchange = { durable: true },
   ) {
     try {
+      if (!this.channel || !this.open) {
+        throw new Error('Channel not available');
+      }
       this.log('debug', `rabbitmq-connection: attempting to assert exchange '${exchange}'`);
       await this.channel.assertExchange(exchange, type, options);
       this.log('debug', `rabbitmq-connection: successfully asserted exchange '${exchange}'`);
     } catch (e) {
       this.log('error', `rabbitmq-connection: failed to assert exchange '${e}'`);
+      if (e.message.includes('Channel closed')) {
+        this.open = false;
+        throw e; // trigger reconnection
+      }
       await setTimeout(1500);
       return this.assertExchange(exchange, type, options);
     }

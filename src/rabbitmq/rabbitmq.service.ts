@@ -17,30 +17,63 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
     await this.close();
   }
 
+  // async connect(config: string | amqplib.Options.Connect): Promise<RabbitMQConnection> {
+  //   const key = typeof config === 'string' ? config : config.hostname;
+
+  //   if (this.connections[key] && this.connections[key].open) {
+  //     return this.connections[key];
+  //   }
+
+  //   if (this.connections[key] && !this.connections[key].open) {
+  //     return this.reopen(config);
+  //   }
+
+  //   this.logger.debug(`rabbitmq: attempting to connect ${key}`);
+
+  //   try {
+  //     const connection = await this._amqplib.connect(config);
+  //     const channel = await connection.createChannel();
+  //     this.onError(channel, config);
+  //     this.connections[key] = new RabbitMQConnection(connection, channel, this.logger);
+  //     this.logger.info(`rabbitmq: successfully connected ${key}`);
+  //     return this.connections[key];
+  //   } catch (e) {
+  //     this.logger.error(`rabbitmq: failed to connect ${key} '${e}'`);
+  //     await setTimeout(2000);
+  //     return this.connect(config);
+  //   }
+  // }
+
   async connect(config: string | amqplib.Options.Connect): Promise<RabbitMQConnection> {
     const key = typeof config === 'string' ? config : config.hostname;
+    const maxRetries = 5;
+    let retryCount = 0;
 
-    if (this.connections[key] && this.connections[key].open) {
-      return this.connections[key];
-    }
+    while (retryCount < maxRetries) {
+      try {
+        if (this.connections[key] && this.connections[key].open) {
+          return this.connections[key];
+        }
 
-    if (this.connections[key] && !this.connections[key].open) {
-      return this.reopen(config);
-    }
+        if (this.connections[key] && !this.connections[key].open) {
+          return this.reopen(config);
+        }
 
-    this.logger.debug(`rabbitmq: attempting to connect ${key}`);
-
-    try {
-      const connection = await this._amqplib.connect(config);
-      const channel = await connection.createChannel();
-      this.onError(channel, config);
-      this.connections[key] = new RabbitMQConnection(connection, channel, this.logger);
-      this.logger.info(`rabbitmq: successfully connected ${key}`);
-      return this.connections[key];
-    } catch (e) {
-      this.logger.error(`rabbitmq: failed to connect ${key} '${e}'`);
-      await setTimeout(2000);
-      return this.connect(config);
+        this.logger.debug(`rabbitmq: attempting to connect ${key}`);
+        const connection = await this._amqplib.connect(config);
+        const channel = await connection.createChannel();
+        this.onError(channel, config);
+        this.connections[key] = new RabbitMQConnection(connection, channel, this.logger);
+        this.logger.info(`rabbitmq: successfully connected ${key}`);
+        return this.connections[key];
+      } catch (e) {
+        retryCount++;
+        this.logger.error(`rabbitmq: failed to connect ${key} '${e}' (attempt ${retryCount}/${maxRetries})`);
+        if (retryCount === maxRetries) {
+          throw new Error(`Failed to connect to RabbitMQ after ${maxRetries} attempts`);
+        }
+        await setTimeout(2000 * retryCount);
+      }
     }
   }
 
@@ -74,10 +107,12 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
   }
 
   async close() {
-    await Promise.all(Object.keys(this.connections).map((key) => {
-      this.logger.info(`rabbitmq: closing connection ${key}`);
-      this.connections[key].close();
-      delete this.connections[key];
-    }));
+    await Promise.all(
+      Object.keys(this.connections).map((key) => {
+        this.logger.info(`rabbitmq: closing connection ${key}`);
+        this.connections[key].close();
+        delete this.connections[key];
+      }),
+    );
   }
 }
