@@ -46,9 +46,16 @@ export default {
   },
   dispatcher: {
     target: {
-      doc: 'The target url for the dispatcher',
-      default: '',
-      env: 'DISPATCH_TARGET',
+      url: {
+        doc: 'The target url for the dispatcher',
+        default: '',
+        env: 'DISPATCH_TARGET_URL',
+      },
+      api_key: {
+        doc: 'The API key for bearer auth for the dispatch target',
+        default: '',
+        env: 'DISPATCH_TARGET_API_KEY',
+      },
     },
     verify_anchor: {
       doc: 'Verify anchor before dispatching',

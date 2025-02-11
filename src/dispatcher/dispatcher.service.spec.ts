@@ -224,7 +224,10 @@ describe('DispatcherService', () => {
 
   describe('dispatch', () => {
     beforeEach(() => {
-      jest.spyOn(configService, 'getDispatchTarget').mockReturnValue('https://example.com');
+      jest.spyOn(configService, 'getDispatchTarget').mockReturnValue({
+        url: 'https://example.com',
+        api_key: 'test',
+      });
     });
 
     it('should POST the contents to the dispatch target', async () => {
@@ -248,6 +251,7 @@ describe('DispatcherService', () => {
         'LTO-Message-Signature': message.signature.base58,
         'LTO-Message-Timestamp': message.timestamp.toString(),
         'LTO-Message-Hash': message.hash.base58,
+        Authorization: 'Bearer test',
       });
 
       expect(spies.loggerService.debug).toHaveBeenCalledWith(
