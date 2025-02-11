@@ -139,7 +139,7 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
 
   private async dispatch(message: Message, msg: amqplib.Message): Promise<boolean> {
     const target = this.config.getDispatchTarget();
-    if (!target) return true;
+    if (!target.url) return true;
 
     const msgId = msg.properties.messageId;
     const networkId = getNetwork(message.recipient);
@@ -156,18 +156,22 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
       'LTO-Message-Timestamp': message.timestamp.toString(),
       'LTO-Message-Hash': message.hash.base58,
     };
+    
+    if (target.api_key) {
+      headers['Authorization'] = `Bearer ${target.api_key}`;
+    }
 
-    const response = await this.request.post(target, data, { headers });
+    const response = await this.request.post(target.url, data, { headers });
 
     if (response.status === 400) {
-      return this.reject(msg, `message ${msgId} rejected, POST ${target} gave a 400 response`);
+      return this.reject(msg, `message ${msgId} rejected, POST ${target.url} gave a 400 response`);
     }
 
     if (response.status > 299) {
-      return this.retry(msg, `message ${msgId} requeued, POST ${target} gave a ${response.status} response`);
+      return this.retry(msg, `message ${msgId} requeued, POST ${target.url} gave a ${response.status} response`);
     }
 
-    this.logger.debug(`dispatcher: message ${msgId} dispatched to ${target}`);
+    this.logger.debug(`dispatcher: message ${msgId} dispatched to ${target.url}`);
 
     return true;
   }
@@ -186,3 +190,4 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
     return false;
   }
 }
+
