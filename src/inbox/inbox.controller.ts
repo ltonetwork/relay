@@ -15,7 +15,7 @@ import {
 import { InboxService } from './inbox.service';
 import { ApiParam, ApiProduces, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { InboxGuard } from './inbox.guard';
-import { MessageSummery } from './inbox.dto';
+import { MessageSummary } from './inbox.dto';
 import { Account, Message } from '@ltonetwork/lto';
 import { Signer } from '../common/http-signature/signer';
 import { Response } from 'express';
@@ -73,6 +73,7 @@ export class InboxController {
 
       return res.status(200).json({
         metadata,
+        length: metadata.length,
         lastModified: lastModifiedDate.toISOString(),
       });
     } catch (error) {
@@ -89,7 +90,7 @@ export class InboxController {
     @Param('address') address: string,
     @Signer() signer: Account,
     @Query('type') type?: string,
-  ): Promise<MessageSummery[]> {
+  ): Promise<MessageSummary[]> {
     if (signer.address !== address) {
       throw new ForbiddenException({ message: 'Unauthorized: Invalid signature for this address' });
     }

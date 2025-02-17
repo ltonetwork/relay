@@ -3,7 +3,7 @@ import { ConfigService } from '../common/config/config.service';
 import { buildAddress, getNetwork, Message } from '@ltonetwork/lto';
 import { LoggerService } from '../common/logger/logger.service';
 import Redis from 'ioredis';
-import { MessageSummery } from './inbox.dto';
+import { MessageSummary } from './inbox.dto';
 import { Bucket } from 'any-bucket';
 
 @Injectable()
@@ -15,10 +15,10 @@ export class InboxService {
     private logger: LoggerService,
   ) {}
 
-  async list(recipient: string, type?: string): Promise<MessageSummery[]> {
+  async list(recipient: string, type?: string): Promise<MessageSummary[]> {
     const data = await this.redis.hgetall(`inbox:${recipient}`);
 
-    const messages: MessageSummery[] = Object.values(data)
+    const messages: MessageSummary[] = Object.values(data)
       .map((item: string) => JSON.parse(item))
       .map((message: any) => ({
         hash: message.hash,
@@ -29,7 +29,7 @@ export class InboxService {
         size: message.size,
       }));
 
-    return type ? messages.filter((message: MessageSummery) => message.type === type) : messages;
+    return type ? messages.filter((message: MessageSummary) => message.type === type) : messages;
   }
 
   async has(recipient: string, hash: string): Promise<boolean> {
@@ -134,7 +134,7 @@ export class InboxService {
     await this.redis.set(`inbox:${recipient}:lastModified`, now);
   }
 
-  async getMessagesMetadata(recipient: string): Promise<MessageSummery[]> {
+  async getMessagesMetadata(recipient: string): Promise<MessageSummary[]> {
     try {
       const data = await this.redis.hgetall(`inbox:${recipient}`);
 
@@ -142,7 +142,7 @@ export class InboxService {
         return [];
       }
 
-      const messages: MessageSummery[] = Object.values(data)
+      const messages: MessageSummary[] = Object.values(data)
         .map((item: string) => {
           try {
             const message = JSON.parse(item);
@@ -153,7 +153,7 @@ export class InboxService {
             return null;
           }
         })
-        .filter((message): message is MessageSummery => message !== null);
+        .filter((message): message is MessageSummary => message !== null);
 
       return messages;
     } catch (error) {
