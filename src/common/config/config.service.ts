@@ -28,7 +28,7 @@ export class ConfigService {
     return this.config.get('queue.enabled');
   }
 
-  getDispatchTarget(): string {
+  getDispatchTarget(): { url: string, api_key: string } {
     return this.config.get('dispatcher.target');
   }
 

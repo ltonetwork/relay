@@ -31,7 +31,7 @@ describe('ConfigService', () => {
     });
 
     test('getDispatchTarget()', async () => {
-      expect(configService.getDispatchTarget()).toBe('');
+      expect(configService.getDispatchTarget()).toEqual({ url: '', api_key: '' });
     });
 
     test('getEnv()', async () => {
