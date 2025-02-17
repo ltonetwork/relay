@@ -37,7 +37,6 @@ export class RabbitMQConnection {
 
   async publish(exchange: string, queue: string, msg: string | object, options: amqplib.Options.Publish = {}) {
     await this.init(exchange, queue, queue);
-
     if (typeof msg !== 'string' && !(msg instanceof Uint8Array)) {
       options.contentType ??= 'application/json';
       msg = JSON.stringify(msg);
