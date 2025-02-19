@@ -146,14 +146,15 @@ export class InboxService {
         .map((item: string) => {
           try {
             const message = JSON.parse(item);
-            const { data, sensitive, ...safeMessage } = message;
-            return safeMessage;
+            const { data, ...messageMetadata } = message;
+            return messageMetadata;
           } catch (error) {
             console.warn(`Failed to parse message item for ${recipient}`, error);
             return null;
           }
         })
-        .filter((message): message is MessageSummary => message !== null);
+        .filter((message): message is MessageSummary => message !== null)
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()); // sort descending by timestamp
 
       return messages;
     } catch (error) {

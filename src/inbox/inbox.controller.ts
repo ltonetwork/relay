@@ -28,10 +28,14 @@ export class InboxController {
 
   @Get('/:address/list')
   @ApiParam({ name: 'address', description: 'Address to get inbox metadata' })
+  @ApiQuery({ name: 'limit', description: 'Optional limit: either 25 or 50', required: false })
+  @ApiQuery({ name: 'offset', description: 'Optional offset for pagination', required: false })
   async listMetadata(
     @Param('address') address: string,
     @Signer() signer: Account,
     @Res() res: Response,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
   ): Promise<void | Response> {
     if (!address) {
       throw new BadRequestException('Address is required');
@@ -64,7 +68,17 @@ export class InboxController {
         return res.status(304).end();
       }
 
-      const metadata = await this.inbox.getMessagesMetadata(address);
+      const allMetadata = await this.inbox.getMessagesMetadata(address);
+      let metadata = allMetadata;
+
+      if (limit) {
+        const limitNumber = parseInt(limit, 10);
+        if (limitNumber < 1 || limitNumber > 50) {
+          throw new BadRequestException('limit must be between 1 and 50');
+        }
+        const offsetNumber = offset ? parseInt(offset, 10) : 0;
+        metadata = allMetadata.slice(offsetNumber, offsetNumber + limitNumber);
+      }
 
       res.set({
         'Last-Modified': lastModifiedDate.toUTCString(),
@@ -73,7 +87,7 @@ export class InboxController {
 
       return res.status(200).json({
         metadata,
-        length: metadata.length,
+        length: allMetadata.length,
         lastModified: lastModifiedDate.toISOString(),
       });
     } catch (error) {

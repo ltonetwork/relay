@@ -1,3 +1,5 @@
+// noinspection DuplicatedCode
+
 import { Test, TestingModule } from '@nestjs/testing';
 import { InboxService } from './inbox.service';
 import { ConfigModule } from '../common/config/config.module';
@@ -15,7 +17,6 @@ describe('InboxService', () => {
   let bucket: jest.Mocked<Bucket>;
   let logger: jest.Mocked<LoggerService>;
   let config: jest.Mocked<ConfigService>;
-
   let sender: Account;
   let recipient: Account;
   let message: Message;
@@ -35,6 +36,7 @@ describe('InboxService', () => {
     bucket = {
       get: jest.fn(),
       put: jest.fn(),
+      set: jest.fn(),
       delete: jest.fn(),
     } as any;
 
@@ -58,20 +60,23 @@ describe('InboxService', () => {
         { provide: Redis, useValue: redis },
         { provide: 'INBOX_BUCKET', useValue: bucket },
         { provide: LoggerService, useValue: logger },
-        { provide: ConfigService, useValue: config },
       ],
     }).compile();
 
     service = module.get<InboxService>(InboxService);
+  });
 
+  beforeEach(async () => {
     const factory = new AccountFactoryED25519('T');
+
     sender = factory.createFromSeed('sender');
     recipient = factory.createFromSeed('recipient');
     message = new Message('hello').to(recipient).signWith(sender);
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     jest.restoreAllMocks();
+    await module.close();
   });
 
   it('should be defined', () => {
@@ -79,96 +84,81 @@ describe('InboxService', () => {
   });
 
   describe('list', () => {
-    it('should return all messages if no type is specified', async () => {
-      const recipientAddress = recipient.address;
-      redis.hgetall.mockResolvedValue({
+    let data: Record<string, any>;
+
+    beforeEach(() => {
+      data = {
         hash1: JSON.stringify({
           hash: 'hash1',
           type: 'basic',
           timestamp: 1672531200,
           sender: 'sender1',
-          recipient: recipientAddress,
+          recipient: 'recipient1',
           size: 10,
+          senderPublicKey: 'ed25519',
+          publicKey: 'key1',
+          mediaType: 'text/plain',
+          data: 'foo',
         }),
         hash2: JSON.stringify({
           hash: 'hash2',
           type: 'other',
           timestamp: 1672531210,
           sender: 'sender2',
-          recipient: recipientAddress,
+          recipient: 'recipient2',
           size: 20,
         }),
-      });
+      };
+    });
+
+    it('should return all messages if no type is specified', async () => {
+      const recipientAddress = recipient.address;
+      redis.hgetall.mockResolvedValue(data);
 
       const result = await service.list(recipientAddress);
 
       expect(result).toEqual([
-        {
-          hash: 'hash1',
-          type: 'basic',
-          timestamp: 1672531200,
-          sender: 'sender1',
-          recipient: recipientAddress,
-          size: 10,
-        },
-        {
-          hash: 'hash2',
-          type: 'other',
-          timestamp: 1672531210,
-          sender: 'sender2',
-          recipient: recipientAddress,
-          size: 20,
-        },
+        { hash: 'hash1', type: 'basic', timestamp: 1672531200, sender: 'sender1', recipient: 'recipient1', size: 10 },
+        { hash: 'hash2', type: 'other', timestamp: 1672531210, sender: 'sender2', recipient: 'recipient2', size: 20 },
       ]);
       expect(redis.hgetall).toHaveBeenCalledWith(`inbox:${recipientAddress}`);
     });
 
-    it('should return filtered messages by type', async () => {
+    it('should return filtered messages by type if type is specified', async () => {
       const recipientAddress = recipient.address;
-      redis.hgetall.mockResolvedValue({
-        hash1: JSON.stringify({
-          hash: 'hash1',
-          type: 'basic',
-          timestamp: 1672531200,
-          sender: 'sender1',
-          recipient: recipientAddress,
-          size: 10,
-        }),
-      });
+      const type = 'basic';
+      redis.hgetall.mockResolvedValue(data);
 
-      const result = await service.list(recipientAddress, 'basic');
+      const result = await service.list(recipientAddress, type);
 
       expect(result).toEqual([
-        {
-          hash: 'hash1',
-          type: 'basic',
-          timestamp: 1672531200,
-          sender: 'sender1',
-          recipient: recipientAddress,
-          size: 10,
-        },
+        { hash: 'hash1', type: 'basic', timestamp: 1672531200, sender: 'sender1', recipient: 'recipient1', size: 10 },
       ]);
       expect(redis.hgetall).toHaveBeenCalledWith(`inbox:${recipientAddress}`);
     });
   });
 
   describe('has', () => {
-    it('should return true if the message exists', async () => {
+    it("should return true if the message exists in the recipient's inbox", async () => {
+      const recipientAddress = recipient.address;
+      const hash = message.hash.base58;
       redis.hexists.mockResolvedValue(1);
 
-      const result = await service.has(recipient.address, 'hash1');
+      const result = await service.has(recipientAddress, hash);
 
       expect(result).toBe(true);
-      expect(redis.hexists).toHaveBeenCalledWith(`inbox:${recipient.address}`, 'hash1');
+      expect(redis.hexists).toHaveBeenCalledWith(`inbox:${recipientAddress}`, hash);
     });
 
-    it('should return false if the message does not exist', async () => {
+    it("should return false if the message does not exist in the recipient's inbox", async () => {
+      const recipientAddress = recipient.address;
+      const hash = message.hash.base58;
       redis.hexists.mockResolvedValue(0);
 
-      const result = await service.has(recipient.address, 'hash1');
+      const result = await service.has(recipientAddress, hash);
 
       expect(result).toBe(false);
-      expect(redis.hexists).toHaveBeenCalledWith(`inbox:${recipient.address}`, 'hash1');
+      expect(redis.hexists).toHaveBeenCalledWith(`inbox:${recipientAddress}`, hash);
     });
   });
 
@@ -241,29 +231,36 @@ describe('InboxService', () => {
   });
 
   describe('getMessagesMetadata', () => {
-    it('should return all messages without the data field', async () => {
-      const recipientAddress = recipient.address;
+    let data: Record<string, any>;
 
-      redis.hgetall.mockResolvedValue({
+    beforeEach(() => {
+      data = {
         hash1: JSON.stringify({
           hash: 'hash1',
           type: 'basic',
           timestamp: 1672531200,
           sender: 'sender1',
-          recipient: recipientAddress,
+          recipient: 'recipient1',
           size: 10,
-          data: 'some data',
+          senderPublicKey: 'ed25519',
+          publicKey: 'key1',
+          mediaType: 'text/plain',
+          data: 'foo',
         }),
         hash2: JSON.stringify({
           hash: 'hash2',
           type: 'other',
           timestamp: 1672531210,
           sender: 'sender2',
-          recipient: recipientAddress,
+          recipient: 'recipient2',
           size: 20,
-          data: 'some other data',
         }),
-      });
+      };
+    });
+
+    it('should return all messages without the data field', async () => {
+      const recipientAddress = recipient.address;
+      redis.hgetall.mockResolvedValue(data);
 
       const result = await service.getMessagesMetadata(recipientAddress);
 
@@ -273,7 +270,7 @@ describe('InboxService', () => {
           type: 'basic',
           timestamp: 1672531200,
           sender: 'sender1',
-          recipient: recipientAddress,
+          recipient: 'recipient1',
           size: 10,
         },
         {
@@ -281,11 +278,10 @@ describe('InboxService', () => {
           type: 'other',
           timestamp: 1672531210,
           sender: 'sender2',
-          recipient: recipientAddress,
+          recipient: 'recipient2',
           size: 20,
         },
       ]);
-
       expect(redis.hgetall).toHaveBeenCalledWith(`inbox:${recipientAddress}`);
     });
 
@@ -301,7 +297,6 @@ describe('InboxService', () => {
 
     it('should handle invalid JSON gracefully', async () => {
       const recipientAddress = recipient.address;
-
       redis.hgetall.mockResolvedValue({
         hash1: '{ invalid JSON',
       });
@@ -310,6 +305,99 @@ describe('InboxService', () => {
 
       expect(result).toEqual([]);
       expect(redis.hgetall).toHaveBeenCalledWith(`inbox:${recipientAddress}`);
+    });
+
+    it('should sort messages by timestamp in descending order', async () => {
+      const recipientAddress = recipient.address;
+      redis.hgetall.mockResolvedValue({
+        hash1: JSON.stringify({
+          hash: message.hash.base58,
+          type: 'basic',
+          timestamp: message.timestamp.toJSON(),
+          sender: sender.address,
+          senderKeyType: sender.keyType,
+          senderPublicKey: sender.publicKey,
+          recipient: recipient.address,
+          mediaType: 'text/plain',
+          size: message.data.length,
+          signature: message.signature.base58,
+        }),
+        hash2: JSON.stringify({
+          hash: message.hash.base58,
+          type: 'basic',
+          timestamp: message.timestamp.toJSON(),
+          sender: sender.address,
+          senderKeyType: sender.keyType,
+          senderPublicKey: sender.publicKey,
+          recipient: recipient.address,
+          mediaType: 'text/plain',
+          size: message.data.length,
+          signature: message.signature.base58,
+        }),
+        hash3: JSON.stringify({
+          hash: message.hash.base58,
+          type: 'basic',
+          timestamp: message.timestamp.toJSON(),
+          sender: sender.address,
+          senderKeyType: sender.keyType,
+          senderPublicKey: sender.publicKey,
+          recipient: recipient.address,
+          mediaType: 'text/plain',
+          size: message.data.length,
+          signature: message.signature.base58,
+        }),
+      });
+
+      const result = await service.getMessagesMetadata(recipientAddress);
+      console.log(result);
+
+      expect(result).toEqual([
+        {
+          hash: message.hash.base58,
+          type: 'basic',
+          timestamp: message.timestamp.toJSON(),
+          sender: sender.address,
+          senderKeyType: sender.keyType,
+          senderPublicKey: sender.publicKey,
+          recipient: recipient.address,
+          mediaType: 'text/plain',
+          size: message.data.length,
+          signature: message.signature.base58,
+        },
+        {
+          hash: message.hash.base58,
+          type: 'basic',
+          timestamp: message.timestamp.toJSON(),
+          sender: sender.address,
+          senderKeyType: sender.keyType,
+          senderPublicKey: sender.publicKey,
+          recipient: recipient.address,
+          mediaType: 'text/plain',
+          size: message.data.length,
+          signature: message.signature.base58,
+        },
+        {
+          hash: message.hash.base58,
+          type: 'basic',
+          timestamp: message.timestamp.toJSON(),
+          sender: sender.address,
+          senderKeyType: sender.keyType,
+          senderPublicKey: sender.publicKey,
+          recipient: recipient.address,
+          mediaType: 'text/plain',
+          size: message.data.length,
+          signature: message.signature.base58,
+        },
+      ]);
+    });
+
+    it('should throw an error if Redis fails', async () => {
+      const recipientAddress = recipient.address;
+      redis.hgetall.mockRejectedValue(new Error('Redis error'));
+
+      await expect(service.getMessagesMetadata(recipientAddress)).rejects.toThrow(
+        'Failed to retrieve message metadata',
+      );
     });
   });
 });
