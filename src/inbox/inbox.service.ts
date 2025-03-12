@@ -12,6 +12,7 @@ export class InboxService {
     private config: ConfigService,
     private redis: Redis,
     @Inject('INBOX_BUCKET') private bucket: Bucket,
+    @Inject('INBOX_THUMBNAIL_BUCKET') private thumbnail_bucket: Bucket,
     private logger: LoggerService,
   ) {}
 
@@ -27,6 +28,9 @@ export class InboxService {
         sender: message.sender,
         recipient: message.recipient,
         size: message.size,
+        title: message.title ?? undefined,
+        description: message.description ?? undefined,
+        thumbnail: message.thumbnail ? true : undefined,
       }));
 
     return type ? messages.filter((message: MessageSummary) => message.type === type) : messages;
@@ -40,11 +44,24 @@ export class InboxService {
     const data = await this.redis.hget(`inbox:${recipient}`, hash);
     if (!data) throw new Error(`message not found`);
 
-    const message = JSON.parse(data);
+    try {
+      const message = JSON.parse(data);
 
-    return 'data' in message || 'encryptedData' in message
-      ? this.createFromEmbedded(message)
-      : await this.loadFromFile(hash);
+      if (message.thumbnail) {
+        try {
+          message.meta.thumbnail = await this.loadThumbnail(hash);
+        } catch (e) {
+          this.logger.warn(`Thumbnail for '${hash}' not found`);
+        }
+      }
+
+      return 'data' in message || 'encryptedData' in message
+        ? this.createFromEmbedded(message)
+        : await this.loadFromFile(hash);
+    } catch (error) {
+      this.logger.error(`Failed to parse message JSON for ${recipient}`, error);
+      throw new Error(`Invalid message format`);
+    }
   }
 
   private createFromEmbedded(data: any): Message {
@@ -58,6 +75,19 @@ export class InboxService {
   private async loadFromFile(hash: string): Promise<Message> {
     const data = await this.bucket.get(hash);
     return Message.from(data);
+  }
+
+  private async loadThumbnail(hash: string): Promise<Buffer | undefined> {
+    try {
+      return await this.thumbnail_bucket.get(hash);
+    } catch (error) {
+      if (error.code === 'NoSuchKey') {
+        this.logger.warn(`Thumbnail file '${hash}' not found in bucket storage`);
+      } else {
+        this.logger.error(`Failed to load thumbnail '${hash}' from bucket`, error);
+      }
+      return undefined;
+    }
   }
 
   async store(message: Message): Promise<void> {
@@ -90,15 +120,33 @@ export class InboxService {
     data.senderKeyType = message.sender.keyType;
     data.senderPublicKey = message.sender.publicKey.base58;
 
+    if (message.meta?.title?.trim()) {
+      data.title = message.meta.title;
+    }
+
+    if (message.meta?.description?.trim()) {
+      data.description = message.meta.description;
+    }
+
+    if (message.meta?.thumbnail) {
+      data.thumbnail = true;
+    }
+
     if (!embed) {
       delete data.encryptedData;
       delete data.data;
+      delete data.meta?.thumbnail;
     }
 
     await this.redis.hset(`inbox:${message.recipient}`, message.hash.base58, JSON.stringify(data));
   }
 
   private async storeFile(message: Message): Promise<void> {
+    if (message.meta?.thumbnail) {
+      const thumbnail = message.meta.thumbnail.toBinary();
+      await this.thumbnail_bucket.put(message.hash.base58, thumbnail);
+    }
+
     await this.bucket.put(message.hash.base58, message.toBinary());
   }
 
@@ -109,10 +157,17 @@ export class InboxService {
       throw new Error(`Message not found`);
     }
 
+    const data = await this.redis.hget(`inbox:${recipient}`, hash);
+    const hasThumbnail = data && JSON.parse(data).thumbnail;
+
     await this.redis.hdel(`inbox:${recipient}`, hash);
     this.logger.debug(`delete: message '${hash}' deleted from Redis for recipient '${recipient}'`);
 
     try {
+      if (hasThumbnail) {
+        await this.thumbnail_bucket.delete(hash);
+      }
+
       await this.bucket.delete(hash);
       this.logger.debug(`delete: file '${hash}' deleted from bucket storage`);
     } catch (error) {
@@ -148,13 +203,12 @@ export class InboxService {
             const message = JSON.parse(item);
             const { data, ...messageMetadata } = message;
             return messageMetadata;
-          } catch (error) {
-            console.warn(`Failed to parse message item for ${recipient}`, error);
-            return null;
+          } catch {
+            throw new Error(`Failed to parse message item for ${recipient}`);
           }
         })
         .filter((message): message is MessageSummary => message !== null)
-        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()); // sort descending by timestamp
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
       return messages;
     } catch (error) {

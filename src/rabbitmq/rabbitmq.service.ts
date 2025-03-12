@@ -17,33 +17,6 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
     await this.close();
   }
 
-  // async connect(config: string | amqplib.Options.Connect): Promise<RabbitMQConnection> {
-  //   const key = typeof config === 'string' ? config : config.hostname;
-
-  //   if (this.connections[key] && this.connections[key].open) {
-  //     return this.connections[key];
-  //   }
-
-  //   if (this.connections[key] && !this.connections[key].open) {
-  //     return this.reopen(config);
-  //   }
-
-  //   this.logger.debug(`rabbitmq: attempting to connect ${key}`);
-
-  //   try {
-  //     const connection = await this._amqplib.connect(config);
-  //     const channel = await connection.createChannel();
-  //     this.onError(channel, config);
-  //     this.connections[key] = new RabbitMQConnection(connection, channel, this.logger);
-  //     this.logger.info(`rabbitmq: successfully connected ${key}`);
-  //     return this.connections[key];
-  //   } catch (e) {
-  //     this.logger.error(`rabbitmq: failed to connect ${key} '${e}'`);
-  //     await setTimeout(2000);
-  //     return this.connect(config);
-  //   }
-  // }
-
   async connect(config: string | amqplib.Options.Connect): Promise<RabbitMQConnection> {
     const key = typeof config === 'string' ? config : config.hostname;
     const maxRetries = 5;

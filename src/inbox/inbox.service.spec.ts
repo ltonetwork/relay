@@ -1,5 +1,4 @@
 // noinspection DuplicatedCode
-
 import { Test, TestingModule } from '@nestjs/testing';
 import { InboxService } from './inbox.service';
 import { ConfigModule } from '../common/config/config.module';
@@ -95,6 +94,8 @@ describe('InboxService', () => {
           sender: 'sender1',
           recipient: 'recipient1',
           size: 10,
+          title: 'Test Title',
+          description: 'Test Description',
           senderPublicKey: 'ed25519',
           publicKey: 'key1',
           mediaType: 'text/plain',
@@ -135,6 +136,37 @@ describe('InboxService', () => {
         { hash: 'hash1', type: 'basic', timestamp: 1672531200, sender: 'sender1', recipient: 'recipient1', size: 10 },
       ]);
       expect(redis.hgetall).toHaveBeenCalledWith(`inbox:${recipientAddress}`);
+    });
+
+    it('should handle messages with thumbnail flag', async () => {
+      const recipientAddress = recipient.address;
+      const data = {
+        hash1: JSON.stringify({
+          hash: 'hash1',
+          type: 'basic',
+          timestamp: 1672531200,
+          sender: 'sender1',
+          recipient: 'recipient1',
+          size: 10,
+          thumbnail: true,
+        }),
+      };
+
+      redis.hgetall.mockResolvedValue(data);
+
+      const result = await service.list(recipientAddress);
+
+      expect(result).toEqual([
+        {
+          hash: 'hash1',
+          type: 'basic',
+          timestamp: 1672531200,
+          sender: 'sender1',
+          recipient: 'recipient1',
+          size: 10,
+          thumbnail: true,
+        },
+      ]);
     });
   });
 
@@ -220,13 +252,56 @@ describe('InboxService', () => {
       expect(bucket.put).toHaveBeenCalledWith(message.hash.base58, expect.any(Uint8Array));
       expect(redis.hset).toHaveBeenCalled();
     });
-  });
 
-  describe('updateLastModified', () => {
-    it('should update the last modified timestamp in Redis', async () => {
-      await service.updateLastModified(recipient.address);
+    it('should store message with metadata including title and description', async () => {
+      redis.hexists.mockResolvedValue(0);
+      config.isInboxEnabled.mockReturnValue(true);
+      config.getStorageEmbedMaxSize.mockReturnValue(1024);
 
-      expect(redis.set).toHaveBeenCalledWith(`inbox:${recipient.address}:lastModified`, expect.any(String));
+      const messageWithMeta = new Message('hello').to(recipient).signWith(sender);
+
+      // Add metadata to the message
+      messageWithMeta.meta = {
+        title: 'Test Title',
+        description: 'Test Description',
+      };
+
+      await service.store(messageWithMeta);
+
+      expect(redis.hset).toHaveBeenCalledWith(
+        `inbox:${recipient.address}`,
+        messageWithMeta.hash.base58,
+        expect.stringContaining('"title":"Test Title"'),
+      );
+      expect(redis.hset).toHaveBeenCalledWith(
+        `inbox:${recipient.address}`,
+        messageWithMeta.hash.base58,
+        expect.stringContaining('"description":"Test Description"'),
+      );
+    });
+
+    it('should store message with thumbnail', async () => {
+      redis.hexists.mockResolvedValue(0);
+      config.isInboxEnabled.mockReturnValue(true);
+      config.getStorageEmbedMaxSize.mockReturnValue(0); // Force storing in bucket
+
+      const messageWithThumbnail = new Message('hello').to(recipient).signWith(sender);
+
+      // Add thumbnail to the message
+      messageWithThumbnail.meta = {
+        thumbnail: Buffer.from('thumbnail data'),
+      };
+
+      await service.store(messageWithThumbnail);
+
+      expect(redis.hset).toHaveBeenCalledWith(
+        `inbox:${recipient.address}`,
+        messageWithThumbnail.hash.base58,
+        expect.stringContaining('"thumbnail":true'),
+      );
+
+      const thumbnailBucket = module.get('INBOX_THUMBNAIL_BUCKET');
+      expect(thumbnailBucket.put).toHaveBeenCalledWith(messageWithThumbnail.hash.base58, expect.any(Buffer));
     });
   });
 
@@ -398,6 +473,165 @@ describe('InboxService', () => {
       await expect(service.getMessagesMetadata(recipientAddress)).rejects.toThrow(
         'Failed to retrieve message metadata',
       );
+    });
+  });
+
+  describe('delete', () => {
+    it('should delete a message and its files', async () => {
+      const recipientAddress = recipient.address;
+      const hash = message.hash.base58;
+
+      redis.hexists.mockResolvedValue(1);
+      redis.hget.mockResolvedValue(JSON.stringify({ thumbnail: true }));
+
+      await service.delete(recipientAddress, hash);
+
+      expect(redis.hdel).toHaveBeenCalledWith(`inbox:${recipientAddress}`, hash);
+      expect(bucket.delete).toHaveBeenCalledWith(hash);
+      expect(logger.debug).toHaveBeenCalledTimes(2);
+    });
+
+    it('should throw an error if the message does not exist', async () => {
+      const recipientAddress = recipient.address;
+      const hash = message.hash.base58;
+
+      redis.hexists.mockResolvedValue(0);
+
+      await expect(service.delete(recipientAddress, hash)).rejects.toThrow('Message not found');
+      expect(logger.warn).toHaveBeenCalled();
+    });
+
+    it('should handle NoSuchKey error when deleting from bucket', async () => {
+      const recipientAddress = recipient.address;
+      const hash = message.hash.base58;
+
+      redis.hexists.mockResolvedValue(1);
+      redis.hget.mockResolvedValue(JSON.stringify({ thumbnail: false }));
+      bucket.delete.mockRejectedValue({ code: 'NoSuchKey' });
+
+      await service.delete(recipientAddress, hash);
+
+      expect(redis.hdel).toHaveBeenCalledWith(`inbox:${recipientAddress}`, hash);
+      expect(logger.warn).toHaveBeenCalled();
+    });
+
+    it('should handle other errors when deleting from bucket', async () => {
+      const recipientAddress = recipient.address;
+      const hash = message.hash.base58;
+
+      redis.hexists.mockResolvedValue(1);
+      redis.hget.mockResolvedValue(JSON.stringify({ thumbnail: false }));
+      const error = new Error('Bucket error');
+      bucket.delete.mockRejectedValue(error);
+
+      await service.delete(recipientAddress, hash);
+
+      expect(redis.hdel).toHaveBeenCalledWith(`inbox:${recipientAddress}`, hash);
+      expect(logger.error).toHaveBeenCalledWith(`delete: failed to delete file '${hash}' from bucket storage`, error);
+    });
+  });
+
+  describe('getLastModified', () => {
+    it('should return the last modified date', async () => {
+      const recipientAddress = recipient.address;
+      const date = new Date().toISOString();
+      redis.get.mockResolvedValue(date);
+
+      const result = await service.getLastModified(recipientAddress);
+
+      expect(result).toEqual(new Date(date));
+      expect(redis.get).toHaveBeenCalledWith(`inbox:${recipientAddress}:lastModified`);
+    });
+
+    it('should return epoch date if no last modified date exists', async () => {
+      const recipientAddress = recipient.address;
+      redis.get.mockResolvedValue(null);
+
+      const result = await service.getLastModified(recipientAddress);
+
+      expect(result).toEqual(new Date(0));
+      expect(redis.get).toHaveBeenCalledWith(`inbox:${recipientAddress}:lastModified`);
+    });
+  });
+
+  describe('get with thumbnails', () => {
+    let messageWithThumbnail: any;
+
+    beforeEach(() => {
+      messageWithThumbnail = {
+        ...message.toJSON(),
+        thumbnail: true,
+        meta: {
+          thumbnail: Buffer.from('thumbnail data'),
+        },
+      };
+
+      const thumbnailBucket = module.get('INBOX_THUMBNAIL_BUCKET');
+      jest.spyOn(thumbnailBucket, 'get').mockResolvedValue(Buffer.from('thumbnail data'));
+    });
+
+    it('should load thumbnail when message has a thumbnail flag', async () => {
+      redis.hget.mockResolvedValue(JSON.stringify(messageWithThumbnail));
+
+      const result = await service.get(recipient.address, 'hash1');
+
+      expect(result.meta.thumbnail).toBeDefined();
+      expect(module.get('INBOX_THUMBNAIL_BUCKET').get).toHaveBeenCalledWith('hash1');
+    });
+
+    it('should handle missing thumbnail file gracefully', async () => {
+      redis.hget.mockResolvedValue(JSON.stringify(messageWithThumbnail));
+      module.get('INBOX_THUMBNAIL_BUCKET').get.mockRejectedValue(new Error('Thumbnail not found'));
+
+      const result = await service.get(recipient.address, 'hash1');
+
+      expect(result.meta.thumbnail).toBeUndefined();
+      expect(logger.warn).toHaveBeenCalledWith(`Thumbnail for 'hash1' not found`);
+    });
+  });
+
+  describe('loadThumbnail', () => {
+    it('should handle NoSuchKey error when loading thumbnail', async () => {
+      const thumbnailBucket = module.get('INBOX_THUMBNAIL_BUCKET');
+      jest.spyOn(thumbnailBucket, 'get').mockRejectedValue({ code: 'NoSuchKey' });
+
+      const result = await (service as any).loadThumbnail('hash1');
+
+      expect(result).toBeUndefined();
+      expect(logger.warn).toHaveBeenCalledWith(`Thumbnail file 'hash1' not found in bucket storage`);
+    });
+
+    it('should handle general errors when loading thumbnail', async () => {
+      const error = new Error('Bucket error');
+      const thumbnailBucket = module.get('INBOX_THUMBNAIL_BUCKET');
+      jest.spyOn(thumbnailBucket, 'get').mockRejectedValue(error);
+
+      const result = await (service as any).loadThumbnail('hash1');
+
+      expect(result).toBeUndefined();
+      expect(logger.error).toHaveBeenCalledWith(`Failed to load thumbnail 'hash1' from bucket`, error);
+    });
+  });
+
+  describe('create from embedded and load from file', () => {
+    it('should create message from embedded data', async () => {
+      const data = {
+        senderPublicKey: sender.publicKey,
+        senderKeyType: sender.keyType,
+        data: 'hello',
+      };
+
+      const result = await (service as any).createFromEmbedded(data);
+      expect(result).toEqual(expect.objectContaining({ data: 'hello' }));
+    });
+
+    it('should load message from file', async () => {
+      (bucket.get as jest.Mock).mockResolvedValue(message.toBinary());
+
+      const result = await (service as any).loadFromFile(message.hash.base58);
+
+      expect(result).toEqual(expect.objectContaining({ data: message.data }));
+      expect(bucket.get).toHaveBeenCalledWith(message.hash.base58);
     });
   });
 });
