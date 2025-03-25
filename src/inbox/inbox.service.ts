@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '../common/config/config.service';
-import { buildAddress, getNetwork, Message } from '@ltonetwork/lto';
+import { Binary, buildAddress, getNetwork, Message } from '@ltonetwork/lto';
 import { LoggerService } from '../common/logger/logger.service';
 import Redis from 'ioredis';
 import { MessageSummary } from './inbox.dto';
@@ -22,15 +22,16 @@ export class InboxService {
     const messages: MessageSummary[] = Object.values(data)
       .map((item: string) => JSON.parse(item))
       .map((message: any) => ({
+        version: message.version,
         hash: message.hash,
         type: message.type,
         timestamp: message.timestamp,
         sender: message.sender,
         recipient: message.recipient,
         size: message.size,
-        title: message.title ?? undefined,
-        description: message.description ?? undefined,
-        thumbnail: message.thumbnail ? true : undefined,
+        // title: message.meta?.title ?? undefined,
+        // description: message.meta?.description ?? undefined,
+        // thumbnail: message.meta?.thumbnail ? true : undefined,
       }));
 
     return type ? messages.filter((message: MessageSummary) => message.type === type) : messages;
@@ -42,13 +43,15 @@ export class InboxService {
 
   async get(recipient: string, hash: string): Promise<Message> {
     const data = await this.redis.hget(`inbox:${recipient}`, hash);
+
     if (!data) throw new Error(`message not found`);
 
     try {
       const message = JSON.parse(data);
 
-      if (message.thumbnail) {
+      if (message.meta?.thumbnail) {
         try {
+          console.log('LOADDDD');
           message.meta.thumbnail = await this.loadThumbnail(hash);
         } catch (e) {
           this.logger.warn(`Thumbnail for '${hash}' not found`);
@@ -68,7 +71,6 @@ export class InboxService {
     if (!data.senderPublicKey) {
       throw new Error('Invalid message data: senderPublicKey is missing');
     }
-
     return Message.from({ ...data, sender: { keyType: data.senderKeyType, publicKey: data.senderPublicKey } });
   }
 
@@ -103,6 +105,7 @@ export class InboxService {
       (message.isEncrypted() ? message.encryptedData : message.data).length <= this.config.getStorageEmbedMaxSize();
 
     const promises: Promise<any>[] = [];
+
     promises.push(this.storeIndex(message, embed));
     if (!embed) promises.push(this.storeFile(message));
 
@@ -120,22 +123,10 @@ export class InboxService {
     data.senderKeyType = message.sender.keyType;
     data.senderPublicKey = message.sender.publicKey.base58;
 
-    if (message.meta?.title?.trim()) {
-      data.title = message.meta.title;
-    }
-
-    if (message.meta?.description?.trim()) {
-      data.description = message.meta.description;
-    }
-
-    if (message.meta?.thumbnail) {
-      data.thumbnail = true;
-    }
-
     if (!embed) {
       delete data.encryptedData;
       delete data.data;
-      delete data.meta?.thumbnail;
+      //delete data.meta?.thumbnail;
     }
 
     await this.redis.hset(`inbox:${message.recipient}`, message.hash.base58, JSON.stringify(data));
@@ -143,10 +134,9 @@ export class InboxService {
 
   private async storeFile(message: Message): Promise<void> {
     if (message.meta?.thumbnail) {
-      const thumbnail = message.meta.thumbnail.toBinary();
+      const thumbnail = new Binary(message.meta.thumbnail);
       await this.thumbnail_bucket.put(message.hash.base58, thumbnail);
     }
-
     await this.bucket.put(message.hash.base58, message.toBinary());
   }
 
@@ -158,7 +148,11 @@ export class InboxService {
     }
 
     const data = await this.redis.hget(`inbox:${recipient}`, hash);
-    const hasThumbnail = data && JSON.parse(data).thumbnail;
+
+    //const hasThumbnail = data && JSON.parse(data).thumbnail;
+
+    const parsed = data && JSON.parse(data);
+    const hasThumbnail = parsed?.meta?.thumbnail !== undefined;
 
     await this.redis.hdel(`inbox:${recipient}`, hash);
     this.logger.debug(`delete: message '${hash}' deleted from Redis for recipient '${recipient}'`);
@@ -212,8 +206,7 @@ export class InboxService {
 
       return messages;
     } catch (error) {
-      console.error(`Error retrieving messages for ${recipient}`, error);
-      throw new Error('Failed to retrieve message metadata');
+      throw new Error(`Unable to retrieve message metadata: ${(error as Error).message}`);
     }
   }
 }

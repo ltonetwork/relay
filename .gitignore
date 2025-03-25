@@ -40,6 +40,7 @@ logs
 
 # Data
 /storage
+/thumbnail_storage
 .yarn
 
 # Elastic Beanstalk Files

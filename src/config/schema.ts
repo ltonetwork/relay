@@ -93,7 +93,7 @@ export default {
       env: 'INBOX_STORAGE',
     },
     thumbnail_storage: {
-      doc: 'Path or bukcet DSN for the thumbnail storage',
+      doc: 'Path or bucket DSN for the thumbnail storage',
       default: './thumbnail_storage',
       env: 'INBOX_THUMBNAIL_STORAGE',
     },

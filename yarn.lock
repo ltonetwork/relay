@@ -1321,10 +1321,10 @@
   resolved "https://registry.npmjs.org/@ltonetwork/http-message-signatures/-/http-message-signatures-0.1.12.tgz"
   integrity sha512-bk7BemlROclcdXu5ISTKjPeRstJoqWefh6Bvr1q6XaX+KyKgLuKeCSYOKRyBBJ8P/E+tq9toBUIlMRLvW5J9KQ==
 
-"@ltonetwork/lto@^0.15.16":
-  version "0.15.16"
-  resolved "https://registry.npmjs.org/@ltonetwork/lto/-/lto-0.15.16.tgz"
-  integrity sha512-bAlKnSNTPSzZ8PCOFhaq/bYjZ0q2P2raQYl39Hq7xcYT1dJxf0SskEQdtfW11o6AML9fCfrLH7qvEQRhgmPLWA==
+"@ltonetwork/lto@^0.15.17":
+  version "0.15.17"
+  resolved "https://registry.npmjs.org/@ltonetwork/lto/-/lto-0.15.17.tgz"
+  integrity sha512-G8cT5OIWNbzjhwbTSU+SbghvhE/7zgB6fQxM5w/OsjqbT26Vk6zEbFQrs21kVztFg4fpz+iyhM1+l/lRu0RByw==
   dependencies:
     "@noble/curves" "^1.0.0"
     "@noble/hashes" "^1.3.0"

@@ -25,7 +25,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.504.0",
     "@ltonetwork/http-message-signatures": "^0.1.12",
-    "@ltonetwork/lto": "^0.15.16",
+    "@ltonetwork/lto": "^0.15.17",
     "@nestjs/axios": "^3.0.0",
     "@nestjs/common": "^9.0.0",
     "@nestjs/core": "^9.0.0",
