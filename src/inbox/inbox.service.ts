@@ -29,9 +29,6 @@ export class InboxService {
         sender: message.sender,
         recipient: message.recipient,
         size: message.size,
-        // title: message.meta?.title ?? undefined,
-        // description: message.meta?.description ?? undefined,
-        // thumbnail: message.meta?.thumbnail ? true : undefined,
       }));
 
     return type ? messages.filter((message: MessageSummary) => message.type === type) : messages;
@@ -51,7 +48,6 @@ export class InboxService {
 
       if (message.meta?.thumbnail) {
         try {
-          console.log('LOADDDD');
           message.meta.thumbnail = await this.loadThumbnail(hash);
         } catch (e) {
           this.logger.warn(`Thumbnail for '${hash}' not found`);
@@ -79,9 +75,12 @@ export class InboxService {
     return Message.from(data);
   }
 
-  private async loadThumbnail(hash: string): Promise<Buffer | undefined> {
+  private async loadThumbnail(hash: string): Promise<string | undefined> {
     try {
-      return await this.thumbnail_bucket.get(hash);
+      const thumbnailBuffer = await this.thumbnail_bucket.get(hash);
+      const base64 = thumbnailBuffer.toString('base64');
+      const mimeType = 'image/webp';
+      return `data:${mimeType};base64,${base64}`;
     } catch (error) {
       if (error.code === 'NoSuchKey') {
         this.logger.warn(`Thumbnail file '${hash}' not found in bucket storage`);
@@ -123,10 +122,14 @@ export class InboxService {
     data.senderKeyType = message.sender.keyType;
     data.senderPublicKey = message.sender.publicKey.base58;
 
+    if (message.meta?.thumbnail) {
+      data.thumbnail = true;
+    }
+
     if (!embed) {
       delete data.encryptedData;
       delete data.data;
-      //delete data.meta?.thumbnail;
+      delete data.meta?.thumbnail;
     }
 
     await this.redis.hset(`inbox:${message.recipient}`, message.hash.base58, JSON.stringify(data));
@@ -148,8 +151,6 @@ export class InboxService {
     }
 
     const data = await this.redis.hget(`inbox:${recipient}`, hash);
-
-    //const hasThumbnail = data && JSON.parse(data).thumbnail;
 
     const parsed = data && JSON.parse(data);
     const hasThumbnail = parsed?.meta?.thumbnail !== undefined;
@@ -179,8 +180,9 @@ export class InboxService {
   }
 
   async updateLastModified(recipient: string): Promise<void> {
-    const now = new Date().toISOString();
-    await this.redis.set(`inbox:${recipient}:lastModified`, now);
+    const now = new Date();
+    now.setMilliseconds(0);
+    await this.redis.set(`inbox:${recipient}:lastModified`, now.toISOString());
   }
 
   async getMessagesMetadata(recipient: string): Promise<MessageSummary[]> {
@@ -191,20 +193,32 @@ export class InboxService {
         return [];
       }
 
-      const messages: MessageSummary[] = Object.values(data)
-        .map((item: string) => {
-          try {
-            const message = JSON.parse(item);
-            const { data, ...messageMetadata } = message;
-            return messageMetadata;
-          } catch {
-            throw new Error(`Failed to parse message item for ${recipient}`);
-          }
-        })
-        .filter((message): message is MessageSummary => message !== null)
-        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      const messagePromises = Object.values(data).map(async (item: string) => {
+        try {
+          const message = JSON.parse(item);
+          const { data, ...messageMetadata } = message;
 
-      return messages;
+          if (messageMetadata?.thumbnail) {
+            const thumbnail = await this.loadThumbnail(message.hash);
+            messageMetadata.meta.thumbnail = thumbnail;
+            delete messageMetadata.thumbnail;
+          }
+
+          return messageMetadata as MessageSummary;
+        } catch (error) {
+          throw new Error(`Failed to parse message item for ${recipient}: ${error.message}`);
+        }
+      });
+
+      try {
+        const messagesWithThumbnails = (await Promise.all(messagePromises)).sort(
+          (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+        );
+
+        return messagesWithThumbnails;
+      } catch (error) {
+        throw error;
+      }
     } catch (error) {
       throw new Error(`Unable to retrieve message metadata: ${(error as Error).message}`);
     }

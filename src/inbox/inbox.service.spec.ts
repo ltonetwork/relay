@@ -285,7 +285,7 @@ describe('InboxService', () => {
 
       const storedData = JSON.parse(String(redis.hset.mock.calls[0][2]));
 
-      expect(storedData.meta.thumbnail).toBe(Binary.from('hello').base64);
+      expect(storedData.thumbnail).toBe(true);
 
       expect(thumbnailPutSpy).toHaveBeenCalledWith(message.hash.base58, expect.any(Binary));
       expect(bucket.put).toHaveBeenCalledWith(message.hash.base58, message.toBinary());

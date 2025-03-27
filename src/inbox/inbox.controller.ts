@@ -67,7 +67,8 @@ export class InboxController {
       }
 
       if (clientDate && clientDate >= lastModifiedDate) {
-        return res.status(304).end();
+        res.status(304).end();
+        return;
       }
 
       let metadata = await this.inbox.getMessagesMetadata(address);
@@ -75,10 +76,10 @@ export class InboxController {
         metadata = metadata.filter((msg) => msg.type === type);
       }
 
+      const totalCount = metadata.length;
       const limitNumber = limit ? Math.min(Math.max(parseInt(limit, 10) || 100, 1), 100) : 100;
       const offsetNumber = offset ? Math.max(parseInt(offset, 10) || 0, 0) : 0;
-
-      metadata = metadata.slice(offsetNumber, offsetNumber + limitNumber);
+      const paginated = metadata.slice(offsetNumber, offsetNumber + limitNumber);
 
       res.set({
         'Last-Modified': lastModifiedDate.toUTCString(),
@@ -86,8 +87,8 @@ export class InboxController {
       });
 
       return res.status(200).json({
-        metadata,
-        length: metadata.length,
+        metadata: paginated,
+        total: totalCount,
         lastModified: lastModifiedDate.toISOString(),
       });
     } catch (error) {
@@ -99,7 +100,7 @@ export class InboxController {
   @Get('/:address')
   @ApiParam({ name: 'address', description: 'Address to get inbox for' })
   @ApiQuery({ name: 'type', description: 'Type of messages to get', required: false })
-  @ApiQuery({ name: 'limit', description: 'Optional limit (default 50, max 50)', required: false })
+  @ApiQuery({ name: 'limit', description: 'Optional limit (default 100, max 100)', required: false })
   @ApiQuery({ name: 'offset', description: 'Optional offset for pagination', required: false })
   @ApiProduces('application/json')
   async list(
@@ -114,7 +115,7 @@ export class InboxController {
     }
 
     const allMessages = await this.inbox.list(address, type);
-    const limitNumber = limit ? Math.min(Math.max(parseInt(limit, 10) || 50, 1), 50) : 50;
+    const limitNumber = limit ? Math.min(Math.max(parseInt(limit, 10) || 100, 1), 100) : 100;
     const offsetNumber = offset ? Math.max(parseInt(offset, 10) || 0, 0) : 0;
     const paginatedMessages = allMessages.slice(offsetNumber, offsetNumber + limitNumber);
 
