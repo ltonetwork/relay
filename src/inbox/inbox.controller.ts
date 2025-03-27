@@ -28,12 +28,14 @@ export class InboxController {
 
   @Get('/:address/list')
   @ApiParam({ name: 'address', description: 'Address to get inbox metadata' })
-  @ApiQuery({ name: 'limit', description: 'Optional limit: either 25 or 50', required: false })
+  @ApiQuery({ name: 'type', description: "filter the metadata by the type of message e.g 'ownable'", required: false })
+  @ApiQuery({ name: 'limit', description: 'Optional limit: 100 is the limit', required: false })
   @ApiQuery({ name: 'offset', description: 'Optional offset for pagination', required: false })
   async listMetadata(
     @Param('address') address: string,
     @Signer() signer: Account,
     @Res() res: Response,
+    @Query('type') type?: string,
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
   ): Promise<void | Response> {
@@ -65,20 +67,19 @@ export class InboxController {
       }
 
       if (clientDate && clientDate >= lastModifiedDate) {
-        return res.status(304).end();
+        res.status(304).end();
+        return;
       }
 
-      const allMetadata = await this.inbox.getMessagesMetadata(address);
-      let metadata = allMetadata;
-
-      if (limit) {
-        const limitNumber = parseInt(limit, 10);
-        if (limitNumber < 1 || limitNumber > 50) {
-          throw new BadRequestException('limit must be between 1 and 50');
-        }
-        const offsetNumber = offset ? parseInt(offset, 10) : 0;
-        metadata = allMetadata.slice(offsetNumber, offsetNumber + limitNumber);
+      let metadata = await this.inbox.getMessagesMetadata(address);
+      if (type) {
+        metadata = metadata.filter((msg) => msg.type === type);
       }
+
+      const totalCount = metadata.length;
+      const limitNumber = limit ? Math.min(Math.max(parseInt(limit, 10) || 100, 1), 100) : 100;
+      const offsetNumber = offset ? Math.max(parseInt(offset, 10) || 0, 0) : 0;
+      const paginated = metadata.slice(offsetNumber, offsetNumber + limitNumber);
 
       res.set({
         'Last-Modified': lastModifiedDate.toUTCString(),
@@ -86,8 +87,8 @@ export class InboxController {
       });
 
       return res.status(200).json({
-        metadata,
-        length: allMetadata.length,
+        metadata: paginated,
+        total: totalCount,
         lastModified: lastModifiedDate.toISOString(),
       });
     } catch (error) {
@@ -99,16 +100,29 @@ export class InboxController {
   @Get('/:address')
   @ApiParam({ name: 'address', description: 'Address to get inbox for' })
   @ApiQuery({ name: 'type', description: 'Type of messages to get', required: false })
+  @ApiQuery({ name: 'limit', description: 'Optional limit (default 100, max 100)', required: false })
+  @ApiQuery({ name: 'offset', description: 'Optional offset for pagination', required: false })
   @ApiProduces('application/json')
   async list(
     @Param('address') address: string,
     @Signer() signer: Account,
     @Query('type') type?: string,
-  ): Promise<MessageSummary[]> {
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+  ): Promise<{ messages: MessageSummary[]; total: number }> {
     if (signer.address !== address) {
       throw new ForbiddenException({ message: 'Unauthorized: Invalid signature for this address' });
     }
-    return this.inbox.list(address, type);
+
+    const allMessages = await this.inbox.list(address, type);
+    const limitNumber = limit ? Math.min(Math.max(parseInt(limit, 10) || 100, 1), 100) : 100;
+    const offsetNumber = offset ? Math.max(parseInt(offset, 10) || 0, 0) : 0;
+    const paginatedMessages = allMessages.slice(offsetNumber, offsetNumber + limitNumber);
+
+    return {
+      messages: paginatedMessages,
+      total: allMessages.length,
+    };
   }
 
   @Get('/:address/:hash')

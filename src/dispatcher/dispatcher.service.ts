@@ -143,8 +143,9 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
 
     const msgId = msg.properties.messageId;
     const networkId = getNetwork(message.recipient);
-
     const data = message.isEncrypted() ? message.encryptedData : message.data;
+    const thumbnail = message.meta?.thumbnail ? message.meta.thumbnail : null;
+
     const headers: Record<string, string> = {
       'Content-Type': message.isEncrypted() ? 'application/octet-stream' : message.mediaType,
       'LTO-Message-Type': message.type,
@@ -155,13 +156,15 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
       'LTO-Message-Signature': message.signature.base58,
       'LTO-Message-Timestamp': message.timestamp.toString(),
       'LTO-Message-Hash': message.hash.base58,
+      ...(message.meta?.title ? { 'LTO-Message-Title': message.meta.title } : {}),
+      ...(message.meta?.description ? { 'LTO-Message-Description': message.meta.description } : {}),
     };
-    
+
     if (target.api_key) {
       headers['Authorization'] = `Bearer ${target.api_key}`;
     }
 
-    const response = await this.request.post(target.url, data, { headers });
+    const response = await this.request.post(target.url, { headers }, data, thumbnail);
 
     if (response.status === 400) {
       return this.reject(msg, `message ${msgId} rejected, POST ${target.url} gave a 400 response`);
@@ -190,4 +193,3 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
     return false;
   }
 }
-

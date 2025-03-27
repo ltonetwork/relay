@@ -4,6 +4,7 @@ import { LoggerService } from '../logger/logger.service';
 import { AxiosRequestConfig, AxiosResponse } from 'axios';
 import { HttpService } from '@nestjs/axios';
 import { lastValueFrom } from 'rxjs';
+import FormData from 'form-data';
 
 @Injectable()
 export class RequestService {
@@ -44,10 +45,24 @@ export class RequestService {
     return await this.send(config);
   }
 
-  async post(url: string, data?: any, config: AxiosRequestConfig = {}): Promise<AxiosResponse> {
+  async post(url: string, config: AxiosRequestConfig = {}, data?: any, thumbnail?: any): Promise<AxiosResponse> {
     config.method = 'post';
     config.url = url;
-    config.data = data;
+
+    if (thumbnail) {
+      const formData = new FormData();
+      formData.append('data', data);
+      formData.append('thumbnail', thumbnail, { contentType: 'image/png' });
+
+      config.data = formData;
+      config.headers = {
+        ...config.headers,
+        ...formData.getHeaders(),
+      };
+    } else {
+      config.data = data;
+    }
+
     return await this.send(config);
   }
 

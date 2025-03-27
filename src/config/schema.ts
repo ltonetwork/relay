@@ -92,6 +92,11 @@ export default {
       default: './storage',
       env: 'INBOX_STORAGE',
     },
+    thumbnail_storage: {
+      doc: 'Path or bucket DSN for the thumbnail storage',
+      default: './thumbnail_storage',
+      env: 'INBOX_THUMBNAIL_STORAGE',
+    },
     embed_max_size: {
       doc: 'The maximum size for which the message content is embedded in the index',
       default: 1024,

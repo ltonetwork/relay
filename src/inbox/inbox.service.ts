@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '../common/config/config.service';
-import { buildAddress, getNetwork, Message } from '@ltonetwork/lto';
+import { Binary, buildAddress, getNetwork, Message } from '@ltonetwork/lto';
 import { LoggerService } from '../common/logger/logger.service';
 import Redis from 'ioredis';
 import { MessageSummary } from './inbox.dto';
@@ -14,6 +14,7 @@ export class InboxService {
     private config: ConfigService,
     private redis: Redis,
     @Inject('INBOX_BUCKET') private bucket: Bucket,
+    @Inject('INBOX_THUMBNAIL_BUCKET') private thumbnail_bucket: Bucket,
     private logger: LoggerService,
     private readonly telegramService: TelegramService,
   ) {}
@@ -24,6 +25,7 @@ export class InboxService {
     const messages: MessageSummary[] = Object.values(data)
       .map((item: string) => JSON.parse(item))
       .map((message: any) => ({
+        version: message.version,
         hash: message.hash,
         type: message.type,
         timestamp: message.timestamp,
@@ -41,26 +43,55 @@ export class InboxService {
 
   async get(recipient: string, hash: string): Promise<Message> {
     const data = await this.redis.hget(`inbox:${recipient}`, hash);
+
     if (!data) throw new Error(`message not found`);
 
-    const message = JSON.parse(data);
+    try {
+      const message = JSON.parse(data);
 
-    return 'data' in message || 'encryptedData' in message
-      ? this.createFromEmbedded(message)
-      : await this.loadFromFile(hash);
+      if (message.meta?.thumbnail) {
+        try {
+          message.meta.thumbnail = await this.loadThumbnail(hash);
+        } catch (e) {
+          this.logger.warn(`Thumbnail for '${hash}' not found`);
+        }
+      }
+
+      return 'data' in message || 'encryptedData' in message
+        ? this.createFromEmbedded(message)
+        : await this.loadFromFile(hash);
+    } catch (error) {
+      this.logger.error(`Failed to parse message JSON for ${recipient}`, error);
+      throw new Error(`Invalid message format`);
+    }
   }
 
   private createFromEmbedded(data: any): Message {
     if (!data.senderPublicKey) {
       throw new Error('Invalid message data: senderPublicKey is missing');
     }
-
     return Message.from({ ...data, sender: { keyType: data.senderKeyType, publicKey: data.senderPublicKey } });
   }
 
   private async loadFromFile(hash: string): Promise<Message> {
     const data = await this.bucket.get(hash);
     return Message.from(data);
+  }
+
+  private async loadThumbnail(hash: string): Promise<string | undefined> {
+    try {
+      const thumbnailBuffer = await this.thumbnail_bucket.get(hash);
+      const base64 = thumbnailBuffer.toString('base64');
+      const mimeType = 'image/webp';
+      return `data:${mimeType};base64,${base64}`;
+    } catch (error) {
+      if (error.code === 'NoSuchKey') {
+        this.logger.warn(`Thumbnail file '${hash}' not found in bucket storage`);
+      } else {
+        this.logger.error(`Failed to load thumbnail '${hash}' from bucket`, error);
+      }
+      return undefined;
+    }
   }
 
   async store(message: Message): Promise<void> {
@@ -76,6 +107,7 @@ export class InboxService {
       (message.isEncrypted() ? message.encryptedData : message.data).length <= this.config.getStorageEmbedMaxSize();
 
     const promises: Promise<any>[] = [];
+
     promises.push(this.storeIndex(message, embed));
     if (!embed) promises.push(this.storeFile(message));
 
@@ -96,15 +128,24 @@ export class InboxService {
     data.senderKeyType = message.sender.keyType;
     data.senderPublicKey = message.sender.publicKey.base58;
 
+    if (message.meta?.thumbnail) {
+      data.thumbnail = true;
+    }
+
     if (!embed) {
       delete data.encryptedData;
       delete data.data;
+      delete data.meta?.thumbnail;
     }
 
     await this.redis.hset(`inbox:${message.recipient}`, message.hash.base58, JSON.stringify(data));
   }
 
   private async storeFile(message: Message): Promise<void> {
+    if (message.meta?.thumbnail) {
+      const thumbnail = new Binary(message.meta.thumbnail);
+      await this.thumbnail_bucket.put(message.hash.base58, thumbnail);
+    }
     await this.bucket.put(message.hash.base58, message.toBinary());
   }
 
@@ -115,10 +156,19 @@ export class InboxService {
       throw new Error(`Message not found`);
     }
 
+    const data = await this.redis.hget(`inbox:${recipient}`, hash);
+
+    const parsed = data && JSON.parse(data);
+    const hasThumbnail = parsed?.meta?.thumbnail !== undefined;
+
     await this.redis.hdel(`inbox:${recipient}`, hash);
     this.logger.debug(`delete: message '${hash}' deleted from Redis for recipient '${recipient}'`);
 
     try {
+      if (hasThumbnail) {
+        await this.thumbnail_bucket.delete(hash);
+      }
+
       await this.bucket.delete(hash);
       this.logger.debug(`delete: file '${hash}' deleted from bucket storage`);
     } catch (error) {
@@ -136,8 +186,8 @@ export class InboxService {
   }
 
   async updateLastModified(recipient: string): Promise<void> {
-    const now = Date.now();
-    await this.redis.set(`inbox:${recipient}:lastModified`, now.toString());
+    const now = new Date().toISOString();
+    await this.redis.set(`inbox:${recipient}:lastModified`, now);
   }
 
   async getMessagesMetadata(recipient: string): Promise<MessageSummary[]> {
@@ -148,24 +198,34 @@ export class InboxService {
         return [];
       }
 
-      const messages: MessageSummary[] = Object.values(data)
-        .map((item: string) => {
-          try {
-            const message = JSON.parse(item);
-            const { data, ...messageMetadata } = message;
-            return messageMetadata;
-          } catch (error) {
-            console.warn(`Failed to parse message item for ${recipient}`, error);
-            return null;
-          }
-        })
-        .filter((message): message is MessageSummary => message !== null)
-        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()); // sort descending by timestamp
+      const messagePromises = Object.values(data).map(async (item: string) => {
+        try {
+          const message = JSON.parse(item);
+          const { data, ...messageMetadata } = message;
 
-      return messages;
+          if (messageMetadata?.thumbnail) {
+            const thumbnail = await this.loadThumbnail(message.hash);
+            messageMetadata.meta.thumbnail = thumbnail;
+            delete messageMetadata.thumbnail;
+          }
+
+          return messageMetadata as MessageSummary;
+        } catch (error) {
+          throw new Error(`Failed to parse message item for ${recipient}: ${error.message}`);
+        }
+      });
+
+      try {
+        const messagesWithThumbnails = (await Promise.all(messagePromises)).sort(
+          (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+        );
+
+        return messagesWithThumbnails;
+      } catch (error) {
+        throw error;
+      }
     } catch (error) {
-      console.error(`Error retrieving messages for ${recipient}`, error);
-      throw new Error('Failed to retrieve message metadata');
+      throw new Error(`Unable to retrieve message metadata: ${(error as Error).message}`);
     }
   }
 }
