@@ -6,19 +6,19 @@ export class RabbitMQConnection {
   public open: boolean;
 
   constructor(
-    private connection: amqplib.Connection,
-    private channel: amqplib.Channel,
+    private connection: amqplib.Connection | any,
+    private channel: amqplib.Channel | any,
     private logger: LoggerService = null,
   ) {
     this.open = true;
   }
 
-  setConnection(connection: amqplib.Connection): this {
+  setConnection(connection: amqplib.Connection | any): this {
     this.connection = connection;
     return this;
   }
 
-  setChannel(channel: amqplib.Channel): this {
+  setChannel(channel: amqplib.Channel | any): this {
     this.channel = channel;
     return this;
   }
