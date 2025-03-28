@@ -182,7 +182,9 @@ export class InboxService {
 
   async getLastModified(recipient: string): Promise<Date> {
     const lastModified = await this.redis.get(`inbox:${recipient}:lastModified`);
-    return lastModified ? new Date(Number(lastModified)) : new Date(0);
+    const date = lastModified ? new Date(lastModified) : new Date(0);
+    date.setMilliseconds(0);
+    return date;
   }
 
   async updateLastModified(recipient: string): Promise<void> {

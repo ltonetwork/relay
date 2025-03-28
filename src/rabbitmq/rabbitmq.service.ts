@@ -33,8 +33,10 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
         }
 
         this.logger.debug(`rabbitmq: attempting to connect ${key}`);
+
         const connection = await this._amqplib.connect(config);
         const channel = await connection.createChannel();
+
         this.onError(channel, config);
         this.connections[key] = new RabbitMQConnection(connection, channel, this.logger);
         this.logger.info(`rabbitmq: successfully connected ${key}`);
