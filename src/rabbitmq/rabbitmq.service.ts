@@ -2,8 +2,7 @@ import { Injectable, Inject, OnModuleInit, OnModuleDestroy } from '@nestjs/commo
 import { RabbitMQConnection } from './classes/rabbitmq.connection';
 import { LoggerService } from '../common/logger/logger.service';
 import { AMQPLIB } from '../constants';
-import * as amqplib from 'amqplib';
-import type { Channel, Connection, Options } from 'amqplib';
+import amqplib from 'amqplib';
 import { setTimeout } from 'node:timers/promises';
 
 @Injectable()
