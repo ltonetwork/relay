@@ -1,4 +1,5 @@
-import * as amqplib from 'amqplib';
+import amqplib from 'amqplib';
+import type { Channel, Connection, Message, Options, Replies } from 'amqplib';
 import { LoggerService } from '../../common/logger/logger.service';
 import { setTimeout } from 'node:timers/promises';
 
@@ -6,24 +7,24 @@ export class RabbitMQConnection {
   public open: boolean;
 
   constructor(
-    private connection: amqplib.Connection,
-    private channel: amqplib.Channel,
+    private connection: Connection | any,
+    private channel: Channel | any,
     private logger: LoggerService = null,
   ) {
     this.open = true;
   }
 
-  setConnection(connection: amqplib.Connection): this {
+  setConnection(connection: Connection | any): this {
     this.connection = connection;
     return this;
   }
 
-  setChannel(channel: amqplib.Channel): this {
+  setChannel(channel: Channel | any): this {
     this.channel = channel;
     return this;
   }
 
-  async consume(exchange: string, queue: string, callback: (msg: amqplib.Message) => void) {
+  async consume(exchange: string, queue: string, callback: (msg: Message) => void) {
     await this.init(exchange, queue, queue);
 
     await this.channel.consume(
@@ -35,7 +36,7 @@ export class RabbitMQConnection {
     );
   }
 
-  async publish(exchange: string, queue: string, msg: string | object, options: amqplib.Options.Publish = {}) {
+  async publish(exchange: string, queue: string, msg: string | object, options: Options.Publish = {}) {
     await this.init(exchange, queue, queue);
 
     let buffer: Buffer;

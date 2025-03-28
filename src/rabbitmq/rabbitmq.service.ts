@@ -2,7 +2,8 @@ import { Injectable, Inject, OnModuleInit, OnModuleDestroy } from '@nestjs/commo
 import { RabbitMQConnection } from './classes/rabbitmq.connection';
 import { LoggerService } from '../common/logger/logger.service';
 import { AMQPLIB } from '../constants';
-import amqplib from 'amqplib';
+import * as amqplib from 'amqplib';
+import type { Channel, Connection, Options } from 'amqplib';
 import { setTimeout } from 'node:timers/promises';
 
 @Injectable()
@@ -59,7 +60,6 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
     try {
       const connection = await this._amqplib.connect(config);
       const channel = await connection.createChannel();
-      this.onError(channel, config);
       this.connections[key].setChannel(channel).setConnection(connection);
       this.connections[key].open = true;
       this.logger.info(`rabbitmq: successfully reopened connection ${key}`);
