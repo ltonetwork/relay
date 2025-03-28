@@ -1,5 +1,5 @@
 import amqplib from 'amqplib';
-import type { Channel, Connection, Message, Options, Replies } from 'amqplib';
+import type { Channel, Connection, Message, Options } from 'amqplib';
 import { LoggerService } from '../../common/logger/logger.service';
 import { setTimeout } from 'node:timers/promises';
 
