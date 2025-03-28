@@ -1,4 +1,4 @@
-import amqplib from 'amqplib';
+import * as amqplib from 'amqplib';
 import { LoggerService } from '../../common/logger/logger.service';
 import { setTimeout } from 'node:timers/promises';
 
@@ -37,14 +37,19 @@ export class RabbitMQConnection {
 
   async publish(exchange: string, queue: string, msg: string | object, options: amqplib.Options.Publish = {}) {
     await this.init(exchange, queue, queue);
-    if (typeof msg !== 'string' && !(msg instanceof Uint8Array)) {
-      options.contentType ??= 'application/json';
-      msg = JSON.stringify(msg);
-    } else {
-      options.contentType ??= 'application/octet-stream';
-    }
 
-    const buffer = Buffer.from(msg);
+    let buffer: Buffer;
+
+    if (msg instanceof Uint8Array) {
+      buffer = Buffer.from(msg);
+      options.contentType ??= 'application/octet-stream';
+    } else if (typeof msg === 'string') {
+      buffer = Buffer.from(msg);
+      options.contentType ??= 'application/octet-stream';
+    } else {
+      options.contentType ??= 'application/json';
+      buffer = Buffer.from(JSON.stringify(msg));
+    }
 
     this.channel.publish(exchange, queue, buffer, options);
   }
@@ -127,7 +132,6 @@ export class RabbitMQConnection {
 
   private async assertQueue(queue: string, options: amqplib.Options.AssertQueue = { durable: true }) {
     try {
-      this.log('debug', `rabbitmq-connection: attempting to assert queue '${queue}'`);
       await this.channel.assertQueue(queue, options);
       this.log('debug', `rabbitmq-connection: successfully asserted queue '${queue}'`);
     } catch (e) {
@@ -146,7 +150,6 @@ export class RabbitMQConnection {
       if (!this.channel || !this.open) {
         throw new Error('Channel not available');
       }
-      this.log('debug', `rabbitmq-connection: attempting to assert exchange '${exchange}'`);
       await this.channel.assertExchange(exchange, type, options);
       this.log('debug', `rabbitmq-connection: successfully asserted exchange '${exchange}'`);
     } catch (e) {
@@ -164,13 +167,29 @@ export class RabbitMQConnection {
     await this.channel.bindQueue(queue, exchange, pattern);
   }
 
-  async close() {
-    if (this.channel) {
-      await this.channel.close();
-    }
+  // async close() {
+  //   if (this.channel) {
+  //     await this.channel.close();
+  //   }
 
-    if (this.connection) {
-      await this.connection.close();
+  //   if (this.connection) {
+  //     await (this.connection as any).close();
+  //   }
+  // }
+
+  async close() {
+    try {
+      this.open = false;
+
+      if (this.channel) {
+        await this.channel.close();
+      }
+
+      if (this.connection) {
+        await (this.connection as any).close();
+      }
+    } catch (error) {
+      this.log('error', `Error closing RabbitMQ connection: ${error.message}`);
     }
   }
 
