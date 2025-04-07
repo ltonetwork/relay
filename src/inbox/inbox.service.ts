@@ -240,34 +240,60 @@ export class InboxService {
   async getMessagesMetadata(recipient: string): Promise<MessageSummary[]> {
     try {
       const data = await this.redis.hgetall(`inbox:${recipient}`);
+
       if (!data || Object.keys(data).length === 0) {
         return [];
       }
 
-      const messageSummaries = await Promise.all(
-        Object.values(data).map(async (item: string) => {
+      const messagePromises = Object.values(data).map(async (item: string) => {
+        try {
           const message = JSON.parse(item);
-          const { data, thumbnail, ...messageMetadata } = message;
+          const { data, encryptedData, ...messageMetadata } = message;
 
+          // Initialize meta
           messageMetadata.meta = messageMetadata.meta || {};
-          if (thumbnail === true) {
+
+          // Handle thumbnail if present
+          if (messageMetadata.thumbnail === true) {
             try {
-              const thumb = await this.loadThumbnail(message.hash);
-              if (thumb) {
-                messageMetadata.meta.thumbnail = thumb;
+              const thumbnail = await this.loadThumbnail(message.hash);
+              if (thumbnail) {
+                messageMetadata.meta.thumbnail = thumbnail;
               }
             } catch (err) {
               this.logger.warn(`Thumbnail for '${message.hash}' not found or failed to load`);
             }
           }
+          delete messageMetadata.thumbnail;
+
+          if (!messageMetadata.meta.type) {
+            messageMetadata.meta.type = messageMetadata.type || 'basic';
+          }
+          if (!messageMetadata.meta.title) {
+            messageMetadata.meta.title = '';
+          }
+          if (!messageMetadata.meta.description) {
+            messageMetadata.meta.description = '';
+          }
 
           return messageMetadata as MessageSummary;
-        }),
-      );
+        } catch (error) {
+          this.logger.error(`Failed to parse message item for ${recipient}: ${error.message}`);
+          throw new Error(`Failed to parse message item for ${recipient}`);
+        }
+      });
 
-      return messageSummaries.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      try {
+        const messagesWithThumbnails = (await Promise.all(messagePromises)).sort(
+          (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+        );
+
+        return messagesWithThumbnails;
+      } catch (error) {
+        throw error;
+      }
     } catch (error) {
-      throw new Error(`Unable to retrieve message metadata for ${recipient}: ${error.message}`);
+      throw new Error(`Unable to retrieve message metadata: ${(error as Error).message}`);
     }
   }
 }

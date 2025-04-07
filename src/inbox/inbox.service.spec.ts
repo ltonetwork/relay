@@ -8,7 +8,6 @@ import Redis from 'ioredis';
 import { Bucket } from 'any-bucket';
 import { Message, AccountFactoryED25519, Account, Binary } from '@ltonetwork/lto';
 import { ConfigService } from '../common/config/config.service';
-import { version } from 'os';
 
 describe('InboxService', () => {
   let module: TestingModule;
@@ -347,7 +346,7 @@ describe('InboxService', () => {
   });
 
   describe('getMessagesMetadata', () => {
-    it('should return parsed messages sorted by timestamp descending', async () => {
+    it('should return message metadata with meta information', async () => {
       const recipientAddress = recipient.address;
       const data = {
         hash1: JSON.stringify({
@@ -357,6 +356,11 @@ describe('InboxService', () => {
           sender: 'sender1',
           recipient: 'recipient1',
           size: 10,
+          meta: {
+            type: 'document',
+            title: 'Test Document',
+            description: 'A test document',
+          },
         }),
         hash2: JSON.stringify({
           hash: 'hash2',
@@ -365,6 +369,11 @@ describe('InboxService', () => {
           sender: 'sender2',
           recipient: 'recipient2',
           size: 20,
+          meta: {
+            type: 'image',
+            title: 'Test Image',
+            description: 'A test image',
+          },
         }),
       };
 
@@ -380,6 +389,11 @@ describe('InboxService', () => {
           sender: 'sender2',
           recipient: 'recipient2',
           size: 20,
+          meta: {
+            type: 'image',
+            title: 'Test Image',
+            description: 'A test image',
+          },
         },
         {
           hash: 'hash1',
@@ -388,6 +402,96 @@ describe('InboxService', () => {
           sender: 'sender1',
           recipient: 'recipient1',
           size: 10,
+          meta: {
+            type: 'document',
+            title: 'Test Document',
+            description: 'A test document',
+          },
+        },
+      ]);
+
+      expect(redis.hgetall).toHaveBeenCalledWith(`inbox:${recipientAddress}`);
+    });
+
+    it('should handle messages with thumbnails', async () => {
+      const recipientAddress = recipient.address;
+      const thumbnailData = 'data:image/webp;base64,dGVzdFRodW1ibmFpbA==';
+
+      const data = {
+        hash1: JSON.stringify({
+          hash: 'hash1',
+          type: 'basic',
+          timestamp: '2023-01-01T10:00:00Z',
+          sender: 'sender1',
+          recipient: 'recipient1',
+          size: 10,
+          thumbnail: true,
+          meta: {
+            type: 'image',
+            title: 'Test Image',
+            description: 'A test image',
+          },
+        }),
+      };
+
+      redis.hgetall.mockResolvedValue(data);
+      const mockBuffer = Buffer.from('testThumbnail');
+      const thumbnail_bucket = module.get<Bucket>('INBOX_THUMBNAIL_BUCKET');
+      jest.spyOn(thumbnail_bucket, 'get').mockImplementation(() => Promise.resolve(mockBuffer as any));
+
+      const result = await service.getMessagesMetadata(recipientAddress);
+
+      expect(result).toEqual([
+        {
+          hash: 'hash1',
+          type: 'basic',
+          timestamp: '2023-01-01T10:00:00Z',
+          sender: 'sender1',
+          recipient: 'recipient1',
+          size: 10,
+          meta: {
+            type: 'image',
+            title: 'Test Image',
+            description: 'A test image',
+            thumbnail: thumbnailData,
+          },
+        },
+      ]);
+
+      expect(redis.hgetall).toHaveBeenCalledWith(`inbox:${recipientAddress}`);
+      expect(thumbnail_bucket.get).toHaveBeenCalledWith('hash1');
+    });
+
+    it('should handle messages with missing meta fields', async () => {
+      const recipientAddress = recipient.address;
+      const data = {
+        hash1: JSON.stringify({
+          hash: 'hash1',
+          type: 'basic',
+          timestamp: '2023-01-01T10:00:00Z',
+          sender: 'sender1',
+          recipient: 'recipient1',
+          size: 10,
+        }),
+      };
+
+      redis.hgetall.mockResolvedValue(data);
+
+      const result = await service.getMessagesMetadata(recipientAddress);
+
+      expect(result).toEqual([
+        {
+          hash: 'hash1',
+          type: 'basic',
+          timestamp: '2023-01-01T10:00:00Z',
+          sender: 'sender1',
+          recipient: 'recipient1',
+          size: 10,
+          meta: {
+            type: 'basic',
+            title: '',
+            description: '',
+          },
         },
       ]);
 
@@ -463,11 +567,12 @@ describe('InboxService', () => {
   describe('getLastModified', () => {
     it('should return the last modified date', async () => {
       const recipientAddress = recipient.address;
-      const now = new Date().toISOString();
-      redis.get.mockResolvedValue(now);
+      const now = new Date();
+      now.setMilliseconds(0);
+      redis.get.mockResolvedValue(now.toISOString());
 
       const result = await service.getLastModified(recipientAddress);
-      expect(result).toEqual(new Date(now));
+      expect(result).toEqual(now);
     });
 
     it('should return epoch date if no last modified date exists', async () => {
