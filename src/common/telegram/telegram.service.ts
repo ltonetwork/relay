@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import axios from 'axios';
 import { ConfigService } from '../config/config.service';
-import { buildAddress, getNetwork, Message } from '@ltonetwork/lto';
+import { buildAddress, getNetwork } from '@ltonetwork/lto';
 
 @Injectable()
 export class TelegramService {
