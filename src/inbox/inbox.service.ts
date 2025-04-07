@@ -8,6 +8,18 @@ import { Bucket } from 'any-bucket';
 import * as crypto from 'crypto';
 import { TelegramService } from 'src/common/telegram/telegram.service';
 
+interface PaginationOptions {
+  limit: number;
+  offset: number;
+  type?: string;
+}
+
+interface PaginatedResult<T> {
+  items: T[];
+  total: number;
+  hasMore: boolean;
+}
+
 @Injectable()
 export class InboxService {
   constructor(
@@ -35,6 +47,39 @@ export class InboxService {
       }));
 
     return type ? messages.filter((message: MessageSummary) => message.type === type) : messages;
+  }
+
+  async listWithPagination(recipient: string, options: PaginationOptions): Promise<PaginatedResult<MessageSummary>> {
+    const { limit, offset, type } = options;
+
+    const allKeys = await this.redis.hkeys(`inbox:${recipient}`);
+    const total = allKeys.length;
+
+    const paginatedKeys = allKeys.slice(offset, offset + limit);
+
+    const items = await Promise.all(
+      paginatedKeys.map(async (hash) => {
+        const data = await this.redis.hget(`inbox:${recipient}`, hash);
+        const message = JSON.parse(data);
+        return {
+          version: message.version,
+          hash: message.hash,
+          type: message.type,
+          timestamp: message.timestamp,
+          sender: message.sender,
+          recipient: message.recipient,
+          size: message.size,
+        };
+      }),
+    );
+
+    const filteredItems = type ? items.filter((item) => item.type === type) : items;
+
+    return {
+      items: filteredItems,
+      total,
+      hasMore: offset + limit < total,
+    };
   }
 
   async has(recipient: string, hash: string): Promise<boolean> {
@@ -163,6 +208,7 @@ export class InboxService {
 
     await this.redis.hdel(`inbox:${recipient}`, hash);
     this.logger.debug(`delete: message '${hash}' deleted from Redis for recipient '${recipient}'`);
+    await this.updateLastModified(recipient);
 
     try {
       if (hasThumbnail) {
@@ -182,52 +228,52 @@ export class InboxService {
 
   async getLastModified(recipient: string): Promise<Date> {
     const lastModified = await this.redis.get(`inbox:${recipient}:lastModified`);
-    const date = lastModified ? new Date(lastModified) : new Date(0);
+    if (!lastModified) {
+      return new Date(0);
+    }
+
+    const date = new Date(lastModified);
     date.setMilliseconds(0);
     return date;
   }
 
   async updateLastModified(recipient: string): Promise<void> {
-    const now = new Date().toISOString();
-    await this.redis.set(`inbox:${recipient}:lastModified`, now);
+    const now = new Date();
+    now.setMilliseconds(0);
+    await this.redis.set(`inbox:${recipient}:lastModified`, now.toISOString());
   }
 
   async getMessagesMetadata(recipient: string): Promise<MessageSummary[]> {
     try {
       const data = await this.redis.hgetall(`inbox:${recipient}`);
-
       if (!data || Object.keys(data).length === 0) {
         return [];
       }
 
-      const messagePromises = Object.values(data).map(async (item: string) => {
-        try {
+      const messageSummaries = await Promise.all(
+        Object.values(data).map(async (item: string) => {
           const message = JSON.parse(item);
-          const { data, ...messageMetadata } = message;
+          const { data, thumbnail, ...messageMetadata } = message;
 
-          if (messageMetadata?.thumbnail) {
-            const thumbnail = await this.loadThumbnail(message.hash);
-            messageMetadata.meta.thumbnail = thumbnail;
-            delete messageMetadata.thumbnail;
+          messageMetadata.meta = messageMetadata.meta || {};
+          if (thumbnail === true) {
+            try {
+              const thumb = await this.loadThumbnail(message.hash);
+              if (thumb) {
+                messageMetadata.meta.thumbnail = thumb;
+              }
+            } catch (err) {
+              this.logger.warn(`Thumbnail for '${message.hash}' not found or failed to load`);
+            }
           }
 
           return messageMetadata as MessageSummary;
-        } catch (error) {
-          throw new Error(`Failed to parse message item for ${recipient}: ${error.message}`);
-        }
-      });
+        }),
+      );
 
-      try {
-        const messagesWithThumbnails = (await Promise.all(messagePromises)).sort(
-          (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
-        );
-
-        return messagesWithThumbnails;
-      } catch (error) {
-        throw error;
-      }
+      return messageSummaries.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     } catch (error) {
-      throw new Error(`Unable to retrieve message metadata: ${(error as Error).message}`);
+      throw new Error(`Unable to retrieve message metadata for ${recipient}: ${error.message}`);
     }
   }
 }

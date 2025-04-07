@@ -106,23 +106,51 @@ export class InboxController {
   async list(
     @Param('address') address: string,
     @Signer() signer: Account,
+    @Res() res: Response,
     @Query('type') type?: string,
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
-  ): Promise<{ messages: MessageSummary[]; total: number }> {
+  ): Promise<Response> {
     if (signer.address !== address) {
       throw new ForbiddenException({ message: 'Unauthorized: Invalid signature for this address' });
     }
 
-    const allMessages = await this.inbox.list(address, type);
+    const lastModifiedDate = await this.inbox.getLastModified(address);
+    const ifModifiedSince = res.req.headers['if-modified-since'];
+
+    // Handle If-Modified-Since
+    if (ifModifiedSince) {
+      try {
+        const clientDate = new Date(ifModifiedSince);
+        if (!isNaN(clientDate.getTime()) && clientDate >= lastModifiedDate) {
+          return res.status(304).end();
+        }
+      } catch (error) {
+        throw new BadRequestException('Invalid If-Modified-Since header');
+      }
+    }
+
     const limitNumber = limit ? Math.min(Math.max(parseInt(limit, 10) || 100, 1), 100) : 100;
     const offsetNumber = offset ? Math.max(parseInt(offset, 10) || 0, 0) : 0;
-    const paginatedMessages = allMessages.slice(offsetNumber, offsetNumber + limitNumber);
 
-    return {
-      messages: paginatedMessages,
-      total: allMessages.length,
-    };
+    const result = await this.inbox.listWithPagination(address, {
+      limit: limitNumber,
+      offset: offsetNumber,
+      type,
+    });
+
+    res.set({
+      'Last-Modified': lastModifiedDate.toUTCString(),
+      'Cache-Control': 'private, must-revalidate',
+      ETag: `"${lastModifiedDate.getTime()}"`,
+    });
+
+    return res.json({
+      messages: result.items,
+      total: result.total,
+      hasMore: result.hasMore,
+      lastModified: lastModifiedDate.toISOString(),
+    });
   }
 
   @Get('/:address/:hash')

@@ -7,19 +7,32 @@ export class RabbitMQConnection {
   public open: boolean;
 
   constructor(
+<<<<<<< HEAD
     private connection: Connection | any,
     private channel: Channel | any,
+=======
+    private connection: amqplib.Connection | any,
+    private channel: amqplib.Channel | any,
+>>>>>>> orelay
     private logger: LoggerService = null,
   ) {
     this.open = true;
   }
 
+<<<<<<< HEAD
   setConnection(connection: Connection | any): this {
+=======
+  setConnection(connection: amqplib.Connection | any): this {
+>>>>>>> orelay
     this.connection = connection;
     return this;
   }
 
+<<<<<<< HEAD
   setChannel(channel: Channel | any): this {
+=======
+  setChannel(channel: amqplib.Channel | any): this {
+>>>>>>> orelay
     this.channel = channel;
     return this;
   }
