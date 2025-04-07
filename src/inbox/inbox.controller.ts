@@ -15,7 +15,6 @@ import {
 import { InboxService } from './inbox.service';
 import { ApiParam, ApiProduces, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { InboxGuard } from './inbox.guard';
-import { MessageSummary } from './inbox.dto';
 import { Account, Message } from '@ltonetwork/lto';
 import { Signer } from '../common/http-signature/signer';
 import { Response } from 'express';

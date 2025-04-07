@@ -18,4 +18,12 @@ export class MessageSummary {
 
   @ApiProperty()
   public readonly recipient: string;
+
+  @ApiProperty({ required: false })
+  public readonly meta?: {
+    type: string;
+    title: string;
+    description: string;
+    thumbnail?: string;
+  };
 }
