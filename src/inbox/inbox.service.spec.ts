@@ -26,6 +26,7 @@ describe('InboxService', () => {
   beforeEach(() => {
     redis = {
       hgetall: jest.fn(),
+      hkeys: jest.fn(),
       hexists: jest.fn(),
       get: jest.fn(),
       hget: jest.fn(),
@@ -117,32 +118,104 @@ describe('InboxService', () => {
           size: 20,
         }),
       };
+
+      redis.hkeys.mockResolvedValue(['hash1', 'hash2']);
+      redis.hget.mockImplementation((_key, field) => Promise.resolve(data[String(field)]));
     });
 
     it('should return all messages if type is not specified', async () => {
       const recipientAddress = recipient.address;
-      redis.hgetall.mockResolvedValue(data);
-
       const result = await service.list(recipientAddress);
 
-      expect(result).toEqual([
-        { hash: 'hash1', type: 'basic', timestamp: 1672531200, sender: 'sender1', recipient: 'recipient1', size: 10 },
-        { hash: 'hash2', type: 'other', timestamp: 1672531210, sender: 'sender2', recipient: 'recipient2', size: 20 },
-      ]);
-      expect(redis.hgetall).toHaveBeenCalledWith(`inbox:${recipientAddress}`);
+      expect(result).toEqual({
+        items: [
+          {
+            hash: 'hash1',
+            type: 'basic',
+            timestamp: 1672531200,
+            sender: 'sender1',
+            recipient: 'recipient1',
+            size: 10,
+            senderPublicKey: 'ed25519',
+            publicKey: 'key1',
+            mediaType: 'text/plain',
+            meta: {},
+          },
+          {
+            hash: 'hash2',
+            type: 'other',
+            timestamp: 1672531210,
+            sender: 'sender2',
+            recipient: 'recipient2',
+            size: 20,
+            meta: {},
+          },
+        ],
+        total: 2,
+        hasMore: false,
+      });
+
+      expect(redis.hkeys).toHaveBeenCalledWith(`inbox:${recipientAddress}`);
+      expect(redis.hget).toHaveBeenCalledWith(`inbox:${recipientAddress}`, 'hash1');
+      expect(redis.hget).toHaveBeenCalledWith(`inbox:${recipientAddress}`, 'hash2');
     });
 
-    it('should return filtered messages by type if type is specified', async () => {
+    it('should return filtered messages by type when no pagination', async () => {
       const recipientAddress = recipient.address;
-      const type = 'basic';
-      redis.hgetall.mockResolvedValue(data);
+      const result = await service.list(recipientAddress, { type: 'basic' });
 
-      const result = await service.list(recipientAddress, type);
+      expect(result).toEqual({
+        items: [
+          {
+            hash: 'hash1',
+            type: 'basic',
+            timestamp: 1672531200,
+            sender: 'sender1',
+            recipient: 'recipient1',
+            size: 10,
+            senderPublicKey: 'ed25519',
+            publicKey: 'key1',
+            mediaType: 'text/plain',
+            meta: {},
+          },
+        ],
+        total: 2,
+        hasMore: false,
+      });
 
-      expect(result).toEqual([
-        { hash: 'hash1', type: 'basic', timestamp: 1672531200, sender: 'sender1', recipient: 'recipient1', size: 10 },
-      ]);
-      expect(redis.hgetall).toHaveBeenCalledWith(`inbox:${recipientAddress}`);
+      expect(redis.hkeys).toHaveBeenCalledWith(`inbox:${recipientAddress}`);
+      expect(redis.hget).toHaveBeenCalledWith(`inbox:${recipientAddress}`, 'hash1');
+      expect(redis.hget).toHaveBeenCalledWith(`inbox:${recipientAddress}`, 'hash2');
+    });
+
+    it('should return paginated messages when limit and offset are provided', async () => {
+      const recipientAddress = recipient.address;
+      const result = await service.list(recipientAddress, {
+        limit: 1,
+        offset: 0,
+      });
+
+      expect(result).toEqual({
+        items: [
+          {
+            hash: 'hash1',
+            type: 'basic',
+            timestamp: 1672531200,
+            sender: 'sender1',
+            recipient: 'recipient1',
+            size: 10,
+            senderPublicKey: 'ed25519',
+            publicKey: 'key1',
+            mediaType: 'text/plain',
+            meta: {},
+          },
+        ],
+        total: 2,
+        hasMore: true,
+      });
+
+      expect(redis.hkeys).toHaveBeenCalledWith(`inbox:${recipientAddress}`);
+      expect(redis.hget).toHaveBeenCalledWith(`inbox:${recipientAddress}`, 'hash1');
     });
   });
 
@@ -354,192 +427,6 @@ describe('InboxService', () => {
       await service.delete(recipientAddress, hash);
 
       expect(logger.warn).toHaveBeenCalledWith(`delete: file '${hash}' not found in bucket storage`);
-    });
-  });
-
-  describe('getMessagesMetadata', () => {
-    it('should return message metadata with meta information', async () => {
-      const recipientAddress = recipient.address;
-      const data = {
-        hash1: JSON.stringify({
-          hash: 'hash1',
-          type: 'basic',
-          timestamp: '2023-01-01T10:00:00Z',
-          sender: 'sender1',
-          recipient: 'recipient1',
-          size: 10,
-          meta: {
-            type: 'document',
-            title: 'Test Document',
-            description: 'A test document',
-          },
-        }),
-        hash2: JSON.stringify({
-          hash: 'hash2',
-          type: 'basic',
-          timestamp: '2023-01-01T11:00:00Z',
-          sender: 'sender2',
-          recipient: 'recipient2',
-          size: 20,
-          meta: {
-            type: 'image',
-            title: 'Test Image',
-            description: 'A test image',
-          },
-        }),
-      };
-
-      redis.hgetall.mockResolvedValue(data);
-
-      const result = await service.getMessagesMetadata(recipientAddress);
-
-      expect(result).toEqual([
-        {
-          hash: 'hash2',
-          type: 'basic',
-          timestamp: '2023-01-01T11:00:00Z',
-          sender: 'sender2',
-          recipient: 'recipient2',
-          size: 20,
-          meta: {
-            type: 'image',
-            title: 'Test Image',
-            description: 'A test image',
-          },
-        },
-        {
-          hash: 'hash1',
-          type: 'basic',
-          timestamp: '2023-01-01T10:00:00Z',
-          sender: 'sender1',
-          recipient: 'recipient1',
-          size: 10,
-          meta: {
-            type: 'document',
-            title: 'Test Document',
-            description: 'A test document',
-          },
-        },
-      ]);
-
-      expect(redis.hgetall).toHaveBeenCalledWith(`inbox:${recipientAddress}`);
-    });
-
-    it('should handle messages with thumbnails', async () => {
-      const recipientAddress = recipient.address;
-      const thumbnailData = 'data:image/webp;base64,dGVzdFRodW1ibmFpbA==';
-
-      const data = {
-        hash1: JSON.stringify({
-          hash: 'hash1',
-          type: 'basic',
-          timestamp: '2023-01-01T10:00:00Z',
-          sender: 'sender1',
-          recipient: 'recipient1',
-          size: 10,
-          thumbnail: true,
-          meta: {
-            type: 'image',
-            title: 'Test Image',
-            description: 'A test image',
-          },
-        }),
-      };
-
-      redis.hgetall.mockResolvedValue(data);
-      const mockBuffer = Buffer.from('testThumbnail');
-      const thumbnail_bucket = module.get<Bucket>('INBOX_THUMBNAIL_BUCKET');
-      jest.spyOn(thumbnail_bucket, 'get').mockImplementation(() => Promise.resolve(mockBuffer as any));
-
-      const result = await service.getMessagesMetadata(recipientAddress);
-
-      expect(result).toEqual([
-        {
-          hash: 'hash1',
-          type: 'basic',
-          timestamp: '2023-01-01T10:00:00Z',
-          sender: 'sender1',
-          recipient: 'recipient1',
-          size: 10,
-          meta: {
-            type: 'image',
-            title: 'Test Image',
-            description: 'A test image',
-            thumbnail: thumbnailData,
-          },
-        },
-      ]);
-
-      expect(redis.hgetall).toHaveBeenCalledWith(`inbox:${recipientAddress}`);
-      expect(thumbnail_bucket.get).toHaveBeenCalledWith('hash1');
-    });
-
-    it('should handle messages with missing meta fields', async () => {
-      const recipientAddress = recipient.address;
-      const data = {
-        hash1: JSON.stringify({
-          hash: 'hash1',
-          type: 'basic',
-          timestamp: '2023-01-01T10:00:00Z',
-          sender: 'sender1',
-          recipient: 'recipient1',
-          size: 10,
-        }),
-      };
-
-      redis.hgetall.mockResolvedValue(data);
-
-      const result = await service.getMessagesMetadata(recipientAddress);
-
-      expect(result).toEqual([
-        {
-          hash: 'hash1',
-          type: 'basic',
-          timestamp: '2023-01-01T10:00:00Z',
-          sender: 'sender1',
-          recipient: 'recipient1',
-          size: 10,
-          meta: {
-            type: 'basic',
-            title: '',
-            description: '',
-          },
-        },
-      ]);
-
-      expect(redis.hgetall).toHaveBeenCalledWith(`inbox:${recipientAddress}`);
-    });
-
-    it('should return an empty array if no messages exist', async () => {
-      const recipientAddress = recipient.address;
-      redis.hgetall.mockResolvedValue({});
-
-      const result = await service.getMessagesMetadata(recipientAddress);
-
-      expect(result).toEqual([]);
-    });
-
-    it('should throw an error if a message has invalid JSON', async () => {
-      const recipientAddress = recipient.address;
-      redis.hgetall.mockResolvedValue({
-        hash1: '{ invalid json',
-      });
-
-      await expect(service.getMessagesMetadata(recipientAddress)).rejects.toThrowError(
-        expect.objectContaining({
-          message: expect.stringContaining(`Failed to parse message item for ${recipientAddress}`),
-        }),
-      );
-    });
-
-    it('should throw a wrapped error if Redis fails', async () => {
-      const recipientAddress = recipient.address;
-      const redisError = new Error('Redis down');
-      redis.hgetall.mockRejectedValue(redisError);
-
-      await expect(service.getMessagesMetadata(recipientAddress)).rejects.toThrow(
-        'Unable to retrieve message metadata',
-      );
     });
   });
 

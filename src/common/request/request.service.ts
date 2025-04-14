@@ -52,7 +52,11 @@ export class RequestService {
     if (thumbnail) {
       const formData = new FormData();
       formData.append('data', data);
-      formData.append('thumbnail', thumbnail, { contentType: 'image/png' });
+      //workaround 'file-type'
+      const { fileTypeFromBuffer } = await import('file-type');
+      const type = await fileTypeFromBuffer(thumbnail);
+      const mime = type?.mime || 'application/octet-stream';
+      formData.append('thumbnail', thumbnail, { contentType: mime });
 
       config.data = formData;
       config.headers = {

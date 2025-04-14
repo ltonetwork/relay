@@ -92,9 +92,9 @@ export default {
       default: './storage',
       env: 'INBOX_STORAGE',
     },
-    thumbnail_storage: {
+    thumbnail: {
       doc: 'Path or bucket DSN for the thumbnail storage',
-      default: './thumbnail_storage',
+      default: './thumbnail',
       env: 'INBOX_THUMBNAIL_STORAGE',
     },
     embed_max_size: {

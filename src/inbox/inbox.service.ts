@@ -8,9 +8,9 @@ import { Bucket } from 'any-bucket';
 import * as crypto from 'crypto';
 import { TelegramService } from 'src/common/telegram/telegram.service';
 
-interface PaginationOptions {
-  limit: number;
-  offset: number;
+export interface PaginationOptions {
+  limit?: number;
+  offset?: number;
   type?: string;
 }
 
@@ -31,45 +31,42 @@ export class InboxService {
     private readonly telegramService: TelegramService,
   ) {}
 
-  async list(recipient: string, type?: string): Promise<MessageSummary[]> {
-    const data = await this.redis.hgetall(`inbox:${recipient}`);
-
-    const messages: MessageSummary[] = Object.values(data)
-      .map((item: string) => JSON.parse(item))
-      .map((message: any) => ({
-        version: message.version,
-        hash: message.hash,
-        type: message.type,
-        timestamp: message.timestamp,
-        sender: message.sender,
-        recipient: message.recipient,
-        size: message.size,
-      }));
-
-    return type ? messages.filter((message: MessageSummary) => message.type === type) : messages;
-  }
-
-  async listWithPagination(recipient: string, options: PaginationOptions): Promise<PaginatedResult<MessageSummary>> {
-    const { limit, offset, type } = options;
+  async list(recipient: string, options?: Omit<PaginationOptions, 'meta'>): Promise<PaginatedResult<MessageSummary>> {
+    const type = options?.type;
+    const limit = options?.limit;
+    const offset = options?.offset;
 
     const allKeys = await this.redis.hkeys(`inbox:${recipient}`);
     const total = allKeys.length;
 
-    const paginatedKeys = allKeys.slice(offset, offset + limit);
+    let keysToFetch = allKeys;
+
+    if (typeof limit === 'number' && typeof offset === 'number') {
+      keysToFetch = allKeys.slice(offset, offset + limit);
+    }
 
     const items = await Promise.all(
-      paginatedKeys.map(async (hash) => {
-        const data = await this.redis.hget(`inbox:${recipient}`, hash);
-        const message = JSON.parse(data);
-        return {
-          version: message.version,
-          hash: message.hash,
-          type: message.type,
-          timestamp: message.timestamp,
-          sender: message.sender,
-          recipient: message.recipient,
-          size: message.size,
-        };
+      keysToFetch.map(async (hash) => {
+        const raw = await this.redis.hget(`inbox:${recipient}`, hash);
+        const parsed = JSON.parse(raw);
+
+        const { data, encryptedData, ...messageMetadata } = parsed;
+        messageMetadata.meta = messageMetadata.meta || {};
+
+        if (messageMetadata.thumbnail === true) {
+          try {
+            const thumbnail = await this.loadThumbnail(parsed.hash);
+            if (thumbnail) {
+              messageMetadata.meta.thumbnail = thumbnail;
+            }
+          } catch {
+            this.logger.warn(`Thumbnail for '${parsed.hash}' not found or failed to load`);
+          }
+        }
+
+        delete messageMetadata.thumbnail;
+
+        return messageMetadata as MessageSummary;
       }),
     );
 
@@ -78,7 +75,7 @@ export class InboxService {
     return {
       items: filteredItems,
       total,
-      hasMore: offset + limit < total,
+      hasMore: typeof limit === 'number' && typeof offset === 'number' ? offset + limit < total : false,
     };
   }
 
@@ -126,9 +123,13 @@ export class InboxService {
   private async loadThumbnail(hash: string): Promise<string | undefined> {
     try {
       const thumbnailBuffer = await this.thumbnail_bucket.get(hash);
+
+      //workaround 'file-type'
+      const { fileTypeFromBuffer } = await import('file-type');
+      const type = await fileTypeFromBuffer(thumbnailBuffer as Uint8Array);
+      const mime = type?.mime || 'application/octet-stream';
       const base64 = thumbnailBuffer.toString('base64');
-      const mimeType = 'image/webp';
-      return `data:${mimeType};base64,${base64}`;
+      return `data:${mime};base64,${base64}`;
     } catch (error) {
       if (error.code === 'NoSuchKey') {
         this.logger.warn(`Thumbnail file '${hash}' not found in bucket storage`);
@@ -241,65 +242,5 @@ export class InboxService {
     const now = new Date();
     now.setMilliseconds(0);
     await this.redis.set(`inbox:${recipient}:lastModified`, now.toISOString());
-  }
-
-  async getMessagesMetadata(recipient: string): Promise<MessageSummary[]> {
-    try {
-      const data = await this.redis.hgetall(`inbox:${recipient}`);
-
-      if (!data || Object.keys(data).length === 0) {
-        return [];
-      }
-
-      const messagePromises = Object.values(data).map(async (item: string) => {
-        try {
-          const message = JSON.parse(item);
-          const { data, encryptedData, ...messageMetadata } = message;
-
-          // Initialize meta
-          messageMetadata.meta = messageMetadata.meta || {};
-
-          // Handle thumbnail if present
-          if (messageMetadata.thumbnail === true) {
-            try {
-              const thumbnail = await this.loadThumbnail(message.hash);
-              if (thumbnail) {
-                messageMetadata.meta.thumbnail = thumbnail;
-              }
-            } catch (err) {
-              this.logger.warn(`Thumbnail for '${message.hash}' not found or failed to load`);
-            }
-          }
-          delete messageMetadata.thumbnail;
-
-          if (!messageMetadata.meta.type) {
-            messageMetadata.meta.type = messageMetadata.type || 'basic';
-          }
-          if (!messageMetadata.meta.title) {
-            messageMetadata.meta.title = '';
-          }
-          if (!messageMetadata.meta.description) {
-            messageMetadata.meta.description = '';
-          }
-
-          return messageMetadata as MessageSummary;
-        } catch (error) {
-          this.logger.error(`Failed to parse message item for ${recipient}: ${error.message}`);
-          throw new Error(`Failed to parse message item for ${recipient}`);
-        }
-      });
-
-      try {
-        const messagesWithThumbnails = (await Promise.all(messagePromises)).sort(
-          (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
-        );
-
-        return messagesWithThumbnails;
-      } catch (error) {
-        throw error;
-      }
-    } catch (error) {
-      throw new Error(`Unable to retrieve message metadata: ${(error as Error).message}`);
-    }
   }
 }
