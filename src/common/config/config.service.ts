@@ -37,7 +37,7 @@ export class ConfigService {
   }
 
   getThumbnailStoragePath(): string {
-    return this.config.get('inbox.thumbnail_storage');
+    return this.config.get('inbox.thumbnail');
   }
 
   getStorageEmbedMaxSize(): number {

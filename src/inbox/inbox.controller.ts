@@ -25,77 +25,6 @@ import { Response } from 'express';
 export class InboxController {
   constructor(private readonly inbox: InboxService) {}
 
-  @Get('/:address/list')
-  @ApiParam({ name: 'address', description: 'Address to get inbox metadata' })
-  @ApiQuery({ name: 'type', description: "filter the metadata by the type of message e.g 'ownable'", required: false })
-  @ApiQuery({ name: 'limit', description: 'Optional limit: 100 is the limit', required: false })
-  @ApiQuery({ name: 'offset', description: 'Optional offset for pagination', required: false })
-  async listMetadata(
-    @Param('address') address: string,
-    @Signer() signer: Account,
-    @Res() res: Response,
-    @Query('type') type?: string,
-    @Query('limit') limit?: string,
-    @Query('offset') offset?: string,
-  ): Promise<void | Response> {
-    if (!address) {
-      throw new BadRequestException('Address is required');
-    }
-
-    if (signer.address !== address) {
-      throw new ForbiddenException({
-        message: 'Unauthorized: Invalid signature for this address',
-      });
-    }
-
-    try {
-      const lastModifiedDate = await this.inbox.getLastModified(address);
-
-      const ifModifiedSince = res.req.headers['if-modified-since'];
-      let clientDate: Date | null = null;
-
-      if (ifModifiedSince) {
-        try {
-          clientDate = new Date(ifModifiedSince);
-          if (isNaN(clientDate.getTime())) {
-            throw new Error('Invalid date');
-          }
-        } catch (error) {
-          throw new BadRequestException('Invalid If-Modified-Since header');
-        }
-      }
-
-      if (clientDate && clientDate >= lastModifiedDate) {
-        res.status(304).end();
-        return;
-      }
-
-      let metadata = await this.inbox.getMessagesMetadata(address);
-      if (type) {
-        metadata = metadata.filter((msg) => msg.type === type);
-      }
-
-      const totalCount = metadata.length;
-      const limitNumber = limit ? Math.min(Math.max(parseInt(limit, 10) || 100, 1), 100) : 100;
-      const offsetNumber = offset ? Math.max(parseInt(offset, 10) || 0, 0) : 0;
-      const paginated = metadata.slice(offsetNumber, offsetNumber + limitNumber);
-
-      res.set({
-        'Last-Modified': lastModifiedDate.toUTCString(),
-        'Cache-Control': 'no-cache, must-revalidate',
-      });
-
-      return res.status(200).json({
-        metadata: paginated,
-        total: totalCount,
-        lastModified: lastModifiedDate.toISOString(),
-      });
-    } catch (error) {
-      console.error('Error in listMetadata:', error);
-      throw new InternalServerErrorException('Unable to retrieve metadata');
-    }
-  }
-
   @Get('/:address')
   @ApiParam({ name: 'address', description: 'Address to get inbox for' })
   @ApiQuery({ name: 'type', description: 'Type of messages to get', required: false })
@@ -117,14 +46,13 @@ export class InboxController {
     const lastModifiedDate = await this.inbox.getLastModified(address);
     const ifModifiedSince = res.req.headers['if-modified-since'];
 
-    // Handle If-Modified-Since
     if (ifModifiedSince) {
       try {
         const clientDate = new Date(ifModifiedSince);
         if (!isNaN(clientDate.getTime()) && clientDate >= lastModifiedDate) {
           return res.status(304).end();
         }
-      } catch (error) {
+      } catch {
         throw new BadRequestException('Invalid If-Modified-Since header');
       }
     }
@@ -132,7 +60,7 @@ export class InboxController {
     const limitNumber = limit ? Math.min(Math.max(parseInt(limit, 10) || 100, 1), 100) : 100;
     const offsetNumber = offset ? Math.max(parseInt(offset, 10) || 0, 0) : 0;
 
-    const result = await this.inbox.listWithPagination(address, {
+    const result = await this.inbox.list(address, {
       limit: limitNumber,
       offset: offsetNumber,
       type,
@@ -144,7 +72,7 @@ export class InboxController {
       ETag: `"${lastModifiedDate.getTime()}"`,
     });
 
-    return res.json({
+    return res.status(200).json({
       messages: result.items,
       total: result.total,
       hasMore: result.hasMore,
