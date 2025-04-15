@@ -28,7 +28,7 @@ export class InboxService {
     private logger: LoggerService,
   ) {}
 
-  async list(recipient: string, options?: Omit<PaginationOptions, 'meta'>): Promise<PaginatedResult<MessageSummary>> {
+  async list(recipient: string, options?: PaginationOptions): Promise<PaginatedResult<MessageSummary>> {
     const type = options?.type;
     const limit = options?.limit;
     const offset = options?.offset;
