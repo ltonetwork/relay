@@ -223,11 +223,17 @@ export class InboxService {
 
   async getLastModified(recipient: string): Promise<Date> {
     const lastModified = await this.redis.get(`inbox:${recipient}:lastModified`);
+
     if (!lastModified) {
       return new Date(0);
     }
 
     const date = new Date(lastModified);
+    if (isNaN(date.getTime())) {
+      console.warn(`[Invalid Timestamp] inbox:${recipient}:lastModified =`, lastModified);
+      return new Date(0);
+    }
+
     date.setMilliseconds(0);
     return date;
   }
@@ -235,6 +241,6 @@ export class InboxService {
   async updateLastModified(recipient: string): Promise<void> {
     const now = new Date();
     now.setMilliseconds(0);
-    await this.redis.set(`inbox:${recipient}:lastModified`, now.toISOString(), 'PX', 86400000);
+    await this.redis.set(`inbox:${recipient}:lastModified`, now.toISOString(), 'EX', 86400000);
   }
 }
