@@ -88,7 +88,7 @@ export class InboxService {
     try {
       const message = JSON.parse(data);
 
-      if (message.meta?.thumbnail) {
+      if (message.thumbnail) {
         try {
           message.meta.thumbnail = await this.loadThumbnail(hash);
         } catch (e) {
@@ -146,9 +146,11 @@ export class InboxService {
     if (!this.config.isInboxEnabled()) throw new Error(`storage: module not enabled`);
     this.logger.debug(`storage: storing message '${message.hash.base58}'`);
 
-    const embed =
-      (message.isEncrypted() ? message.encryptedData : message.data).length <= this.config.getStorageEmbedMaxSize();
+    const maxEmbedSize = this.config.getStorageEmbedMaxSize();
+    const messageSize = (message.isEncrypted() ? message.encryptedData : message.data).length;
+    const thumbnailSize = message.meta?.thumbnail ? message.meta.thumbnail.length : 0;
 
+    const embed = messageSize + thumbnailSize <= maxEmbedSize;
     const promises: Promise<any>[] = [];
 
     promises.push(this.storeIndex(message, embed));
