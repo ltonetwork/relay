@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, VersioningType } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ConfigService } from './common/config/config.service';
 import { LoggerService } from './common/logger/logger.service';
@@ -20,6 +20,11 @@ function swagger(app: INestApplication, config: ConfigService) {
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bodyParser: false });
+
+  app.enableVersioning({
+    type: VersioningType.URI,
+  });
+
   const config = app.get<ConfigService>(ConfigService);
 
   if (config.getApiPrefix()) app.setGlobalPrefix(config.getApiPrefix());

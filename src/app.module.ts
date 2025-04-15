@@ -18,6 +18,8 @@ export const AppModuleConfig = {
 @Module(AppModuleConfig)
 export class AppModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(VerifySignatureMiddleware).forRoutes({ path: 'inboxes/*', method: RequestMethod.ALL });
+    consumer
+      .apply(VerifySignatureMiddleware)
+      .forRoutes({ path: 'inboxes/*', method: RequestMethod.ALL }, { path: 'v2/inboxes/*', method: RequestMethod.ALL });
   }
 }
