@@ -5,7 +5,6 @@ import {
   ForbiddenException,
   Get,
   HttpCode,
-  InternalServerErrorException,
   NotFoundException,
   Param,
   Query,
