@@ -88,7 +88,7 @@ export class InboxService {
     try {
       const message = JSON.parse(data);
 
-      if (message.meta?.thumbnail) {
+      if (message.thumbnail) {
         try {
           message.meta.thumbnail = await this.loadThumbnail(hash);
         } catch (e) {
@@ -146,9 +146,11 @@ export class InboxService {
     if (!this.config.isInboxEnabled()) throw new Error(`storage: module not enabled`);
     this.logger.debug(`storage: storing message '${message.hash.base58}'`);
 
-    const embed =
-      (message.isEncrypted() ? message.encryptedData : message.data).length <= this.config.getStorageEmbedMaxSize();
+    const maxEmbedSize = this.config.getStorageEmbedMaxSize();
+    const messageSize = (message.isEncrypted() ? message.encryptedData : message.data).length;
+    const thumbnailSize = message.meta?.thumbnail ? message.meta.thumbnail.length : 0;
 
+    const embed = messageSize + thumbnailSize <= maxEmbedSize;
     const promises: Promise<any>[] = [];
 
     promises.push(this.storeIndex(message, embed));
@@ -223,11 +225,17 @@ export class InboxService {
 
   async getLastModified(recipient: string): Promise<Date> {
     const lastModified = await this.redis.get(`inbox:${recipient}:lastModified`);
+
     if (!lastModified) {
       return new Date(0);
     }
 
     const date = new Date(lastModified);
+    if (isNaN(date.getTime())) {
+      console.warn(`[Invalid Timestamp] inbox:${recipient}:lastModified =`, lastModified);
+      return new Date(0);
+    }
+
     date.setMilliseconds(0);
     return date;
   }
@@ -235,6 +243,6 @@ export class InboxService {
   async updateLastModified(recipient: string): Promise<void> {
     const now = new Date();
     now.setMilliseconds(0);
-    await this.redis.set(`inbox:${recipient}:lastModified`, now.toISOString(), 'PX', 86400000);
+    await this.redis.set(`inbox:${recipient}:lastModified`, now.toISOString(), 'EX', 86400000);
   }
 }
