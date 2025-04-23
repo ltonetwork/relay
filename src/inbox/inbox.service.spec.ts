@@ -6,7 +6,7 @@ import { ConfigModule } from '../common/config/config.module';
 import { LoggerService } from '../common/logger/logger.service';
 import Redis from 'ioredis';
 import { Bucket } from 'any-bucket';
-import { Message, AccountFactoryED25519, Account } from '@ltonetwork/lto';
+import { Message, AccountFactoryED25519, Account, Binary } from '@ltonetwork/lto';
 import { ConfigService } from '../common/config/config.service';
 
 describe('InboxService', () => {
@@ -25,19 +25,26 @@ describe('InboxService', () => {
   beforeEach(() => {
     redis = {
       hgetall: jest.fn(),
+      hkeys: jest.fn(),
       hexists: jest.fn(),
+      get: jest.fn(),
       hget: jest.fn(),
       hset: jest.fn(),
+      set: jest.fn(),
+      hdel: jest.fn(),
     } as any;
 
     bucket = {
       get: jest.fn(),
       put: jest.fn(),
       set: jest.fn(),
+      delete: jest.fn(),
     } as any;
 
     logger = {
       debug: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
     } as any;
   });
 
@@ -48,6 +55,7 @@ describe('InboxService', () => {
         InboxService,
         { provide: Redis, useValue: redis },
         { provide: 'INBOX_BUCKET', useValue: bucket },
+        { provide: 'INBOX_THUMBNAIL_BUCKET', useValue: bucket },
         { provide: LoggerService, useValue: logger },
       ],
     }).compile();
@@ -99,32 +107,104 @@ describe('InboxService', () => {
           size: 20,
         }),
       };
+
+      redis.hkeys.mockResolvedValue(['hash1', 'hash2']);
+      redis.hget.mockImplementation((_key, field) => Promise.resolve(data[String(field)]));
     });
 
     it('should return all messages if type is not specified', async () => {
       const recipientAddress = recipient.address;
-      redis.hgetall.mockResolvedValue(data);
-
       const result = await service.list(recipientAddress);
 
-      expect(result).toEqual([
-        { hash: 'hash1', type: 'basic', timestamp: 1672531200, sender: 'sender1', recipient: 'recipient1', size: 10 },
-        { hash: 'hash2', type: 'other', timestamp: 1672531210, sender: 'sender2', recipient: 'recipient2', size: 20 },
-      ]);
-      expect(redis.hgetall).toHaveBeenCalledWith(`inbox:${recipientAddress}`);
+      expect(result).toEqual({
+        items: [
+          {
+            hash: 'hash1',
+            type: 'basic',
+            timestamp: 1672531200,
+            sender: 'sender1',
+            recipient: 'recipient1',
+            size: 10,
+            senderPublicKey: 'ed25519',
+            publicKey: 'key1',
+            mediaType: 'text/plain',
+            meta: {},
+          },
+          {
+            hash: 'hash2',
+            type: 'other',
+            timestamp: 1672531210,
+            sender: 'sender2',
+            recipient: 'recipient2',
+            size: 20,
+            meta: {},
+          },
+        ],
+        total: 2,
+        hasMore: false,
+      });
+
+      expect(redis.hkeys).toHaveBeenCalledWith(`inbox:${recipientAddress}`);
+      expect(redis.hget).toHaveBeenCalledWith(`inbox:${recipientAddress}`, 'hash1');
+      expect(redis.hget).toHaveBeenCalledWith(`inbox:${recipientAddress}`, 'hash2');
     });
 
-    it('should return filtered messages by type if type is specified', async () => {
+    it('should return filtered messages by type when no pagination', async () => {
       const recipientAddress = recipient.address;
-      const type = 'basic';
-      redis.hgetall.mockResolvedValue(data);
+      const result = await service.list(recipientAddress, { type: 'basic' });
 
-      const result = await service.list(recipientAddress, type);
+      expect(result).toEqual({
+        items: [
+          {
+            hash: 'hash1',
+            type: 'basic',
+            timestamp: 1672531200,
+            sender: 'sender1',
+            recipient: 'recipient1',
+            size: 10,
+            senderPublicKey: 'ed25519',
+            publicKey: 'key1',
+            mediaType: 'text/plain',
+            meta: {},
+          },
+        ],
+        total: 2,
+        hasMore: false,
+      });
 
-      expect(result).toEqual([
-        { hash: 'hash1', type: 'basic', timestamp: 1672531200, sender: 'sender1', recipient: 'recipient1', size: 10 },
-      ]);
-      expect(redis.hgetall).toHaveBeenCalledWith(`inbox:${recipientAddress}`);
+      expect(redis.hkeys).toHaveBeenCalledWith(`inbox:${recipientAddress}`);
+      expect(redis.hget).toHaveBeenCalledWith(`inbox:${recipientAddress}`, 'hash1');
+      expect(redis.hget).toHaveBeenCalledWith(`inbox:${recipientAddress}`, 'hash2');
+    });
+
+    it('should return paginated messages when limit and offset are provided', async () => {
+      const recipientAddress = recipient.address;
+      const result = await service.list(recipientAddress, {
+        limit: 1,
+        offset: 0,
+      });
+
+      expect(result).toEqual({
+        items: [
+          {
+            hash: 'hash1',
+            type: 'basic',
+            timestamp: 1672531200,
+            sender: 'sender1',
+            recipient: 'recipient1',
+            size: 10,
+            senderPublicKey: 'ed25519',
+            publicKey: 'key1',
+            mediaType: 'text/plain',
+            meta: {},
+          },
+        ],
+        total: 2,
+        hasMore: true,
+      });
+
+      expect(redis.hkeys).toHaveBeenCalledWith(`inbox:${recipientAddress}`);
+      expect(redis.hget).toHaveBeenCalledWith(`inbox:${recipientAddress}`, 'hash1');
     });
   });
 
@@ -188,7 +268,7 @@ describe('InboxService', () => {
       jest.spyOn(config, 'isInboxEnabled').mockReturnValue(true);
     });
 
-    it('should index in Redis and the message in the bucket if not embedded', async () => {
+    it('should store index in Redis and the message in the bucket if not embedded', async () => {
       jest.spyOn(config, 'getStorageEmbedMaxSize').mockReturnValue(0);
       const recipientAddress = recipient.address;
 
@@ -201,7 +281,13 @@ describe('InboxService', () => {
       expect(redis.hset.mock.calls[0][1]).toBe(message.hash.base58);
       expect(JSON.parse(redis.hset.mock.calls[0][2] as string)).toEqual({
         hash: message.hash.base58,
+        version: 0,
         type: 'basic',
+        meta: {
+          description: '',
+          title: '',
+          type: 'basic',
+        },
         timestamp: message.timestamp.toJSON(),
         sender: sender.address,
         senderKeyType: sender.keyType,
@@ -231,7 +317,13 @@ describe('InboxService', () => {
       expect(redis.hset.mock.calls[0][1]).toBe(message.hash.base58);
       expect(JSON.parse(redis.hset.mock.calls[0][2] as string)).toEqual({
         hash: message.hash.base58,
+        version: 0,
         type: 'basic',
+        meta: {
+          description: '',
+          title: '',
+          type: 'basic',
+        },
         timestamp: message.timestamp.toJSON(),
         sender: sender.address,
         senderKeyType: sender.keyType,
@@ -244,6 +336,138 @@ describe('InboxService', () => {
       });
 
       expect(bucket.put).not.toHaveBeenCalled();
+    });
+
+    it('should store the message and thumbnail when not embedded and thumbnail is present', async () => {
+      jest.spyOn(config, 'getStorageEmbedMaxSize').mockReturnValue(0);
+
+      message = new Message('hello', 'text/plain', {
+        type: 'basic',
+        title: '',
+        description: '',
+        thumbnail: Binary.from('hello'),
+      })
+        .to(recipient)
+        .signWith(sender);
+
+      const thumbnailBucket = module.get<Bucket>('INBOX_THUMBNAIL_BUCKET');
+      const thumbnailPutSpy = jest.spyOn(thumbnailBucket, 'put');
+
+      await service.store(message);
+
+      const storedData = JSON.parse(String(redis.hset.mock.calls[0][2]));
+
+      expect(storedData.thumbnail).toBe(true);
+
+      expect(thumbnailPutSpy).toHaveBeenCalledWith(message.hash.base58, expect.any(Binary));
+      expect(bucket.put).toHaveBeenCalledWith(message.hash.base58, message.toBinary());
+    });
+  });
+
+  describe('delete', () => {
+    it('should throw an error if the message does not exist', async () => {
+      const recipientAddress = recipient.address;
+      const hash = message.hash.base58;
+      redis.hexists.mockResolvedValue(0);
+
+      await expect(service.delete(recipientAddress, hash)).rejects.toThrow('Message not found');
+      expect(redis.hexists).toHaveBeenCalledWith(`inbox:${recipientAddress}`, hash);
+      expect(logger.warn).toHaveBeenCalledWith(
+        `delete: message '${hash}' not found for recipient '${recipientAddress}'`,
+      );
+    });
+
+    it('should delete a message and associated files if it exists', async () => {
+      const recipientAddress = recipient.address;
+      const hash = message.hash.base58;
+      redis.hexists.mockResolvedValue(1); // has() will return true
+      redis.hget.mockResolvedValue(JSON.stringify({ thumbnail: true }));
+      redis.hdel.mockResolvedValue(1);
+
+      const mockThumbnailBucket = service['thumbnail_bucket'] as jest.Mocked<Bucket>;
+      const mockBucket = service['bucket'] as jest.Mocked<Bucket>;
+
+      mockThumbnailBucket.delete = jest.fn();
+      mockBucket.delete = jest.fn();
+
+      await service.delete(recipientAddress, hash);
+
+      expect(redis.hdel).toHaveBeenCalledWith(`inbox:${recipientAddress}`, hash);
+      expect(mockThumbnailBucket.delete).toHaveBeenCalledWith(hash);
+      expect(mockBucket.delete).toHaveBeenCalledWith(hash);
+
+      expect(logger.debug).toHaveBeenCalledWith(
+        `delete: message '${hash}' deleted from Redis for recipient '${recipientAddress}'`,
+      );
+      expect(logger.debug).toHaveBeenCalledWith(`delete: file '${hash}' deleted from bucket storage`);
+    });
+
+    it('should handle NoSuchKey error gracefully', async () => {
+      const recipientAddress = recipient.address;
+      const hash = message.hash.base58;
+      redis.hexists.mockResolvedValue(1);
+      redis.hget.mockResolvedValue(JSON.stringify({ thumbnail: false }));
+      redis.hdel.mockResolvedValue(1);
+
+      const err = { code: 'NoSuchKey' };
+      bucket.delete.mockRejectedValueOnce(err);
+
+      await service.delete(recipientAddress, hash);
+
+      expect(logger.warn).toHaveBeenCalledWith(`delete: file '${hash}' not found in bucket storage`);
+    });
+  });
+
+  describe('loadThumbnail', () => {
+    it('should handle NoSuchKey error when loading thumbnail', async () => {
+      const thumbnailBucket = module.get('INBOX_THUMBNAIL_BUCKET');
+      jest.spyOn(thumbnailBucket, 'get').mockRejectedValue({ code: 'NoSuchKey' });
+
+      const result = await (service as any).loadThumbnail('hash1');
+
+      expect(result).toBeUndefined();
+      expect(logger.warn).toHaveBeenCalledWith(`Thumbnail file 'hash1' not found in bucket storage`);
+    });
+
+    it('should handle general errors when loading thumbnail', async () => {
+      const error = new Error('Bucket error');
+      jest.spyOn(bucket, 'get').mockRejectedValue(error);
+
+      const result = await (service as any).loadThumbnail('hash1');
+
+      expect(result).toBeUndefined();
+      expect(logger.error).toHaveBeenCalledWith(`Failed to load thumbnail 'hash1' from bucket`, error);
+    });
+  });
+
+  describe('create from embedded and load from file', () => {
+    it('should load message from file', async () => {
+      (bucket.get as jest.Mock).mockResolvedValue(message.toBinary());
+
+      const result = await (service as any).loadFromFile(message.hash.base58);
+
+      expect(result).toEqual(expect.objectContaining({ data: message.data }));
+      expect(bucket.get).toHaveBeenCalledWith(message.hash.base58);
+    });
+  });
+
+  describe('getLastModified', () => {
+    it('should return the last modified date', async () => {
+      const recipientAddress = recipient.address;
+      const now = new Date();
+      now.setMilliseconds(0);
+      redis.get.mockResolvedValue(now.toISOString());
+
+      const result = await service.getLastModified(recipientAddress);
+      expect(result).toEqual(now);
+    });
+
+    it('should return epoch date if no last modified date exists', async () => {
+      const recipientAddress = recipient.address;
+      redis.get.mockResolvedValue(null);
+
+      const result = await service.getLastModified(recipientAddress);
+      expect(result).toEqual(new Date(0));
     });
   });
 });

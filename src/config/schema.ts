@@ -45,6 +45,11 @@ export default {
     },
   },
   dispatcher: {
+    isEnabled: {
+      doc: 'Enable or disable dispatcher',
+      default: true,
+      env: 'DISPATCHER_ENABLED',
+    },
     target: {
       url: {
         doc: 'The target url for the dispatcher',
@@ -86,6 +91,11 @@ export default {
       doc: 'Path or bucket DSN for the inbox storage',
       default: './storage',
       env: 'INBOX_STORAGE',
+    },
+    thumbnail: {
+      doc: 'Path or bucket DSN for the thumbnail storage',
+      default: './thumbnail',
+      env: 'INBOX_THUMBNAIL_STORAGE',
     },
     embed_max_size: {
       doc: 'The maximum size for which the message content is embedded in the index',
