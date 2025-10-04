@@ -23,7 +23,9 @@ describe('RabbitMQApiService', () => {
   describe('addDynamicShovel()', () => {
     test('should add a dynamic shovel', async () => {
       const response = { status: 200, data: { bar: 'crux' } };
-      const requestServiceSpy = jest.spyOn(requestService, 'put').mockImplementation(() => Promise.resolve(response as any));
+      const requestServiceSpy = jest
+        .spyOn(requestService, 'put')
+        .mockImplementation(() => Promise.resolve(response as any));
 
       const destination = 'amqp://destination';
       const queue = 'queue';

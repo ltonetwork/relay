@@ -74,10 +74,12 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
   }
 
   async close() {
-    await Promise.all(Object.keys(this.connections).map((key) => {
-      this.logger.info(`rabbitmq: closing connection ${key}`);
-      this.connections[key].close();
-      delete this.connections[key];
-    }));
+    await Promise.all(
+      Object.keys(this.connections).map((key) => {
+        this.logger.info(`rabbitmq: closing connection ${key}`);
+        this.connections[key].close();
+        delete this.connections[key];
+      }),
+    );
   }
 }

@@ -3,10 +3,11 @@ import { RabbitMQService } from '../rabbitmq/rabbitmq.service';
 import { RabbitMQConnection } from '../rabbitmq/classes/rabbitmq.connection';
 import { LoggerService } from '../common/logger/logger.service';
 import { ConfigService } from '../common/config/config.service';
-import { Message, buildAddress, getNetwork } from '@ltonetwork/lto';
+import { Message } from 'eqty-core';
+import { getNetworkId } from '../common/address/address.utils';
+import { BaseAnchorService } from '../common/blockchain/base-anchor.service';
 import amqplib from 'amqplib';
 import { RequestService } from '../common/request/request.service';
-import { LtoIndexService } from '../common/lto-index/lto-index.service';
 import { APP_ID } from '../constants';
 import { InboxService } from '../inbox/inbox.service';
 
@@ -19,7 +20,7 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
     private readonly rabbitMQ: RabbitMQService,
     private readonly request: RequestService,
     private readonly inbox: InboxService,
-    private readonly ltoIndex: LtoIndexService,
+    private readonly baseAnchor: BaseAnchorService,
     private readonly logger: LoggerService,
   ) {}
 
@@ -57,7 +58,7 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
     const message = this.decodeMessage(msg);
     if (!message) return false;
 
-    if (!this.validateMessage(message, msg)) return false;
+    if (!(await this.validateMessage(message, msg))) return false;
 
     if (this.config.verifyAnchorOnDispatch()) {
       const verified = await this.verifyAnchor(message, msg);
@@ -88,14 +89,14 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  private validateMessage(message: Message, msg: amqplib.Message): boolean {
+  private async validateMessage(message: Message, msg: amqplib.Message): Promise<boolean> {
     const msgId = msg.properties.messageId;
 
     if (msg.properties.appId !== APP_ID) {
       return this.reject(msg, `message ${msgId} rejected, invalid app id`);
     }
 
-    if (message.type !== msg.properties.type) {
+    if (message.meta?.type !== msg.properties.type) {
       return this.reject(msg, `message ${msgId} rejected, type does not match message type`);
     }
 
@@ -115,7 +116,7 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
       return this.reject(msg, `message ${msgId} rejected, message is not signed`);
     }
 
-    if (message.isSigned() && !message.verifySignature()) {
+    if (message.isSigned() && !(await message.verifySignature(async () => true))) {
       return this.reject(msg, `message ${msgId} rejected, invalid signature`);
     }
 
@@ -124,14 +125,15 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
 
   private async verifyAnchor(message: Message, msg: amqplib.Message): Promise<boolean> {
     const msgId = msg.properties.messageId;
-    const networkId = getNetwork(message.recipient);
+    const networkId = getNetworkId(message.recipient);
 
-    if (networkId !== 'L' && networkId !== 'T') {
+    if (!this.baseAnchor.isNetworkSupported(networkId)) {
       return this.reject(msg, `message ${msgId} rejected, unsupported network ${networkId}`);
     }
 
-    if (!(await this.ltoIndex.verifyAnchor(networkId, message.hash))) {
-      return this.retry(msg, `message ${msgId} requeued, not anchored`);
+    const result = await this.baseAnchor.verifyAnchor(networkId, message.hash);
+    if (!result.isAnchored) {
+      return this.retry(msg, `message ${msgId} requeued, not anchored: ${result.error}`);
     }
 
     return true;
@@ -142,21 +144,19 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
     if (!target.url) return true;
 
     const msgId = msg.properties.messageId;
-    const networkId = getNetwork(message.recipient);
+    const _networkId = getNetworkId(message.recipient);
 
-    const data = message.isEncrypted() ? message.encryptedData : message.data;
+    const data = message.data;
     const headers: Record<string, string> = {
-      'Content-Type': message.isEncrypted() ? 'application/octet-stream' : message.mediaType,
-      'LTO-Message-Type': message.type,
-      'LTO-Message-Sender': buildAddress(message.sender.publicKey, networkId),
-      'LTO-Message-SenderKeyType': message.sender.keyType,
-      'LTO-Message-SenderPublicKey': message.sender.publicKey.base58,
-      'LTO-Message-Recipient': message.recipient,
-      'LTO-Message-Signature': message.signature.base58,
-      'LTO-Message-Timestamp': message.timestamp.toString(),
-      'LTO-Message-Hash': message.hash.base58,
+      'Content-Type': message.mediaType,
+      'EQTY-Message-Type': message.meta?.type || 'basic',
+      'EQTY-Message-Sender': message.sender || '',
+      'EQTY-Message-Recipient': message.recipient,
+      'EQTY-Message-Signature': message.signature?.base58 || '',
+      'EQTY-Message-Timestamp': message.timestamp?.toString() || '',
+      'EQTY-Message-Hash': message.hash.base58,
     };
-    
+
     if (target.api_key) {
       headers['Authorization'] = `Bearer ${target.api_key}`;
     }
@@ -190,4 +190,3 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
     return false;
   }
 }
-

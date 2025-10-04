@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '../common/config/config.service';
-import { buildAddress, getNetwork, Message } from '@ltonetwork/lto';
+import { Message } from 'eqty-core';
 import { LoggerService } from '../common/logger/logger.service';
 import Redis from 'ioredis';
 import { MessageSummery } from './inbox.dto';
@@ -48,7 +48,10 @@ export class InboxService {
   }
 
   private createFromEmbedded(data: any): Message {
-    return Message.from({ ...data, sender: { keyType: data.senderKeyType, publicKey: data.senderPublicKey } });
+    if (!data.sender) {
+      throw new Error('Invalid message data: sender is missing');
+    }
+    return Message.from(data);
   }
 
   private async loadFromFile(hash: string): Promise<Message> {
@@ -65,8 +68,7 @@ export class InboxService {
     if (!this.config.isInboxEnabled()) throw new Error(`storage: module not enabled`);
     this.logger.debug(`storage: storing message '${message.hash.base58}'`);
 
-    const embed =
-      (message.isEncrypted() ? message.encryptedData : message.data).length <= this.config.getStorageEmbedMaxSize();
+    const embed = message.data.length <= this.config.getStorageEmbedMaxSize();
 
     const promises: Promise<any>[] = [];
     promises.push(this.storeIndex(message, embed));
@@ -78,10 +80,9 @@ export class InboxService {
   private async storeIndex(message: Message, embed: boolean): Promise<void> {
     const data: any = message.toJSON();
 
-    data.size = 'encryptedData' in data ? data.encryptedData.length : message.data.length;
-    data.sender = buildAddress(message.sender.publicKey, getNetwork(message.recipient));
-    data.senderKeyType = message.sender.keyType;
-    data.senderPublicKey = message.sender.publicKey.base58;
+    data.size = message.data.length;
+    data.sender = message.sender;
+    data.recipient = message.recipient;
 
     if (!embed) {
       delete data.encryptedData;

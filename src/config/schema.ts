@@ -132,6 +132,56 @@ export default {
       env: 'RABBITMQ_PUBLIC_URL',
     },
   },
+  blockchain: {
+    base: {
+      mainnet: {
+        rpc_url: {
+          doc: 'Base mainnet RPC URL',
+          default: 'https://mainnet.base.org',
+          env: 'BASE_MAINNET_RPC_URL',
+        },
+        anchor_contract: {
+          doc: 'Base mainnet anchor contract address',
+          default: '0x0000000000000000000000000000000000000000', // Will be set by eqty-core
+          env: 'BASE_MAINNET_ANCHOR_CONTRACT',
+        },
+      },
+      sepolia: {
+        rpc_url: {
+          doc: 'Base Sepolia testnet RPC URL',
+          default: 'https://sepolia.base.org',
+          env: 'BASE_SEPOLIA_RPC_URL',
+        },
+        anchor_contract: {
+          doc: 'Base Sepolia anchor contract address',
+          default: '0x0000000000000000000000000000000000000000', // Will be set by eqty-core
+          env: 'BASE_SEPOLIA_ANCHOR_CONTRACT',
+        },
+      },
+    },
+    anchor_verification: {
+      cache_ttl: {
+        doc: 'Cache TTL for anchor verification results in milliseconds',
+        default: 300000, // 5 minutes
+        env: 'ANCHOR_VERIFICATION_CACHE_TTL',
+      },
+      max_retries: {
+        doc: 'Maximum number of retries for blockchain queries',
+        default: 3,
+        env: 'ANCHOR_VERIFICATION_MAX_RETRIES',
+      },
+      timeout: {
+        doc: 'Timeout for blockchain queries in milliseconds',
+        default: 10000, // 10 seconds
+        env: 'ANCHOR_VERIFICATION_TIMEOUT',
+      },
+      use_redis_cache: {
+        doc: 'Use Redis for anchor verification caching instead of in-memory',
+        default: false,
+        env: 'ANCHOR_VERIFICATION_USE_REDIS_CACHE',
+      },
+    },
+  },
   lto: {
     testnet: {
       node: {

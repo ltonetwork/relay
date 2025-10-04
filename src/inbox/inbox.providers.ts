@@ -20,5 +20,5 @@ export const inboxProviders = [
       throw new Error(`Unsupported storage service '${path}'`);
     },
     inject: [ConfigService, S3],
-  }
-]
+  },
+];

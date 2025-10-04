@@ -80,7 +80,7 @@ describe('ConfigService', () => {
     });
 
     test('getRabbitMQExchange()', async () => {
-      expect(configService.getRabbitMQExchange()).toBe("amq.direct");
+      expect(configService.getRabbitMQExchange()).toBe('amq.direct');
     });
 
     test('getRabbitMQQueue()', async () => {

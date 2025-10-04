@@ -27,7 +27,7 @@ export class ConfigService {
     return this.config.get('queue.enabled');
   }
 
-  getDispatchTarget(): { url: string, api_key: string } {
+  getDispatchTarget(): { url: string; api_key: string } {
     return this.config.get('dispatcher.target');
   }
 
@@ -179,5 +179,30 @@ export class ConfigService {
 
   getLog(): { level: string; force: boolean } {
     return this.config.get('log');
+  }
+
+  // Blockchain configuration methods
+  getBaseRpcUrl(network: 'mainnet' | 'sepolia'): string {
+    return this.config.get(`blockchain.base.${network}.rpc_url`);
+  }
+
+  getBaseAnchorContract(network: 'mainnet' | 'sepolia'): string {
+    return this.config.get(`blockchain.base.${network}.anchor_contract`);
+  }
+
+  getAnchorVerificationCacheTtl(): number {
+    return this.config.get('blockchain.anchor_verification.cache_ttl');
+  }
+
+  getAnchorVerificationMaxRetries(): number {
+    return this.config.get('blockchain.anchor_verification.max_retries');
+  }
+
+  getAnchorVerificationTimeout(): number {
+    return this.config.get('blockchain.anchor_verification.timeout');
+  }
+
+  getAnchorVerificationUseRedisCache(): boolean {
+    return this.config.get('blockchain.anchor_verification.use_redis_cache');
   }
 }

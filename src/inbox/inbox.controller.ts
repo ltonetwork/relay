@@ -7,14 +7,14 @@ import {
   NotFoundException,
   Param,
   Query,
-  Res,
   UseGuards,
 } from '@nestjs/common';
 import { InboxService } from './inbox.service';
 import { ApiParam, ApiProduces, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { InboxGuard } from './inbox.guard';
 import { MessageSummery } from './inbox.dto';
-import { Account, Message } from '@ltonetwork/lto';
+import { Account } from '@ltonetwork/lto';
+import { Message } from 'eqty-core';
 import { Signer } from '../common/http-signature/signer';
 
 @ApiTags('Inbox')

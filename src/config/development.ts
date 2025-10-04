@@ -6,7 +6,7 @@ export default {
   },
   dispatcher: {
     accept: {
-      all: true
+      all: true,
     },
   },
   log: {

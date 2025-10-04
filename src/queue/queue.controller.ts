@@ -2,7 +2,7 @@ import { BadRequestException, Body, Controller, Post, Res } from '@nestjs/common
 import { Response } from 'express';
 import { LoggerService } from '../common/logger/logger.service';
 import { QueueService } from './queue.service';
-import { Message } from '@ltonetwork/lto';
+import { Message } from 'eqty-core';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ConfigService } from '../common/config/config.service';
 
@@ -15,7 +15,7 @@ export class QueueController {
     private readonly config: ConfigService,
   ) {}
 
-  private messageFrom(data: any): Message {
+  private async messageFrom(data: any): Promise<Message> {
     let message: Message;
 
     try {
@@ -28,7 +28,7 @@ export class QueueController {
     if (!this.config.acceptUnsigned() && !message.signature) {
       throw new BadRequestException({ message: 'message is unsigned' });
     }
-    if (message.signature && !message.verifySignature()) {
+    if (message.signature && !(await message.verifySignature(async () => true))) {
       throw new BadRequestException({ message: 'invalid signature' });
     }
     if (!message.verifyHash()) {
@@ -57,7 +57,7 @@ export class QueueController {
   })
   @ApiResponse({ status: 204, description: 'Message added to queue for delivery' })
   async add(@Body() data: any, @Res() res: Response): Promise<Response> {
-    const message = this.messageFrom(data);
+    const message = await this.messageFrom(data);
     try {
       await this.queue.add(message);
     } catch (e) {

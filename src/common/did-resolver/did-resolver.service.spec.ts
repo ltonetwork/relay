@@ -31,8 +31,8 @@ describe('DidResolverService', () => {
           provide: LoggerService,
           useValue: {
             warn: jest.fn(),
-          }
-        }
+          },
+        },
       ],
     }).compile();
 
@@ -51,7 +51,7 @@ describe('DidResolverService', () => {
       const url = 'https://example.com';
       const response = {
         status: 200,
-        data: { '@context': 'https://www.w3.org/ns/did/v1', id: 'did:lto:3MsAuZ59xHHa5vmoPG45fBGC7PxLCYQZnbM' }
+        data: { '@context': 'https://www.w3.org/ns/did/v1', id: 'did:lto:3MsAuZ59xHHa5vmoPG45fBGC7PxLCYQZnbM' },
       };
 
       jest.spyOn(configService, 'getDidResolver').mockReturnValue(url);
@@ -71,12 +71,12 @@ describe('DidResolverService', () => {
         status: 200,
         data: {
           '@context': [
-            "https://www.w3.org/ns/did/v1",
-            "https://w3id.org/security/suites/ed25519-2020/v1",
-            "https://w3id.org/security/suites/secp256k1-2019/v1"
+            'https://www.w3.org/ns/did/v1',
+            'https://w3id.org/security/suites/ed25519-2020/v1',
+            'https://w3id.org/security/suites/secp256k1-2019/v1',
           ],
-          id: 'did:lto:3MsAuZ59xHHa5vmoPG45fBGC7PxLCYQZnbM'
-        }
+          id: 'did:lto:3MsAuZ59xHHa5vmoPG45fBGC7PxLCYQZnbM',
+        },
       };
 
       jest.spyOn(configService, 'getDidResolver').mockReturnValue(url);
