@@ -19,7 +19,7 @@ describe('RabbitMQService', () => {
     close: jest.fn(),
     createChannel: jest.fn(() => channel),
   };
-  const connect = jest.fn((url) => connection);
+  const connect = jest.fn((_url) => connection);
 
   beforeEach(async () => {
     module = await Test.createTestingModule(RabbitMQModuleConfig)

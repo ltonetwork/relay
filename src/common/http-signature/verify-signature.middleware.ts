@@ -17,7 +17,7 @@ export class VerifySignatureMiddleware implements NestMiddleware {
       }
 
       // Validate and standardize the address
-      const walletAddress = buildAddress(rawAddress);
+      const _walletAddress = buildAddress(rawAddress);
 
       // Verify the request signature using EIP-712
       const result = await this.signatureService.verifyRequestSignature(

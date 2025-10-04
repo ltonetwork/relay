@@ -17,7 +17,9 @@ export class ConfigLoaderService implements OnModuleInit, OnModuleDestroy {
   private readonly ttl: number = 300000; // 5 minutes in milliseconds
   private configReloadInterval: ReturnType<typeof setInterval>;
 
-  constructor() {}
+  constructor() {
+    // ConfigLoaderService constructor
+  }
 
   async onModuleInit() {
     if (!this.config) {

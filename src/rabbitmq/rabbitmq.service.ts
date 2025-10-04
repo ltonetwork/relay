@@ -11,7 +11,9 @@ export class RabbitMQService implements OnModuleInit, OnModuleDestroy {
 
   constructor(@Inject(AMQPLIB) private readonly _amqplib: typeof amqplib, private readonly logger: LoggerService) {}
 
-  async onModuleInit() {}
+  async onModuleInit() {
+    // RabbitMQ service initialization
+  }
 
   async onModuleDestroy() {
     await this.close();
