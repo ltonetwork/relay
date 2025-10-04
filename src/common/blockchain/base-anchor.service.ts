@@ -62,6 +62,24 @@ export class BaseAnchorService {
    * Verifies if a hash is anchored on Base blockchain by querying events
    */
   async verifyAnchor(networkId: number, hash: Binary | string): Promise<AnchorVerificationResult> {
+    // Validate input parameters
+    if (!hash) {
+      return { isAnchored: false, error: 'Hash parameter is required' };
+    }
+
+    if (typeof hash === 'string') {
+      if (!hash.startsWith('0x') || hash.length !== 66) {
+        return { isAnchored: false, error: 'Invalid hash format - must be 0x-prefixed 64-character hex string' };
+      }
+      if (hash === '0x0000000000000000000000000000000000000000000000000000000000000000') {
+        return { isAnchored: false, error: 'Zero hash is not valid for anchor verification' };
+      }
+    }
+
+    if (!this.isNetworkSupported(networkId)) {
+      return { isAnchored: false, error: `Unsupported network ID: ${networkId}` };
+    }
+
     const hashBinary = typeof hash === 'string' ? Binary.fromHex(hash) : hash;
     const hashHex = hashBinary.hex;
     const cacheKey = `${networkId}:${hashHex}`;
@@ -194,6 +212,32 @@ export class BaseAnchorService {
   ): Promise<Map<string, AnchorVerificationResult>> {
     const results = new Map<string, AnchorVerificationResult>();
 
+    // Validate input parameters
+    if (!hashes || hashes.length === 0) {
+      return results; // Return empty map for empty input
+    }
+
+    if (hashes.length > 100) {
+      // Prevent excessive batch sizes that could cause performance issues
+      for (const hash of hashes) {
+        const hashHex = typeof hash === 'string' ? hash : hash.hex;
+        results.set(hashHex, {
+          isAnchored: false,
+          error: 'Batch size too large - maximum 100 hashes per batch',
+        });
+      }
+      return results;
+    }
+
+    if (!this.isNetworkSupported(networkId)) {
+      const error = `Unsupported network ID: ${networkId}`;
+      for (const hash of hashes) {
+        const hashHex = typeof hash === 'string' ? hash : hash.hex;
+        results.set(hashHex, { isAnchored: false, error });
+      }
+      return results;
+    }
+
     try {
       const provider = this.providers.get(networkId);
       if (!provider) {
@@ -231,20 +275,38 @@ export class BaseAnchorService {
 
       // Check each requested hash
       for (const hash of hashes) {
-        const hashHex = typeof hash === 'string' ? hash : hash.hex;
-        const events = eventsByHash.get(hashHex);
+        try {
+          const hashHex = typeof hash === 'string' ? hash : hash.hex;
 
-        if (!events || events.length === 0) {
+          // Validate individual hash format
+          if (typeof hash === 'string' && (!hash.startsWith('0x') || hash.length !== 66)) {
+            results.set(hashHex, {
+              isAnchored: false,
+              error: 'Invalid hash format - must be 0x-prefixed 64-character hex string',
+            });
+            continue;
+          }
+
+          const events = eventsByHash.get(hashHex);
+
+          if (!events || events.length === 0) {
+            results.set(hashHex, {
+              isAnchored: false,
+              error: `Hash ${hashHex} not found in anchor events`,
+            });
+          } else {
+            const latestEvent = events[events.length - 1];
+            results.set(hashHex, {
+              isAnchored: true,
+              blockNumber: latestEvent.blockNumber,
+              transactionHash: latestEvent.transactionHash,
+            });
+          }
+        } catch (hashError: any) {
+          const hashHex = typeof hash === 'string' ? hash : hash.hex;
           results.set(hashHex, {
             isAnchored: false,
-            error: `Hash ${hashHex} not found in anchor events`,
-          });
-        } else {
-          const latestEvent = events[events.length - 1];
-          results.set(hashHex, {
-            isAnchored: true,
-            blockNumber: latestEvent.blockNumber,
-            transactionHash: latestEvent.transactionHash,
+            error: `Error processing hash ${hashHex}: ${hashError.message}`,
           });
         }
       }

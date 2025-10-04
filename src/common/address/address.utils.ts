@@ -16,14 +16,25 @@ export function isValidAddress(address: string): boolean {
 
 /**
  * Gets the network ID from an Ethereum address
- * For EQTY, we use Base blockchain (mainnet: 8453, sepolia: 84532)
+ * Base blockchain (mainnet: 8453, sepolia: 84532)
  */
-export function getNetworkId(address: string): NetworkId {
+export function getNetworkId(address: string, networkId?: number): NetworkId {
   if (!isValidAddress(address)) {
     throw new Error(`Invalid Ethereum address: ${address}`);
   }
 
+  if (networkId && isValidNetworkId(networkId)) {
+    return networkId as NetworkId;
+  }
+
   return BASE_CHAIN_ID;
+}
+
+/**
+ * Validates if a network ID is supported
+ */
+function isValidNetworkId(networkId: number): boolean {
+  return networkId === BASE_CHAIN_ID || networkId === BASE_SEPOLIA_CHAIN_ID;
 }
 
 /**
@@ -61,7 +72,7 @@ export function isAcceptedAddress(address: string, acceptedAddresses?: string[])
   }
 
   if (!acceptedAddresses || acceptedAddresses.length === 0) {
-    return true; // No restrictions
+    return true;
   }
 
   return acceptedAddresses.includes(address.toLowerCase());
@@ -69,7 +80,6 @@ export function isAcceptedAddress(address: string, acceptedAddresses?: string[])
 
 /**
  * Extracts address from request path
- * Replaces LTO's path matching for 3MsAuZ... addresses
  */
 export function extractAddressFromPath(path: string): string | null {
   // Match Ethereum addresses in path: /inboxes/0x1234... or /inboxes/0x1234.../messages

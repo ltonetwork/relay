@@ -9,12 +9,20 @@ export interface SignatureVerificationResult {
   error?: string;
 }
 
+/**
+ * EIP-712 Typed Data Domain interface
+ * Compatible with eqty-core's ITypedDataDomain
+ */
 export interface TypedDataDomain {
   name?: string;
   version?: string;
   chainId?: number;
 }
 
+/**
+ * EIP-712 Typed Data Field interface
+ * Compatible with eqty-core's ITypedDataField
+ */
 export interface TypedDataField {
   name: string;
   type: string;
@@ -89,7 +97,7 @@ export class SignatureService {
         chainId: 8453, // Base mainnet
       };
 
-      const types = {
+      const types: Record<string, TypedDataField[]> = {
         Request: [
           { name: 'method', type: 'string' },
           { name: 'path', type: 'string' },
