@@ -12,7 +12,7 @@ export default {
   },
   port: {
     doc: 'The port to bind.',
-    default: 3000,
+    default: 8000,
     env: 'PORT',
   },
   api_prefix: {
@@ -140,22 +140,12 @@ export default {
           default: 'https://mainnet.base.org',
           env: 'BASE_MAINNET_RPC_URL',
         },
-        anchor_contract: {
-          doc: 'Base mainnet anchor contract address',
-          default: '0x0000000000000000000000000000000000000000', // Will be set by eqty-core
-          env: 'BASE_MAINNET_ANCHOR_CONTRACT',
-        },
       },
       sepolia: {
         rpc_url: {
           doc: 'Base Sepolia testnet RPC URL',
           default: 'https://sepolia.base.org',
           env: 'BASE_SEPOLIA_RPC_URL',
-        },
-        anchor_contract: {
-          doc: 'Base Sepolia anchor contract address',
-          default: '0x0000000000000000000000000000000000000000', // Will be set by eqty-core
-          env: 'BASE_SEPOLIA_ANCHOR_CONTRACT',
         },
       },
     },

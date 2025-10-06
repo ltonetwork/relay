@@ -2,18 +2,19 @@ import { MiddlewareConsumer, Module, RequestMethod } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule } from './common/config/config.module';
+import { LoggerModule } from './common/logger/logger.module';
+import { RedisModule } from './common/redis/redis.module';
 import { RabbitMQModule } from './rabbitmq/rabbitmq.module';
 import { DispatcherModule } from './dispatcher/dispatcher.module';
 import { QueueModule } from './queue/queue.module';
 import { InboxModule } from './inbox/inbox.module';
 import { VerifySignatureMiddleware } from './common/http-signature/verify-signature.middleware';
 import { SignatureService } from './common/signature/signature.service';
-import { BaseAnchorService } from './common/blockchain/base-anchor.service';
 
 export const AppModuleConfig = {
-  imports: [ConfigModule, RabbitMQModule, QueueModule, DispatcherModule, InboxModule],
+  imports: [ConfigModule, LoggerModule, RedisModule, RabbitMQModule, QueueModule, DispatcherModule, InboxModule],
   controllers: [AppController],
-  providers: [AppService, SignatureService, BaseAnchorService],
+  providers: [AppService, SignatureService],
 };
 
 @Module(AppModuleConfig)

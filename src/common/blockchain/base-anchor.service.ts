@@ -1,6 +1,10 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Contract, JsonRpcProvider } from 'ethers';
-import { AnchorClient, Binary, BASE_CHAIN_ID, BASE_SEPOLIA_CHAIN_ID } from 'eqty-core';
+// Dynamic import for eqty-core ES module
+let AnchorClient: any;
+let Binary: any;
+let BASE_CHAIN_ID: number;
+let BASE_SEPOLIA_CHAIN_ID: number;
 import { ConfigService } from '../config/config.service';
 import { LoggerService } from '../logger/logger.service';
 import Redis from 'ioredis';
@@ -14,15 +18,30 @@ export interface AnchorVerificationResult {
 
 @Injectable()
 export class BaseAnchorService {
-  private anchorClients: Map<number, AnchorClient<any>> = new Map();
+  private anchorClients: Map<number, any> = new Map();
   private providers: Map<number, JsonRpcProvider> = new Map();
   private verificationCache: Map<string, { result: AnchorVerificationResult; timestamp: number }> = new Map();
 
   constructor(
     private readonly config: ConfigService,
     private readonly logger: LoggerService,
-    @Inject('REDIS_CLIENT') private readonly redis?: Redis,
+    private readonly redis?: Redis,
   ) {
+    this.initializeEqtyCore();
+  }
+
+  /**
+   * Initialize eqty-core imports
+   */
+  private async initializeEqtyCore(): Promise<void> {
+    // Use dynamic import for ES module
+    const importFn = new Function('specifier', 'return import(specifier)');
+    const eqtyCore = await importFn('eqty-core');
+    AnchorClient = eqtyCore.AnchorClient;
+    Binary = eqtyCore.Binary;
+    BASE_CHAIN_ID = eqtyCore.BASE_CHAIN_ID;
+    BASE_SEPOLIA_CHAIN_ID = eqtyCore.BASE_SEPOLIA_CHAIN_ID;
+
     this.initializeAnchorClients();
   }
 
@@ -61,7 +80,7 @@ export class BaseAnchorService {
   /**
    * Verifies if a hash is anchored on Base blockchain by querying events
    */
-  async verifyAnchor(networkId: number, hash: Binary | string): Promise<AnchorVerificationResult> {
+  async verifyAnchor(networkId: number, hash: any | string): Promise<AnchorVerificationResult> {
     // Validate input parameters
     if (!hash) {
       return { isAnchored: false, error: 'Hash parameter is required' };
@@ -208,7 +227,7 @@ export class BaseAnchorService {
    */
   async verifyAnchorsBatch(
     networkId: number,
-    hashes: (Binary | string)[],
+    hashes: (any | string)[],
   ): Promise<Map<string, AnchorVerificationResult>> {
     const results = new Map<string, AnchorVerificationResult>();
 

@@ -186,10 +186,6 @@ export class ConfigService {
     return this.config.get(`blockchain.base.${network}.rpc_url`);
   }
 
-  getBaseAnchorContract(network: 'mainnet' | 'sepolia'): string {
-    return this.config.get(`blockchain.base.${network}.anchor_contract`);
-  }
-
   getAnchorVerificationCacheTtl(): number {
     return this.config.get('blockchain.anchor_verification.cache_ttl');
   }

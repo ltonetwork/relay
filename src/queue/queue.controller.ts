@@ -2,7 +2,8 @@ import { BadRequestException, Body, Controller, Post, Res } from '@nestjs/common
 import { Response } from 'express';
 import { LoggerService } from '../common/logger/logger.service';
 import { QueueService } from './queue.service';
-import { Message } from 'eqty-core';
+// Dynamic import for eqty-core ES module
+let Message: any;
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ConfigService } from '../common/config/config.service';
 
@@ -13,10 +14,22 @@ export class QueueController {
     private readonly logger: LoggerService,
     private readonly queue: QueueService,
     private readonly config: ConfigService,
-  ) {}
+  ) {
+    this.initializeEqtyCore();
+  }
 
-  private async messageFrom(data: any): Promise<Message> {
-    let message: Message;
+  private async initializeEqtyCore(): Promise<void> {
+    const importFn = new Function('specifier', 'return import(specifier)');
+    const eqtyCore = await importFn('eqty-core');
+    Message = eqtyCore.Message;
+  }
+
+  private async messageFrom(data: any): Promise<any> {
+    let message: any;
+
+    if (!Message) {
+      await this.initializeEqtyCore();
+    }
 
     try {
       message = Message.from(data);
@@ -66,5 +79,55 @@ export class QueueController {
     }
 
     return res.status(204).send();
+  }
+
+  @Post('messages')
+  @ApiOperation({ summary: 'Send a message to another account (eqty-core format)' })
+  @ApiBody({
+    description: 'Message wrapped in relay format',
+    required: true,
+    examples: {
+      'application/json': {
+        value: {
+          message: {
+            version: 3,
+            meta: { type: 'basic', title: 'Test', description: 'Test message' },
+            mediaType: 'text/plain',
+            data: 'Hello World',
+            timestamp: 1699123456789,
+            sender: '0x1234567890123456789012345678901234567890',
+            recipient: '0x0987654321098765432109876543210987654321',
+            signature:
+              '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890',
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 200, description: 'Message added to queue for delivery' })
+  @ApiResponse({ status: 400, description: 'Invalid message format' })
+  @ApiResponse({ status: 500, description: 'Failed to add message to queue' })
+  async addMessage(@Body() data: any, @Res() res: Response): Promise<Response> {
+    try {
+      const messageData = data.message;
+      if (!messageData) {
+        return res.status(400).json({ error: 'Message data is required' });
+      }
+
+      this.logger.info(
+        `Received message via /messages endpoint from ${messageData.sender} to ${messageData.recipient}`,
+      );
+
+      const message = await this.messageFrom(messageData);
+      await this.queue.add(message);
+
+      this.logger.info(`Message ${message.hash.base58} added to queue successfully`);
+
+      // Return the message in the expected format
+      return res.status(200).json({ message: message.toJSON() });
+    } catch (e) {
+      this.logger.warn(`failed to add message to queue via /messages endpoint: '${e}'`, { stack: e.stack });
+      return res.status(500).json({ message: `failed to add message to queue` });
+    }
   }
 }

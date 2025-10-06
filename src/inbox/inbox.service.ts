@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '../common/config/config.service';
-import { Message } from 'eqty-core';
+// Dynamic import for eqty-core ES module
+let Message: any;
 import { LoggerService } from '../common/logger/logger.service';
 import Redis from 'ioredis';
 import { MessageSummery } from './inbox.dto';
@@ -13,7 +14,15 @@ export class InboxService {
     private redis: Redis,
     @Inject('INBOX_BUCKET') private bucket: Bucket,
     private logger: LoggerService,
-  ) {}
+  ) {
+    this.initializeEqtyCore();
+  }
+
+  private async initializeEqtyCore(): Promise<void> {
+    const importFn = new Function('specifier', 'return import(specifier)');
+    const eqtyCore = await importFn('eqty-core');
+    Message = eqtyCore.Message;
+  }
 
   async list(recipient: string, type?: string): Promise<MessageSummery[]> {
     const data = await this.redis.hgetall(`inbox:${recipient}`);
@@ -36,7 +45,7 @@ export class InboxService {
     return !!(await this.redis.hexists(`inbox:${recipient}`, hash));
   }
 
-  async get(recipient: string, hash: string): Promise<Message> {
+  async get(recipient: string, hash: string): Promise<any> {
     const data = await this.redis.hget(`inbox:${recipient}`, hash);
     if (!data) throw new Error(`message not found`);
 
@@ -47,19 +56,19 @@ export class InboxService {
       : await this.loadFromFile(hash);
   }
 
-  private createFromEmbedded(data: any): Message {
+  private createFromEmbedded(data: any): any {
     if (!data.sender) {
       throw new Error('Invalid message data: sender is missing');
     }
     return Message.from(data);
   }
 
-  private async loadFromFile(hash: string): Promise<Message> {
+  private async loadFromFile(hash: string): Promise<any> {
     const data = await this.bucket.get(hash);
     return Message.from(data);
   }
 
-  async store(message: Message): Promise<void> {
+  async store(message: any): Promise<void> {
     if (await this.has(message.recipient, message.hash.base58)) {
       this.logger.debug(`storage: message '${message.hash.base58}' already stored`);
       return;
@@ -77,7 +86,7 @@ export class InboxService {
     await Promise.all(promises);
   }
 
-  private async storeIndex(message: Message, embed: boolean): Promise<void> {
+  private async storeIndex(message: any, embed: boolean): Promise<void> {
     const data: any = message.toJSON();
 
     data.size = message.data.length;
@@ -92,7 +101,7 @@ export class InboxService {
     await this.redis.hset(`inbox:${message.recipient}`, message.hash.base58, JSON.stringify(data));
   }
 
-  private async storeFile(message: Message): Promise<void> {
+  private async storeFile(message: any): Promise<void> {
     await this.bucket.put(message.hash.base58, message.toBinary());
   }
 

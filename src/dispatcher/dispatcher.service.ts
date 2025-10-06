@@ -3,7 +3,8 @@ import { RabbitMQService } from '../rabbitmq/rabbitmq.service';
 import { RabbitMQConnection } from '../rabbitmq/classes/rabbitmq.connection';
 import { LoggerService } from '../common/logger/logger.service';
 import { ConfigService } from '../common/config/config.service';
-import { Message } from 'eqty-core';
+// Dynamic import for eqty-core ES module
+let Message: any;
 import { getNetworkId } from '../common/address/address.utils';
 import { BaseAnchorService } from '../common/blockchain/base-anchor.service';
 import amqplib from 'amqplib';
@@ -25,6 +26,11 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   async onModuleInit() {
+    // Initialize eqty-core Message class
+    const importFn = new Function('specifier', 'return import(specifier)');
+    const eqtyCore = await importFn('eqty-core');
+    Message = eqtyCore.Message;
+
     await this.start();
   }
 
@@ -77,7 +83,7 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
     return true;
   }
 
-  private decodeMessage(msg: amqplib.Message): Message | undefined {
+  private decodeMessage(msg: amqplib.Message): any | undefined {
     switch (msg.properties.contentType) {
       case 'application/json':
         const json = JSON.parse(msg.content.toString());
@@ -89,7 +95,7 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  private async validateMessage(message: Message, msg: amqplib.Message): Promise<boolean> {
+  private async validateMessage(message: any, msg: amqplib.Message): Promise<boolean> {
     const msgId = msg.properties.messageId;
 
     if (msg.properties.appId !== APP_ID) {
@@ -123,7 +129,7 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
     return true;
   }
 
-  private async verifyAnchor(message: Message, msg: amqplib.Message): Promise<boolean> {
+  private async verifyAnchor(message: any, msg: amqplib.Message): Promise<boolean> {
     const msgId = msg.properties.messageId;
     const networkId = getNetworkId(message.recipient);
 
@@ -139,7 +145,7 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
     return true;
   }
 
-  private async dispatch(message: Message, msg: amqplib.Message): Promise<boolean> {
+  private async dispatch(message: any, msg: amqplib.Message): Promise<boolean> {
     const target = this.config.getDispatchTarget();
     if (!target.url) return true;
 

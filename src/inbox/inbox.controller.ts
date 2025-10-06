@@ -14,7 +14,8 @@ import { ApiParam, ApiProduces, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { InboxGuard } from './inbox.guard';
 import { MessageSummery } from './inbox.dto';
 import { Account } from '@ltonetwork/lto';
-import { Message } from 'eqty-core';
+// Dynamic import for eqty-core ES module
+let _Message: any;
 import { Signer } from '../common/http-signature/signer';
 
 @ApiTags('Inbox')
@@ -40,11 +41,7 @@ export class InboxController {
 
   @Get('/:address/:hash')
   @ApiProduces('application/json')
-  async get(
-    @Param('address') address: string,
-    @Param('hash') hash: string,
-    @Signer() signer: Account,
-  ): Promise<Message> {
+  async get(@Param('address') address: string, @Param('hash') hash: string, @Signer() signer: Account): Promise<any> {
     if (signer.address !== address) {
       throw new ForbiddenException({ message: 'Unauthorized: Invalid signature for this address' });
     }
@@ -73,5 +70,34 @@ export class InboxController {
     }
 
     await this.inbox.delete(address, hash);
+  }
+}
+
+// Separate controller for eqty-core compatibility (no authentication required)
+@ApiTags('Messages')
+@Controller('messages')
+export class MessagesController {
+  constructor(private readonly inbox: InboxService) {}
+
+  @Get(':recipient')
+  @ApiParam({ name: 'recipient', description: 'Recipient address' })
+  @ApiQuery({ name: 'type', description: 'Type of messages to get', required: false })
+  @ApiProduces('application/json')
+  async getMessages(@Param('recipient') recipient: string, @Query('type') type?: string): Promise<{ messages: any[] }> {
+    const messageSummaries = await this.inbox.list(recipient, type);
+
+    const messages = await Promise.all(
+      messageSummaries.map(async (summary) => {
+        try {
+          return await this.inbox.get(recipient, summary.hash);
+        } catch (error) {
+          return null;
+        }
+      }),
+    );
+
+    const validMessages = messages.filter((msg) => msg !== null);
+
+    return { messages: validMessages };
   }
 }

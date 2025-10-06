@@ -1,11 +1,13 @@
 import { isAddress } from 'ethers';
-import { BASE_CHAIN_ID, BASE_SEPOLIA_CHAIN_ID } from 'eqty-core';
 
 /**
  * EQTY Address and Network utilities
  */
 
-export type NetworkId = typeof BASE_CHAIN_ID | typeof BASE_SEPOLIA_CHAIN_ID;
+const _BASE_CHAIN_ID = 8453; // Base Mainnet
+const _BASE_SEPOLIA_CHAIN_ID = 84532; // Base Sepolia
+
+export type NetworkId = 8453 | 84532; // Base Mainnet | Base Sepolia
 
 /**
  * Validates if an address is a valid Ethereum address
@@ -27,14 +29,14 @@ export function getNetworkId(address: string, networkId?: number): NetworkId {
     return networkId as NetworkId;
   }
 
-  return BASE_CHAIN_ID;
+  return 8453; // Base Mainnet
 }
 
 /**
  * Validates if a network ID is supported
  */
 function isValidNetworkId(networkId: number): boolean {
-  return networkId === BASE_CHAIN_ID || networkId === BASE_SEPOLIA_CHAIN_ID;
+  return networkId === 8453 || networkId === 84532;
 }
 
 /**
@@ -42,9 +44,9 @@ function isValidNetworkId(networkId: number): boolean {
  */
 export function getNetworkName(networkId: NetworkId): string {
   switch (networkId) {
-    case BASE_CHAIN_ID:
+    case 8453:
       return 'base';
-    case BASE_SEPOLIA_CHAIN_ID:
+    case 84532:
       return 'base-sepolia';
     default:
       throw new Error(`Unsupported network ID: ${networkId}`);
@@ -82,7 +84,6 @@ export function isAcceptedAddress(address: string, acceptedAddresses?: string[])
  * Extracts address from request path
  */
 export function extractAddressFromPath(path: string): string | null {
-  // Match Ethereum addresses in path: /inboxes/0x1234... or /inboxes/0x1234.../messages
   const match = path.match(/\/(0x[a-fA-F0-9]{40})(\/|$)/);
   return match ? match[1] : null;
 }
