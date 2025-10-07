@@ -5,9 +5,6 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ConfigService } from './common/config/config.service';
 import { LoggerService } from './common/logger/logger.service';
 import * as bodyParser from 'body-parser';
-import * as dotenv from 'dotenv';
-
-dotenv.config();
 
 function swagger(app: INestApplication, config: ConfigService) {
   const options = new DocumentBuilder()

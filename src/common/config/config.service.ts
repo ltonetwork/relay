@@ -177,6 +177,10 @@ export class ConfigService {
     return this.config.get('default_service_endpoint');
   }
 
+  getDefaultNetworkId(): number {
+    return this.config.get('default_network_id');
+  }
+
   getLog(): { level: string; force: boolean } {
     return this.config.get('log');
   }

@@ -103,7 +103,7 @@ export default {
   rabbitmq: {
     client: {
       doc: 'The RabbitMQ client config. Uses default config if only protocol is given',
-      default: 'amqp://',
+      default: 'amqp://guest:guest@localhost:5672',
       env: 'RABBITMQ_CLIENT',
     },
     api: {
@@ -113,7 +113,7 @@ export default {
     },
     queue: {
       doc: 'The default queue name used by rabbitmq',
-      default: 'default',
+      default: 'relay',
       env: 'RABBITMQ_QUEUE',
     },
     exchange: {
@@ -123,7 +123,7 @@ export default {
     },
     shovel: {
       doc: 'The default shovel name used by rabbitmq',
-      default: 'default',
+      default: 'relay-shovel',
       env: 'RABBITMQ_SHOVEL',
     },
     public_url: {
@@ -202,6 +202,11 @@ export default {
     doc: 'The default service endpoint',
     default: 'amqp://relay.lto.network',
     env: 'DEFAULT_SERVICE_ENDPOINT',
+  },
+  default_network_id: {
+    doc: 'Default network ID to use when not specified (8453 for Base Mainnet, 84532 for Base Sepolia)',
+    default: 8453,
+    env: 'DEFAULT_NETWORK_ID',
   },
   log: {
     level: {

@@ -132,7 +132,7 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
 
   private async verifyAnchor(message: any, msg: amqplib.Message): Promise<boolean> {
     const msgId = msg.properties.messageId;
-    const networkId = getNetworkId(message.recipient);
+    const networkId = getNetworkId(message.recipient, this.config.getDefaultNetworkId());
 
     if (!this.baseAnchor.isNetworkSupported(networkId)) {
       return this.reject(msg, `message ${msgId} rejected, unsupported network ${networkId}`);
@@ -151,7 +151,7 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
     if (!target.url) return true;
 
     const msgId = msg.properties.messageId;
-    const _networkId = getNetworkId(message.recipient);
+    const _networkId = getNetworkId(message.recipient, this.config.getDefaultNetworkId());
 
     const data = message.data;
     const headers: Record<string, string> = {
