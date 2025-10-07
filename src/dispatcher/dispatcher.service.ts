@@ -84,15 +84,16 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
   }
 
   private decodeMessage(msg: amqplib.Message): any | undefined {
-    switch (msg.properties.contentType) {
-      case 'application/json':
-        const json = JSON.parse(msg.content.toString());
-        return Message.from(json);
-      case 'application/octet-stream':
-        return Message.from(msg.content);
-      default:
-        this.reject(msg, `message ${msg.properties.messageId} rejected, content type is not supported`);
+    if (msg.properties.contentType !== 'application/json') {
+      this.reject(
+        msg,
+        `message ${msg.properties.messageId} rejected, content type ${msg.properties.contentType} is not supported`,
+      );
+      return undefined;
     }
+
+    const json = JSON.parse(msg.content.toString());
+    return Message.from(json);
   }
 
   private async validateMessage(message: any, msg: amqplib.Message): Promise<boolean> {

@@ -203,7 +203,7 @@ export class BaseAnchorService {
       }
       return await anchorClient.getMaxAnchors();
     } catch (error) {
-      console.error(`Failed to get max anchors for network ${networkId}:`, error);
+      this.logger.error(`Failed to get max anchors for network ${networkId}`, error);
       return 100; // Default fallback
     }
   }

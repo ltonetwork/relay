@@ -79,12 +79,13 @@ export class QueueService implements OnModuleInit {
       throw new Error('queue: failed to add shovel for remote endpoint');
     }
   }
-
+  //App Id
   private async publish(endpoint: string, message: any): Promise<void> {
-    await this.connection.publish(this.config.getRabbitMQExchange(), endpoint, message.toBinary(), {
+    await this.connection.publish(this.config.getRabbitMQExchange(), endpoint, JSON.stringify(message.toJSON()), {
       appId: APP_ID,
       messageId: message.hash.base58,
       type: message.meta?.type || 'basic',
+      contentType: 'application/json',
     });
   }
 }

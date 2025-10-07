@@ -24,4 +24,22 @@ export const inboxProviders = [
     },
     inject: [ConfigService, S3],
   },
+  {
+    provide: 'INBOX_THUMBNAIL_BUCKET',
+    useFactory: async (config: ConfigService, s3: S3) => {
+      const path = config.getStoragePath();
+      const thumbnailPath = path.endsWith('/') ? `${path}thumbnails` : `${path}/thumbnails`;
+
+      if (path.startsWith('s3://')) {
+        return new S3Bucket.default(s3, thumbnailPath.slice(5));
+      }
+
+      if (!path.includes(':')) {
+        return new LocalBucket.default(thumbnailPath);
+      }
+
+      throw new Error(`Unsupported storage service '${thumbnailPath}'`);
+    },
+    inject: [ConfigService, S3],
+  },
 ];

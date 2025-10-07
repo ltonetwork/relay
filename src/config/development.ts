@@ -12,4 +12,5 @@ export default {
   log: {
     level: 'debug',
   },
+  default_service_endpoint: 'amqp://localhost:5672',
 };

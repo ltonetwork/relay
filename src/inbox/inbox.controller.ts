@@ -32,11 +32,13 @@ export class InboxController {
     @Param('address') address: string,
     @Signer() signer: Account,
     @Query('type') type?: string,
-  ): Promise<MessageSummery[]> {
+    @Query('limit') limit?: number,
+    @Query('offset') offset?: number,
+  ): Promise<{ items: MessageSummery[]; total: number; hasMore: boolean }> {
     if (signer.address !== address) {
       throw new ForbiddenException({ message: 'Unauthorized: Invalid signature for this address' });
     }
-    return this.inbox.list(address, type);
+    return this.inbox.list(address.toLowerCase(), { type, limit, offset });
   }
 
   @Get('/:address/:hash')
@@ -46,10 +48,10 @@ export class InboxController {
       throw new ForbiddenException({ message: 'Unauthorized: Invalid signature for this address' });
     }
 
-    if (!(await this.inbox.has(address, hash))) {
+    if (!(await this.inbox.has(address.toLowerCase(), hash))) {
       throw new NotFoundException({ message: 'Message not found' });
     }
-    return await this.inbox.get(address, hash);
+    return await this.inbox.get(address.toLowerCase(), hash);
   }
 
   @Delete('/:address/:hash')
@@ -65,15 +67,15 @@ export class InboxController {
       throw new ForbiddenException({ message: 'Unauthorized: Invalid signature for this address' });
     }
 
-    if (!(await this.inbox.has(address, hash))) {
+    if (!(await this.inbox.has(address.toLowerCase(), hash))) {
       throw new NotFoundException({ message: 'Message not found' });
     }
 
-    await this.inbox.delete(address, hash);
+    await this.inbox.delete(address.toLowerCase(), hash);
   }
 }
 
-// Separate controller for eqty-core compatibility (no authentication required)
+// Separate controller for eqty-core compatibility (no authentication)
 @ApiTags('Messages')
 @Controller('messages')
 export class MessagesController {
@@ -84,20 +86,18 @@ export class MessagesController {
   @ApiQuery({ name: 'type', description: 'Type of messages to get', required: false })
   @ApiProduces('application/json')
   async getMessages(@Param('recipient') recipient: string, @Query('type') type?: string): Promise<{ messages: any[] }> {
-    const messageSummaries = await this.inbox.list(recipient, type);
+    const result = await this.inbox.list(recipient.toLowerCase(), { type });
+    return { messages: result.items };
+  }
 
-    const messages = await Promise.all(
-      messageSummaries.map(async (summary) => {
-        try {
-          return await this.inbox.get(recipient, summary.hash);
-        } catch (error) {
-          return null;
-        }
-      }),
-    );
-
-    const validMessages = messages.filter((msg) => msg !== null);
-
-    return { messages: validMessages };
+  @Get(':recipient/:hash')
+  @ApiParam({ name: 'recipient', description: 'Recipient address' })
+  @ApiParam({ name: 'hash', description: 'Message hash' })
+  @ApiProduces('application/json')
+  async getMessage(@Param('recipient') recipient: string, @Param('hash') hash: string): Promise<any> {
+    if (!(await this.inbox.has(recipient.toLowerCase(), hash))) {
+      throw new NotFoundException({ message: 'Message not found' });
+    }
+    return await this.inbox.get(recipient.toLowerCase(), hash);
   }
 }
