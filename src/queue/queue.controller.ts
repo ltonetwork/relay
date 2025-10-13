@@ -111,4 +111,81 @@ export class QueueController {
       return res.status(500).json({ message: `failed to add message to queue` });
     }
   }
+
+  @Post('verify')
+  @ApiOperation({ summary: 'Verify anchors on Base blockchain' })
+  @ApiBody({
+    description: 'Anchor data to verify',
+    required: true,
+    examples: {
+      'application/json': {
+        value: {
+          '0xabc123...': '0xdef456...',
+          '0x789xyz...': '0x456ghi...',
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 200, description: 'Anchor verification result' })
+  @ApiResponse({ status: 400, description: 'Invalid anchor data' })
+  @ApiResponse({ status: 500, description: 'Failed to verify anchors' })
+  async verifyAnchors(@Body() data: any, @Res() res: Response): Promise<Response> {
+    try {
+      if (!data || typeof data !== 'object') {
+        return res.status(400).json({ error: 'Invalid anchor data provided' });
+      }
+
+      // Convert anchor data to the format expected by BaseAnchorService
+      const anchors = Object.entries(data).map(([key, value]) => ({
+        key: { hex: key },
+        value: { hex: value as string },
+      }));
+
+      // Import BaseAnchorService dynamically
+      const { BaseAnchorService } = await import('../common/blockchain/base-anchor.service');
+      const baseAnchorService = new BaseAnchorService(this.config, this.logger);
+
+      // Get the default network ID (Base Sepolia)
+      const networkId = this.config.getDefaultNetworkId();
+
+      // Verify each anchor
+      const results = await Promise.all(
+        anchors.map(async ({ key, value }) => {
+          const result = await baseAnchorService.verifyAnchor(networkId, key.hex);
+          return {
+            key: key.hex,
+            value: value.hex,
+            verified: result.isAnchored,
+            txHash: result.transactionHash,
+          };
+        }),
+      );
+
+      // Build response in the format expected by EQTYService
+      const verified = results.every((r) => r.verified);
+      const anchorsMap = {};
+      const map = {};
+
+      results.forEach((r) => {
+        if (r.verified) {
+          anchorsMap[r.key] = r.txHash;
+          map[r.key] = r.value;
+        }
+      });
+
+      return res.status(200).json({
+        verified,
+        anchors: anchorsMap,
+        map,
+      });
+    } catch (e) {
+      this.logger.error(`failed to verify anchors: '${e}'`, { stack: e.stack });
+      return res.status(500).json({
+        verified: false,
+        anchors: {},
+        map: {},
+        error: `failed to verify anchors: ${e.message}`,
+      });
+    }
+  }
 }

@@ -100,4 +100,15 @@ export class MessagesController {
     }
     return await this.inbox.get(recipient.toLowerCase(), hash);
   }
+
+  @Delete(':recipient/:hash')
+  @HttpCode(204)
+  @ApiParam({ name: 'recipient', description: 'Recipient address' })
+  @ApiParam({ name: 'hash', description: 'Message hash' })
+  async deleteMessage(@Param('recipient') recipient: string, @Param('hash') hash: string): Promise<void> {
+    if (!(await this.inbox.has(recipient.toLowerCase(), hash))) {
+      throw new NotFoundException({ message: 'Message not found' });
+    }
+    await this.inbox.delete(recipient.toLowerCase(), hash);
+  }
 }
