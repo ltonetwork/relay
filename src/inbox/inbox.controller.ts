@@ -1,26 +1,15 @@
-import {
-  Controller,
-  Delete,
-  ForbiddenException,
-  Get,
-  HttpCode,
-  NotFoundException,
-  Param,
-  Query,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Delete, Get, HttpCode, NotFoundException, Param, Query, UseGuards } from '@nestjs/common';
 import { InboxService } from './inbox.service';
-import { ApiParam, ApiProduces, ApiQuery, ApiTags } from '@nestjs/swagger';
-import { InboxGuard } from './inbox.guard';
+import { ApiParam, ApiProduces, ApiQuery, ApiTags, ApiSecurity } from '@nestjs/swagger';
+import { SIWEGuard } from '../common/siwe/siwe.guard';
 import { MessageSummery } from './inbox.dto';
-import { Account } from '@ltonetwork/lto';
 // Dynamic import for eqty-core ES module
 let _Message: any;
-import { Signer } from '../common/http-signature/signer';
 
 @ApiTags('Inbox')
+@ApiSecurity('SIWE')
 @Controller('inboxes')
-@UseGuards(InboxGuard)
+@UseGuards(SIWEGuard)
 export class InboxController {
   constructor(private readonly inbox: InboxService) {}
 
@@ -30,24 +19,16 @@ export class InboxController {
   @ApiProduces('application/json')
   async list(
     @Param('address') address: string,
-    @Signer() signer: Account,
     @Query('type') type?: string,
     @Query('limit') limit?: number,
     @Query('offset') offset?: number,
   ): Promise<{ items: MessageSummery[]; total: number; hasMore: boolean }> {
-    if (signer.address !== address) {
-      throw new ForbiddenException({ message: 'Unauthorized: Invalid signature for this address' });
-    }
     return this.inbox.list(address.toLowerCase(), { type, limit, offset });
   }
 
   @Get('/:address/:hash')
   @ApiProduces('application/json')
-  async get(@Param('address') address: string, @Param('hash') hash: string, @Signer() signer: Account): Promise<any> {
-    if (signer.address !== address) {
-      throw new ForbiddenException({ message: 'Unauthorized: Invalid signature for this address' });
-    }
-
+  async get(@Param('address') address: string, @Param('hash') hash: string): Promise<any> {
     if (!(await this.inbox.has(address.toLowerCase(), hash))) {
       throw new NotFoundException({ message: 'Message not found' });
     }
@@ -58,15 +39,7 @@ export class InboxController {
   @HttpCode(204)
   @ApiParam({ name: 'address', description: 'Address of the recipient' })
   @ApiParam({ name: 'hash', description: 'Hash of the message to delete' })
-  async delete(
-    @Param('address') address: string,
-    @Param('hash') hash: string,
-    @Signer() signer: Account,
-  ): Promise<void> {
-    if (signer.address !== address) {
-      throw new ForbiddenException({ message: 'Unauthorized: Invalid signature for this address' });
-    }
-
+  async delete(@Param('address') address: string, @Param('hash') hash: string): Promise<void> {
     if (!(await this.inbox.has(address.toLowerCase(), hash))) {
       throw new NotFoundException({ message: 'Message not found' });
     }
@@ -75,40 +48,44 @@ export class InboxController {
   }
 }
 
-// Separate controller for eqty-core compatibility (no authentication)
+// controller for eqty-core compatibility (with authentication)
 @ApiTags('Messages')
+@ApiSecurity('SIWE')
 @Controller('messages')
 export class MessagesController {
   constructor(private readonly inbox: InboxService) {}
 
-  @Get(':recipient')
-  @ApiParam({ name: 'recipient', description: 'Recipient address' })
+  @Get(':address')
+  @UseGuards(SIWEGuard)
+  @ApiParam({ name: 'address', description: 'Address to get messages for' })
   @ApiQuery({ name: 'type', description: 'Type of messages to get', required: false })
   @ApiProduces('application/json')
-  async getMessages(@Param('recipient') recipient: string, @Query('type') type?: string): Promise<{ messages: any[] }> {
-    const result = await this.inbox.list(recipient.toLowerCase(), { type });
+  async getMessages(@Param('address') address: string, @Query('type') type?: string): Promise<{ messages: any[] }> {
+    const result = await this.inbox.list(address.toLowerCase(), { type });
     return { messages: result.items };
   }
 
-  @Get(':recipient/:hash')
-  @ApiParam({ name: 'recipient', description: 'Recipient address' })
+  @Get(':address/:hash')
+  @UseGuards(SIWEGuard)
+  @ApiParam({ name: 'address', description: 'Address to get message for' })
   @ApiParam({ name: 'hash', description: 'Message hash' })
   @ApiProduces('application/json')
-  async getMessage(@Param('recipient') recipient: string, @Param('hash') hash: string): Promise<any> {
-    if (!(await this.inbox.has(recipient.toLowerCase(), hash))) {
+  async getMessage(@Param('address') address: string, @Param('hash') hash: string): Promise<any> {
+    if (!(await this.inbox.has(address.toLowerCase(), hash))) {
       throw new NotFoundException({ message: 'Message not found' });
     }
-    return await this.inbox.get(recipient.toLowerCase(), hash);
+    return await this.inbox.get(address.toLowerCase(), hash);
   }
 
-  @Delete(':recipient/:hash')
+  @Delete(':address/:hash')
   @HttpCode(204)
-  @ApiParam({ name: 'recipient', description: 'Recipient address' })
+  @UseGuards(SIWEGuard)
+  @ApiParam({ name: 'address', description: 'Address to delete message for' })
   @ApiParam({ name: 'hash', description: 'Message hash' })
-  async deleteMessage(@Param('recipient') recipient: string, @Param('hash') hash: string): Promise<void> {
-    if (!(await this.inbox.has(recipient.toLowerCase(), hash))) {
+  async deleteMessage(@Param('address') address: string, @Param('hash') hash: string): Promise<void> {
+    if (!(await this.inbox.has(address.toLowerCase(), hash))) {
       throw new NotFoundException({ message: 'Message not found' });
     }
-    await this.inbox.delete(recipient.toLowerCase(), hash);
+    await this.inbox.delete(address.toLowerCase(), hash);
   }
 }

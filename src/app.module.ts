@@ -8,18 +8,33 @@ import { RabbitMQModule } from './rabbitmq/rabbitmq.module';
 import { DispatcherModule } from './dispatcher/dispatcher.module';
 import { QueueModule } from './queue/queue.module';
 import { InboxModule } from './inbox/inbox.module';
-import { VerifySignatureMiddleware } from './common/http-signature/verify-signature.middleware';
-import { SignatureService } from './common/signature/signature.service';
+import { SIWEModule } from './common/siwe/siwe.module';
+import { SIWEAuthMiddleware } from './common/siwe/siwe-auth.middleware';
 
 export const AppModuleConfig = {
-  imports: [ConfigModule, LoggerModule, RedisModule, RabbitMQModule, QueueModule, DispatcherModule, InboxModule],
+  imports: [
+    ConfigModule,
+    LoggerModule,
+    RedisModule,
+    RabbitMQModule,
+    QueueModule,
+    DispatcherModule,
+    InboxModule,
+    SIWEModule,
+  ],
   controllers: [AppController],
-  providers: [AppService, SignatureService],
+  providers: [AppService],
 };
 
 @Module(AppModuleConfig)
 export class AppModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(VerifySignatureMiddleware).forRoutes({ path: 'inboxes/*', method: RequestMethod.ALL });
+    consumer
+      .apply(SIWEAuthMiddleware)
+      .forRoutes(
+        { path: 'inboxes/*', method: RequestMethod.ALL },
+        { path: 'messages/*', method: RequestMethod.GET },
+        { path: 'messages/*', method: RequestMethod.DELETE },
+      );
   }
 }
