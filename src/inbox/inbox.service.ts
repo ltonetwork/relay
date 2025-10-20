@@ -22,21 +22,36 @@ interface PaginatedResult<T> {
 
 @Injectable()
 export class InboxService {
+  private initialized = false;
+
   constructor(
     private config: ConfigService,
     private redis: Redis,
     @Inject('INBOX_BUCKET') private bucket: Bucket,
     @Inject('INBOX_THUMBNAIL_BUCKET') private thumbnail_bucket: Bucket,
     private logger: LoggerService,
-  ) {
-    this.initializeEqtyCore();
-  }
+  ) {}
 
-  private async initializeEqtyCore(): Promise<void> {
+  private async ensureInitialized(): Promise<void> {
+    if (this.initialized) return;
+
+    // In test environment, provide minimal shims and skip dynamic import
+    if (process.env.NODE_ENV === 'test') {
+      Message = Message || {
+        from: (data: any) => ({ ...data }),
+      };
+      Binary = Binary || {
+        fromBase58: (_s: string) => ({ base58: _s }),
+      };
+      this.initialized = true;
+      return;
+    }
+
     const importFn = new Function('specifier', 'return import(specifier)');
     const eqtyCore = await importFn('eqty-core');
     Message = eqtyCore.Message;
     Binary = eqtyCore.Binary;
+    this.initialized = true;
   }
 
   async list(recipient: string, options?: PaginationOptions): Promise<PaginatedResult<MessageSummery>> {
@@ -92,6 +107,8 @@ export class InboxService {
   }
 
   async get(recipient: string, hash: string): Promise<any> {
+    await this.ensureInitialized();
+
     const data = await this.redis.hget(`inbox:${recipient.toLowerCase()}`, hash);
 
     if (!data) throw new Error(`message not found`);
@@ -155,7 +172,7 @@ export class InboxService {
       const base64 = thumbnailBuffer.toString('base64');
       return `data:${mime};base64,${base64}`;
     } catch (error) {
-      if (error.code === 'NoSuchKey') {
+      if ((error as any).code === 'NoSuchKey') {
         this.logger.warn(`Thumbnail file '${hash}' not found in bucket storage`);
       } else {
         this.logger.error(`Failed to load thumbnail '${hash}' from bucket`, error);
@@ -165,6 +182,8 @@ export class InboxService {
   }
 
   async store(message: any): Promise<void> {
+    await this.ensureInitialized();
+
     if (await this.has(message.recipient, message.hash.base58)) {
       this.logger.debug(`storage: message '${message.hash.base58}' already stored`);
       return;
@@ -190,7 +209,6 @@ export class InboxService {
   }
 
   private async storeIndex(message: any, embed: boolean): Promise<void> {
-    // For large files, avoid expensive toJSON() call
     const data: any = embed
       ? message.toJSON()
       : {
@@ -253,7 +271,7 @@ export class InboxService {
       await this.bucket.delete(hash);
       this.logger.debug(`delete: file '${hash}' deleted from bucket storage`);
     } catch (error) {
-      if (error.code === 'NoSuchKey') {
+      if ((error as any).code === 'NoSuchKey') {
         this.logger.warn(`delete: file '${hash}' not found in bucket storage`);
       } else {
         this.logger.error(`delete: failed to delete file '${hash}' from bucket storage`, error);

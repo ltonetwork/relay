@@ -161,7 +161,7 @@ describe('DidResolverService', () => {
       const didDocument = {
         service: [
           { type: 'other-service', serviceEndpoint: 'https://other.example.com' },
-          { type: 'lto-relay', serviceEndpoint: 'https://relay.example.com' },
+          { type: 'eqty-relay', serviceEndpoint: 'https://relay.example.com' },
         ],
       };
 

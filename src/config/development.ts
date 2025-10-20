@@ -1,11 +1,25 @@
 export default {
   dev: {
-    disable_auth: true,
-    accept_unsigned: true,
-    force_local_delivery: true,
+    disable_auth: false,
+    accept_unsigned: false,
+    force_local_delivery: false,
+  },
+  inbox: {
+    enabled: true,
+    storage: './storage',
+    embed_max_size: 1024 * 1024,
+  },
+  queue: {
+    enabled: true,
+  },
+  rabbitmq: {
+    client: 'amqp://guest:guest@localhost:5672',
+    exchange: 'eqty-relay',
+    queue: 'eqty-relay-queue',
+    api: 'http://localhost:15672/api',
   },
   dispatcher: {
-    verify_anchor: false,
+    verify_anchor: true,
     accept: {
       all: true,
     },
