@@ -35,14 +35,19 @@ export class InboxService {
   private async ensureInitialized(): Promise<void> {
     if (this.initialized) return;
 
-    // In test environment, provide minimal shims and skip dynamic import
     if (process.env.NODE_ENV === 'test') {
-      Message = Message || {
-        from: (data: any) => ({ ...data }),
-      };
-      Binary = Binary || {
-        fromBase58: (_s: string) => ({ base58: _s }),
-      };
+      try {
+        const eqtyCore = await import('eqty-core');
+        Message = eqtyCore.Message;
+        Binary = eqtyCore.Binary;
+      } catch {
+        Message = Message || {
+          from: (data: any) => ({ ...data }),
+        };
+        Binary = Binary || {
+          fromBase58: (_s: string) => ({ base58: _s }),
+        };
+      }
       this.initialized = true;
       return;
     }
