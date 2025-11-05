@@ -1,7 +1,10 @@
 import { ConfigService } from '../common/config/config.service';
-import LocalBucket from 'any-bucket/local';
 import { S3 } from '@aws-sdk/client-s3';
-import S3Bucket from 'any-bucket/s3';
+
+/* eslint-disable @typescript-eslint/no-var-requires */
+const LocalBucket = require('any-bucket/local');
+const S3Bucket = require('any-bucket/s3');
+/* eslint-enable @typescript-eslint/no-var-requires */
 
 export const inboxProviders = [
   {
@@ -10,11 +13,11 @@ export const inboxProviders = [
       const path = config.getStoragePath();
 
       if (path.startsWith('s3://')) {
-        return new S3Bucket(s3, path.slice(5));
+        return new S3Bucket.default(s3, path.slice(5));
       }
 
       if (!path.includes(':')) {
-        return new LocalBucket(path);
+        return new LocalBucket.default(path);
       }
 
       throw new Error(`Unsupported storage service '${path}'`);
@@ -24,17 +27,18 @@ export const inboxProviders = [
   {
     provide: 'INBOX_THUMBNAIL_BUCKET',
     useFactory: async (config: ConfigService, s3: S3) => {
-      const path = config.getThumbnailStoragePath();
+      const path = config.getStoragePath();
+      const thumbnailPath = path.endsWith('/') ? `${path}thumbnails` : `${path}/thumbnails`;
 
       if (path.startsWith('s3://')) {
-        return new S3Bucket(s3, path.slice(5));
+        return new S3Bucket.default(s3, thumbnailPath.slice(5));
       }
 
       if (!path.includes(':')) {
-        return new LocalBucket(path);
+        return new LocalBucket.default(thumbnailPath);
       }
 
-      throw new Error(`Unsupported storage service '${path}'`);
+      throw new Error(`Unsupported storage service '${thumbnailPath}'`);
     },
     inject: [ConfigService, S3],
   },

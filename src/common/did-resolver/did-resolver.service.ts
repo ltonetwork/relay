@@ -17,10 +17,8 @@ export class DidResolverService {
   private isDidDocument(didDocument: any): didDocument is DIDDocument {
     return (
       didDocument &&
-      (
-        didDocument['@context'] === 'https://www.w3.org/ns/did/v1' ||
-        (Array.isArray(didDocument['@context']) && didDocument['@context'].includes('https://www.w3.org/ns/did/v1'))
-      ) &&
+      (didDocument['@context'] === 'https://www.w3.org/ns/did/v1' ||
+        (Array.isArray(didDocument['@context']) && didDocument['@context'].includes('https://www.w3.org/ns/did/v1'))) &&
       typeof didDocument.id === 'string'
     );
   }

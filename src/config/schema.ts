@@ -12,7 +12,7 @@ export default {
   },
   port: {
     doc: 'The port to bind.',
-    default: 3000,
+    default: 8000,
     env: 'PORT',
   },
   api_prefix: {
@@ -113,7 +113,7 @@ export default {
   rabbitmq: {
     client: {
       doc: 'The RabbitMQ client config. Uses default config if only protocol is given',
-      default: 'amqp://',
+      default: 'amqp://guest:guest@localhost:5672',
       env: 'RABBITMQ_CLIENT',
     },
     api: {
@@ -123,7 +123,7 @@ export default {
     },
     queue: {
       doc: 'The default queue name used by rabbitmq',
-      default: 'default',
+      default: 'relay',
       env: 'RABBITMQ_QUEUE',
     },
     exchange: {
@@ -133,13 +133,53 @@ export default {
     },
     shovel: {
       doc: 'The default shovel name used by rabbitmq',
-      default: 'default',
+      default: 'relay-shovel',
       env: 'RABBITMQ_SHOVEL',
     },
     public_url: {
       doc: 'The public url of the rabbitmq server. Uses the client url if omitted.',
       default: '',
       env: 'RABBITMQ_PUBLIC_URL',
+    },
+  },
+  blockchain: {
+    base: {
+      mainnet: {
+        rpc_url: {
+          doc: 'Base mainnet RPC URL',
+          default: 'https://mainnet.base.org',
+          env: 'BASE_MAINNET_RPC_URL',
+        },
+      },
+      sepolia: {
+        rpc_url: {
+          doc: 'Base Sepolia testnet RPC URL',
+          default: 'https://sepolia.base.org',
+          env: 'BASE_SEPOLIA_RPC_URL',
+        },
+      },
+    },
+    anchor_verification: {
+      cache_ttl: {
+        doc: 'Cache TTL for anchor verification results in milliseconds',
+        default: 300000, // 5 minutes
+        env: 'ANCHOR_VERIFICATION_CACHE_TTL',
+      },
+      max_retries: {
+        doc: 'Maximum number of retries for blockchain queries',
+        default: 3,
+        env: 'ANCHOR_VERIFICATION_MAX_RETRIES',
+      },
+      timeout: {
+        doc: 'Timeout for blockchain queries in milliseconds',
+        default: 10000, // 10 seconds
+        env: 'ANCHOR_VERIFICATION_TIMEOUT',
+      },
+      use_redis_cache: {
+        doc: 'Use Redis for anchor verification caching instead of in-memory',
+        default: false,
+        env: 'ANCHOR_VERIFICATION_USE_REDIS_CACHE',
+      },
     },
   },
   lto: {
@@ -172,6 +212,11 @@ export default {
     doc: 'The default service endpoint',
     default: 'amqp://relay.lto.network',
     env: 'DEFAULT_SERVICE_ENDPOINT',
+  },
+  default_network_id: {
+    doc: 'Default network ID to use when not specified (8453 for Base Mainnet, 84532 for Base Sepolia)',
+    default: 8453,
+    env: 'DEFAULT_NETWORK_ID',
   },
   log: {
     level: {

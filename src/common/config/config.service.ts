@@ -182,7 +182,32 @@ export class ConfigService {
     return this.config.get('default_service_endpoint');
   }
 
+  getDefaultNetworkId(): number {
+    return this.config.get('default_network_id');
+  }
+
   getLog(): { level: string; force: boolean } {
     return this.config.get('log');
+  }
+
+  // Blockchain configuration methods
+  getBaseRpcUrl(network: 'mainnet' | 'sepolia'): string {
+    return this.config.get(`blockchain.base.${network}.rpc_url`);
+  }
+
+  getAnchorVerificationCacheTtl(): number {
+    return this.config.get('blockchain.anchor_verification.cache_ttl');
+  }
+
+  getAnchorVerificationMaxRetries(): number {
+    return this.config.get('blockchain.anchor_verification.max_retries');
+  }
+
+  getAnchorVerificationTimeout(): number {
+    return this.config.get('blockchain.anchor_verification.timeout');
+  }
+
+  getAnchorVerificationUseRedisCache(): boolean {
+    return this.config.get('blockchain.anchor_verification.use_redis_cache');
   }
 }

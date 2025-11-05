@@ -1,26 +1,15 @@
-import {
-  BadRequestException,
-  Controller,
-  Delete,
-  ForbiddenException,
-  Get,
-  HttpCode,
-  NotFoundException,
-  Param,
-  Query,
-  Res,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Delete, Get, HttpCode, NotFoundException, Param, Query, UseGuards } from '@nestjs/common';
 import { InboxService } from './inbox.service';
-import { ApiParam, ApiProduces, ApiQuery, ApiTags } from '@nestjs/swagger';
-import { InboxGuard } from './inbox.guard';
-import { Account, Message } from '@ltonetwork/lto';
-import { Signer } from '../common/http-signature/signer';
-import { Response } from 'express';
+import { ApiParam, ApiProduces, ApiQuery, ApiTags, ApiSecurity } from '@nestjs/swagger';
+import { SIWEGuard } from '../common/siwe/siwe.guard';
+import { MessageSummary } from './inbox.dto';
+// Dynamic import for eqty-core ES module
+let _Message: any;
 
 @ApiTags('Inbox')
+@ApiSecurity('SIWE')
 @Controller('inboxes')
-@UseGuards(InboxGuard)
+@UseGuards(SIWEGuard)
 export class InboxController {
   constructor(private readonly inbox: InboxService) {}
 
@@ -32,87 +21,73 @@ export class InboxController {
   @ApiProduces('application/json')
   async list(
     @Param('address') address: string,
-    @Signer() signer: Account,
-    @Res() res: Response,
     @Query('type') type?: string,
-    @Query('limit') limit?: string,
-    @Query('offset') offset?: string,
-  ): Promise<Response> {
-    if (signer.address !== address) {
-      throw new ForbiddenException({ message: 'Unauthorized: Invalid signature for this address' });
-    }
-
-    const lastModifiedDate = await this.inbox.getLastModified(address);
-    const ifModifiedSince = res.req.headers['if-modified-since'];
-
-    if (ifModifiedSince) {
-      try {
-        const clientDate = new Date(ifModifiedSince);
-        if (!isNaN(clientDate.getTime()) && clientDate >= lastModifiedDate) {
-          return res.status(304).end();
-        }
-      } catch {
-        throw new BadRequestException('Invalid If-Modified-Since header');
-      }
-    }
-
-    const limitNumber = limit ? Math.min(Math.max(parseInt(limit, 10) || 100, 1), 100) : 100;
-    const offsetNumber = offset ? Math.max(parseInt(offset, 10) || 0, 0) : 0;
-
-    const result = await this.inbox.list(address, {
-      limit: limitNumber,
-      offset: offsetNumber,
-      type,
-    });
-
-    res.set({
-      'Last-Modified': lastModifiedDate.toUTCString(),
-      'Cache-Control': 'private, must-revalidate',
-      ETag: `"${lastModifiedDate.getTime()}"`,
-    });
-
-    return res.status(200).json({
-      messages: result.items,
-      total: result.total,
-      hasMore: result.hasMore,
-      lastModified: lastModifiedDate.toISOString(),
-    });
+    @Query('limit') limit?: number,
+    @Query('offset') offset?: number,
+  ): Promise<{ items: MessageSummary[]; total: number; hasMore: boolean }> {
+    return this.inbox.list(address.toLowerCase(), { type, limit, offset });
   }
 
   @Get('/:address/:hash')
   @ApiProduces('application/json')
-  async get(
-    @Param('address') address: string,
-    @Param('hash') hash: string,
-    @Signer() signer: Account,
-  ): Promise<Message> {
-    if (signer.address !== address) {
-      throw new ForbiddenException({ message: 'Unauthorized: Invalid signature for this address' });
-    }
-
-    if (!(await this.inbox.has(address, hash))) {
+  async get(@Param('address') address: string, @Param('hash') hash: string): Promise<any> {
+    if (!(await this.inbox.has(address.toLowerCase(), hash))) {
       throw new NotFoundException({ message: 'Message not found' });
     }
-    return await this.inbox.get(address, hash);
+    return await this.inbox.get(address.toLowerCase(), hash);
   }
 
   @Delete('/:address/:hash')
   @HttpCode(204)
   @ApiParam({ name: 'address', description: 'Address of the recipient' })
   @ApiParam({ name: 'hash', description: 'Hash of the message to delete' })
-  async delete(
-    @Param('address') address: string,
-    @Param('hash') hash: string,
-    @Signer() signer: Account,
-  ): Promise<void> {
-    if (signer.address !== address) {
-      throw new ForbiddenException({ message: 'Unauthorized: Invalid signature for this address' });
-    }
-
-    if (!(await this.inbox.has(address, hash))) {
+  async delete(@Param('address') address: string, @Param('hash') hash: string): Promise<void> {
+    if (!(await this.inbox.has(address.toLowerCase(), hash))) {
       throw new NotFoundException({ message: 'Message not found' });
     }
 
-    await this.inbox.delete(address, hash);
+    await this.inbox.delete(address.toLowerCase(), hash);
+  }
+}
+
+// controller for eqty-core compatibility (with authentication)
+@ApiTags('Messages')
+@ApiSecurity('SIWE')
+@Controller('messages')
+export class MessagesController {
+  constructor(private readonly inbox: InboxService) {}
+
+  @Get(':address')
+  @UseGuards(SIWEGuard)
+  @ApiParam({ name: 'address', description: 'Address to get messages for' })
+  @ApiQuery({ name: 'type', description: 'Type of messages to get', required: false })
+  @ApiProduces('application/json')
+  async getMessages(@Param('address') address: string, @Query('type') type?: string): Promise<{ messages: any[] }> {
+    const result = await this.inbox.list(address.toLowerCase(), { type });
+    return { messages: result.items };
+  }
+
+  @Get(':address/:hash')
+  @UseGuards(SIWEGuard)
+  @ApiParam({ name: 'address', description: 'Address to get message for' })
+  @ApiParam({ name: 'hash', description: 'Message hash' })
+  @ApiProduces('application/json')
+  async getMessage(@Param('address') address: string, @Param('hash') hash: string): Promise<any> {
+    if (!(await this.inbox.has(address.toLowerCase(), hash))) {
+      throw new NotFoundException({ message: 'Message not found' });
+    }
+    return await this.inbox.get(address.toLowerCase(), hash);
+  }
+
+  @Delete(':address/:hash')
+  @HttpCode(204)
+  @UseGuards(SIWEGuard)
+  @ApiParam({ name: 'address', description: 'Address to delete message for' })
+  @ApiParam({ name: 'hash', description: 'Message hash' })
+  async deleteMessage(@Param('address') address: string, @Param('hash') hash: string): Promise<void> {
+    if (!(await this.inbox.has(address.toLowerCase(), hash))) {
+      throw new NotFoundException({ message: 'Message not found' });
+    }
+    await this.inbox.delete(address.toLowerCase(), hash);
   }
 }

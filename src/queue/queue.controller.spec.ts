@@ -12,7 +12,7 @@ import { ConfigModule } from '../common/config/config.module';
 
 describe('QueueController', () => {
   let module: TestingModule;
-  let loggerService: LoggerService;
+  let _loggerService: LoggerService;
   let queueService: QueueService;
   let app: INestApplication;
 
@@ -36,7 +36,7 @@ describe('QueueController', () => {
 
     await app.init();
 
-    loggerService = module.get<LoggerService>(LoggerService);
+    _loggerService = module.get<LoggerService>(LoggerService);
     queueService = module.get<QueueService>(QueueService);
   });
 

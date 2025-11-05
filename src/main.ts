@@ -12,6 +12,16 @@ function swagger(app: INestApplication, config: ConfigService) {
     .setTitle('LTO Network Relay')
     .setDescription(config.app.description)
     .setVersion(config.app.version !== '0.0.0' ? config.app.version : process.env.NODE_ENV)
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'SIWE Token',
+        name: 'Authorization',
+        description: 'SIWE (Sign-In with Ethereum) authentication token',
+      },
+      'SIWE',
+    )
     .build();
 
   const document = SwaggerModule.createDocument(app, options);
