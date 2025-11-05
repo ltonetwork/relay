@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { Contract, JsonRpcProvider } from 'ethers';
 // Dynamic import for eqty-core ES module
 let AnchorClient: any;
@@ -25,7 +25,7 @@ export class BaseAnchorService {
   constructor(
     private readonly config: ConfigService,
     private readonly logger: LoggerService,
-    private readonly redis?: Redis,
+    @Optional() private readonly redis?: Redis,
   ) {
     this.initializeEqtyCore();
   }

@@ -1,5 +1,5 @@
 {
-  "name": "@ltonetwork/relay",
+  "name": "@eqty/relay",
   "version": "0.0.0",
   "description": "Private layer communication service",
   "contributors": [
@@ -24,8 +24,6 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.504.0",
-    "@ltonetwork/http-message-signatures": "^0.1.12",
-    "@ltonetwork/lto": "^0.15.16",
     "eqty-core": "^1.0.2",
     "@nestjs/axios": "^3.1.0",
     "@nestjs/common": "^10.3.0",

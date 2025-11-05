@@ -165,14 +165,6 @@ export class ConfigService {
     return network;
   }
 
-  getLTONode(network: 'mainnet' | 'testnet' | 'L' | 'T'): string {
-    return this.config.get(`lto.${this.networkName(network)}.node`);
-  }
-
-  getDidResolver(network: 'mainnet' | 'testnet' | 'L' | 'T'): string {
-    return this.config.get(`lto.${this.networkName(network)}.did_resolver`);
-  }
-
   getDefaultServiceEndpoint(): string {
     return this.config.get('default_service_endpoint');
   }

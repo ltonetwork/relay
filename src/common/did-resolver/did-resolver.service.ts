@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { DID_SERVICE_TYPE } from '../../constants';
-import { getNetwork, isValidAddress } from '@ltonetwork/lto';
+import { isValidAddress } from '../address/address.utils';
 import { DIDDocument } from './did-document.type';
 import { RequestService } from '../request/request.service';
 import { ConfigService } from '../config/config.service';
@@ -24,27 +24,24 @@ export class DidResolverService {
   }
 
   async resolve(address: string): Promise<DIDDocument | null> {
-    if (!isValidAddress(address, 'T') && !isValidAddress(address, 'L')) {
-      throw new Error(`Invalid address ${address}`);
+    if (!isValidAddress(address)) {
+      throw new Error(`Invalid Ethereum address ${address}`);
     }
 
-    const url = this.config.getDidResolver(getNetwork(address) as 'L' | 'T');
-
-    const response = await this.request.get<DIDDocument>(`${url}/${address}`);
-
-    if (response.status === 404 && ((await response.data) as any).error === 'notFound') return null;
-    if (response.status !== 200) throw new Error(`Failed to fetch DID document for ${address}`);
-
-    const didDocument = response.data;
-    if (!this.isDidDocument(didDocument)) {
-      throw new Error(`Invalid DID document for ${address}`);
-    }
-
-    return didDocument;
+    // For now, return null as Ethereum DID resolution is not implemented
+    // This service is primarily used for getting service endpoints
+    // which will fall back to default service endpoint
+    // TODO: Implement Ethereum DID resolver if needed
+    return null;
   }
 
   async getServiceEndpoint(address: string): Promise<string> {
     try {
+      if (!isValidAddress(address)) {
+        throw new Error(`Invalid Ethereum address ${address}`);
+      }
+
+      // Try to resolve DID document (may return null for Ethereum addresses)
       const didDocument = await this.resolve(address);
 
       const service = didDocument?.service

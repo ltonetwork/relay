@@ -8,7 +8,7 @@ import * as bodyParser from 'body-parser';
 
 function swagger(app: INestApplication, config: ConfigService) {
   const options = new DocumentBuilder()
-    .setTitle('LTO Network Relay')
+    .setTitle('Base/Ethereum Relay')
     .setDescription(config.app.description)
     .setVersion(config.app.version !== '0.0.0' ? config.app.version : process.env.NODE_ENV)
     .addBearerAuth(
