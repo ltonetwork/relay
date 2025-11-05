@@ -15,6 +15,7 @@ RUN yarn build
 FROM node:20-alpine
 WORKDIR /usr/app
 
+RUN yarn config set registry https://registry.npmjs.org
 RUN yarn global add pm2
 
 COPY package.json yarn.lock ./
