@@ -399,7 +399,7 @@ describe('DispatcherService', () => {
       const success = await dispatcherService.onMessage(ampqMsg);
       expect(success).toBe(true);
 
-      const [url, data, options] = spies.requestService.post.mock.calls[0];
+      const [url, options, data, thumbnail] = spies.requestService.post.mock.calls[0];
 
       expect(url).toBe('https://example.com');
       expect(data).toBe('hello');

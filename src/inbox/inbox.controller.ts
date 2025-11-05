@@ -2,7 +2,7 @@ import { Controller, Delete, Get, HttpCode, NotFoundException, Param, Query, Use
 import { InboxService } from './inbox.service';
 import { ApiParam, ApiProduces, ApiQuery, ApiTags, ApiSecurity } from '@nestjs/swagger';
 import { SIWEGuard } from '../common/siwe/siwe.guard';
-import { MessageSummery } from './inbox.dto';
+import { MessageSummary } from './inbox.dto';
 // Dynamic import for eqty-core ES module
 let _Message: any;
 
@@ -16,13 +16,15 @@ export class InboxController {
   @Get('/:address')
   @ApiParam({ name: 'address', description: 'Address to get inbox for' })
   @ApiQuery({ name: 'type', description: 'Type of messages to get', required: false })
+  @ApiQuery({ name: 'limit', description: 'Optional limit (default 100, max 100)', required: false })
+  @ApiQuery({ name: 'offset', description: 'Optional offset for pagination', required: false })
   @ApiProduces('application/json')
   async list(
     @Param('address') address: string,
     @Query('type') type?: string,
     @Query('limit') limit?: number,
     @Query('offset') offset?: number,
-  ): Promise<{ items: MessageSummery[]; total: number; hasMore: boolean }> {
+  ): Promise<{ items: MessageSummary[]; total: number; hasMore: boolean }> {
     return this.inbox.list(address.toLowerCase(), { type, limit, offset });
   }
 

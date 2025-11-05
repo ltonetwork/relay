@@ -5,7 +5,7 @@ let Message: any;
 let Binary: any;
 import { LoggerService } from '../common/logger/logger.service';
 import Redis from 'ioredis';
-import { MessageSummery } from './inbox.dto';
+import { MessageSummary } from './inbox.dto';
 import { Bucket } from 'any-bucket';
 
 export interface PaginationOptions {
@@ -54,7 +54,7 @@ export class InboxService {
     this.initialized = true;
   }
 
-  async list(recipient: string, options?: PaginationOptions): Promise<PaginatedResult<MessageSummery>> {
+  async list(recipient: string, options?: PaginationOptions): Promise<PaginatedResult<MessageSummary>> {
     const type = options?.type;
     const limit = options?.limit;
     const offset = options?.offset;
@@ -89,7 +89,7 @@ export class InboxService {
 
         delete messageMetadata.thumbnail;
 
-        return messageMetadata as MessageSummery;
+        return messageMetadata as MessageSummary;
       }),
     );
 

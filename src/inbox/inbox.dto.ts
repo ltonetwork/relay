@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-export class MessageSummery {
+export class MessageSummary {
   @ApiProperty()
   public readonly hash: string;
 
@@ -18,4 +18,12 @@ export class MessageSummery {
 
   @ApiProperty()
   public readonly recipient: string;
+
+  @ApiProperty({ required: false })
+  public readonly meta?: {
+    type: string;
+    title: string;
+    description: string;
+    thumbnail?: string;
+  };
 }

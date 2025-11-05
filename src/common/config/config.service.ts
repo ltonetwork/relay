@@ -16,7 +16,8 @@ export class ConfigService {
   }
 
   isDispatcherEnabled(): boolean {
-    return !!this.config.get('dispatcher.target') || this.config.get('inbox.enabled');
+    return this.config.get('dispatcher.isEnabled');
+    //return !!this.config.get('dispatcher.target') || this.config.get('inbox.enabled');
   }
 
   isInboxEnabled(): boolean {
@@ -33,6 +34,10 @@ export class ConfigService {
 
   getStoragePath(): string {
     return this.config.get('inbox.storage');
+  }
+
+  getThumbnailStoragePath(): string {
+    return this.config.get('inbox.thumbnail');
   }
 
   getStorageEmbedMaxSize(): number {

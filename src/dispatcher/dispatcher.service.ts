@@ -154,6 +154,7 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
     const _networkId = getNetworkId(message.recipient, this.config.getDefaultNetworkId());
 
     const data = message.data;
+    const thumbnail = message.meta?.thumbnail ? message.meta.thumbnail : null;
     const headers: Record<string, string> = {
       'Content-Type': message.mediaType,
       'EQTY-Message-Type': message.meta?.type || 'basic',
@@ -168,7 +169,7 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
       headers['Authorization'] = `Bearer ${target.api_key}`;
     }
 
-    const response = await this.request.post(target.url, data, { headers });
+    const response = await this.request.post(target.url, { headers }, data, thumbnail);
 
     if (response.status === 400) {
       return this.reject(msg, `message ${msgId} rejected, POST ${target.url} gave a 400 response`);

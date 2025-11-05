@@ -71,13 +71,13 @@ describe('InboxService', () => {
   beforeEach(() => {
     redis = {
       hgetall: jest.fn(),
+      hkeys: jest.fn(),
       hexists: jest.fn(),
+      get: jest.fn(),
       hget: jest.fn(),
       hset: jest.fn(),
-      hkeys: jest.fn(),
-      set: jest.fn(),
-      get: jest.fn(),
       hdel: jest.fn(),
+      set: jest.fn(),
     } as any;
 
     bucket = {
@@ -184,6 +184,9 @@ describe('InboxService', () => {
           size: 20,
         }),
       };
+
+      redis.hkeys.mockResolvedValue(['hash1', 'hash2']);
+      redis.hget.mockImplementation((_key, field) => Promise.resolve(data[String(field)]));
     });
 
     it('should return all messages if type is not specified', async () => {
@@ -236,7 +239,35 @@ describe('InboxService', () => {
       expect(redis.hkeys).toHaveBeenCalledWith(`inbox:${recipientAddress.toLowerCase()}`);
     });
 
-    it('should return filtered messages by type if type is specified', async () => {
+    it('should return filtered messages by type when no pagination', async () => {
+      const recipientAddress = recipient.address;
+      const result = await service.list(recipientAddress, { type: 'basic' });
+
+      expect(result).toEqual({
+        items: [
+          {
+            hash: 'hash1',
+            type: 'basic',
+            timestamp: 1672531200,
+            sender: 'sender1',
+            recipient: 'recipient1',
+            size: 10,
+            senderPublicKey: 'ed25519',
+            publicKey: 'key1',
+            mediaType: 'text/plain',
+            meta: {},
+          },
+        ],
+        total: 2,
+        hasMore: false,
+      });
+
+      expect(redis.hkeys).toHaveBeenCalledWith(`inbox:${recipientAddress}`);
+      expect(redis.hget).toHaveBeenCalledWith(`inbox:${recipientAddress}`, 'hash1');
+      expect(redis.hget).toHaveBeenCalledWith(`inbox:${recipientAddress}`, 'hash2');
+    });
+
+    it('should return paginated messages when limit and offset are provided', async () => {
       const recipientAddress = recipient.address;
       const type = 'basic';
       redis.hkeys.mockResolvedValue(['hash1', 'hash2']);
@@ -344,7 +375,7 @@ describe('InboxService', () => {
       jest.spyOn(config, 'isInboxEnabled').mockReturnValue(true);
     });
 
-    it('should index in Redis and the message in the bucket if not embedded', async () => {
+    it('should store index in Redis and the message in the bucket if not embedded', async () => {
       jest.spyOn(config, 'getStorageEmbedMaxSize').mockReturnValue(0);
       const recipientAddress = recipient.address;
 
@@ -394,6 +425,162 @@ describe('InboxService', () => {
       });
 
       expect(bucket.put).not.toHaveBeenCalled();
+    });
+
+    it('should store the message and thumbnail when not embedded and thumbnail is present', async () => {
+      jest.spyOn(config, 'getStorageEmbedMaxSize').mockReturnValue(0);
+
+      const { Message, Binary } = await import('eqty-core');
+      const messageData = {
+        version: 3,
+        meta: { type: 'basic', title: '', description: '' },
+        mediaType: 'text/plain',
+        data: 'hello',
+        sender: sender.address,
+        recipient: recipient.address,
+        timestamp: Date.now(),
+      };
+      message = Message.from(messageData);
+      (message as any).meta.thumbnail = Binary.fromBase58('hello');
+
+      const thumbnailBucket = module.get<Bucket>('INBOX_THUMBNAIL_BUCKET');
+      const thumbnailPutSpy = jest.spyOn(thumbnailBucket, 'put');
+
+      await service.store(message);
+
+      const storedData = JSON.parse(String(redis.hset.mock.calls[0][2]));
+
+      expect(storedData.thumbnail).toBe(true);
+
+      const { Binary: BinaryClass } = await import('eqty-core');
+      expect(thumbnailPutSpy).toHaveBeenCalledWith(message.hash.base58, expect.any(BinaryClass));
+      expect(bucket.put).toHaveBeenCalledWith(message.hash.base58, message.toBinary());
+    });
+  });
+
+  describe('delete', () => {
+    it('should throw an error if the message does not exist', async () => {
+      const recipientAddress = recipient.address;
+      const hash = message.hash.base58;
+      redis.hexists.mockResolvedValue(0);
+
+      await expect(service.delete(recipientAddress, hash)).rejects.toThrow('Message not found');
+      expect(redis.hexists).toHaveBeenCalledWith(`inbox:${recipientAddress}`, hash);
+      expect(logger.warn).toHaveBeenCalledWith(
+        `delete: message '${hash}' not found for recipient '${recipientAddress}'`,
+      );
+    });
+
+    it('should delete a message and associated files if it exists', async () => {
+      const recipientAddress = recipient.address;
+      const hash = message.hash.base58;
+      redis.hexists.mockResolvedValue(1); // has() will return true
+      redis.hget.mockResolvedValue(JSON.stringify({ thumbnail: true }));
+      redis.hdel.mockResolvedValue(1);
+
+      const mockThumbnailBucket = service['thumbnail_bucket'] as jest.Mocked<Bucket>;
+      const mockBucket = service['bucket'] as jest.Mocked<Bucket>;
+
+      mockThumbnailBucket.delete = jest.fn();
+      mockBucket.delete = jest.fn();
+
+      await service.delete(recipientAddress, hash);
+
+      expect(redis.hdel).toHaveBeenCalledWith(`inbox:${recipientAddress}`, hash);
+      expect(mockThumbnailBucket.delete).toHaveBeenCalledWith(hash);
+      expect(mockBucket.delete).toHaveBeenCalledWith(hash);
+
+      expect(logger.debug).toHaveBeenCalledWith(
+        `delete: message '${hash}' deleted from Redis for recipient '${recipientAddress}'`,
+      );
+      expect(logger.debug).toHaveBeenCalledWith(`delete: file '${hash}' deleted from bucket storage`);
+    });
+
+    it('should handle NoSuchKey error gracefully', async () => {
+      const recipientAddress = recipient.address;
+      const hash = message.hash.base58;
+      redis.hexists.mockResolvedValue(1);
+      redis.hget.mockResolvedValue(JSON.stringify({ thumbnail: false }));
+      redis.hdel.mockResolvedValue(1);
+
+      const err = { code: 'NoSuchKey' };
+      bucket.delete.mockRejectedValueOnce(err);
+
+      await service.delete(recipientAddress, hash);
+
+      expect(logger.warn).toHaveBeenCalledWith(`delete: file '${hash}' not found in bucket storage`);
+    });
+  });
+
+  describe('loadThumbnail', () => {
+    it('should handle NoSuchKey error when loading thumbnail', async () => {
+      const thumbnailBucket = module.get('INBOX_THUMBNAIL_BUCKET');
+      jest.spyOn(thumbnailBucket, 'get').mockRejectedValue({ code: 'NoSuchKey' });
+
+      const result = await (service as any).loadThumbnail('hash1');
+
+      expect(result).toBeUndefined();
+      expect(logger.warn).toHaveBeenCalledWith(`Thumbnail file 'hash1' not found in bucket storage`);
+    });
+
+    it('should handle general errors when loading thumbnail', async () => {
+      const error = new Error('Bucket error');
+      jest.spyOn(bucket, 'get').mockRejectedValue(error);
+
+      const result = await (service as any).loadThumbnail('hash1');
+
+      expect(result).toBeUndefined();
+      expect(logger.error).toHaveBeenCalledWith(`Failed to load thumbnail 'hash1' from bucket`, error);
+    });
+  });
+
+  describe('create from embedded and load from file', () => {
+    it('should load message from file', async () => {
+      (bucket.get as jest.Mock).mockResolvedValue(message.toBinary());
+      redis.hget.mockResolvedValue(
+        JSON.stringify({
+          hash: message.hash.base58,
+          mediaType: 'text/plain',
+          meta: {},
+          version: 0,
+          timestamp: message.timestamp.toJSON(),
+          sender: sender.address,
+          recipient: recipient.address,
+          signature: message.signature.base58,
+        }),
+      );
+
+      const result = await (service as any).reconstructFromBucket(
+        {
+          hash: message.hash.base58,
+          mediaType: 'text/plain',
+          meta: {},
+        },
+        message.hash.base58,
+      );
+
+      expect(result).toBeDefined();
+      expect(bucket.get).toHaveBeenCalledWith(message.hash.base58);
+    });
+  });
+
+  describe('getLastModified', () => {
+    it('should return the last modified date', async () => {
+      const recipientAddress = recipient.address;
+      const now = new Date();
+      now.setMilliseconds(0);
+      redis.get.mockResolvedValue(now.toISOString());
+
+      const result = await service.getLastModified(recipientAddress);
+      expect(result).toEqual(now);
+    });
+
+    it('should return epoch date if no last modified date exists', async () => {
+      const recipientAddress = recipient.address;
+      redis.get.mockResolvedValue(null);
+
+      const result = await service.getLastModified(recipientAddress);
+      expect(result).toEqual(new Date(0));
     });
   });
 });

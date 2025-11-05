@@ -1,25 +1,39 @@
-import amqplib from 'amqplib';
+import * as amqplib from 'amqplib';
 import { LoggerService } from '../../common/logger/logger.service';
 import { setTimeout } from 'node:timers/promises';
 
+export interface RetryConfig {
+  timeouts: number[];
+  maxRetries: number;
+}
+
 export class RabbitMQConnection {
   public open: boolean;
+  private retryConfig: RetryConfig = {
+    timeouts: [5_000, 30_000, 60_000, 300_000, 900_000, 3600_000],
+    maxRetries: 6,
+  };
 
   constructor(
-    private connection: amqplib.Connection,
-    private channel: amqplib.Channel,
+    private connection: amqplib.Connection | any,
+    private channel: amqplib.Channel | any,
     private logger: LoggerService = null,
   ) {
     this.open = true;
   }
 
-  setConnection(connection: amqplib.Connection): this {
+  setConnection(connection: amqplib.Connection | any): this {
     this.connection = connection;
     return this;
   }
 
-  setChannel(channel: amqplib.Channel): this {
+  setChannel(channel: amqplib.Channel | any): this {
     this.channel = channel;
+    return this;
+  }
+
+  setRetryConfig(config: Partial<RetryConfig>): this {
+    this.retryConfig = { ...this.retryConfig, ...config };
     return this;
   }
 
@@ -29,7 +43,12 @@ export class RabbitMQConnection {
     await this.channel.consume(
       queue,
       async (msg: amqplib.Message) => {
-        await callback(msg);
+        try {
+          await callback(msg);
+        } catch (error) {
+          this.log('error', `Error processing message: ${error.message}`);
+          this.reject(msg);
+        }
       },
       { noAck: false },
     );
@@ -38,51 +57,80 @@ export class RabbitMQConnection {
   async publish(exchange: string, queue: string, msg: string | object, options: amqplib.Options.Publish = {}) {
     await this.init(exchange, queue, queue);
 
-    if (typeof msg !== 'string' && !(msg instanceof Uint8Array)) {
-      options.contentType ??= 'application/json';
-      msg = JSON.stringify(msg);
-    } else {
+    let buffer: Buffer;
+
+    if (msg instanceof Uint8Array) {
+      buffer = Buffer.from(msg);
       options.contentType ??= 'application/octet-stream';
+    } else if (typeof msg === 'string') {
+      buffer = Buffer.from(msg);
+      options.contentType ??= 'application/octet-stream';
+    } else {
+      options.contentType ??= 'application/json';
+      buffer = Buffer.from(JSON.stringify(msg));
     }
 
-    const buffer = Buffer.from(msg);
-
-    this.channel.publish(exchange, queue, buffer, options);
+    try {
+      this.channel.publish(exchange, queue, buffer, options);
+    } catch (error) {
+      this.log('error', `Failed to publish message: ${error.message}`);
+      throw error;
+    }
   }
 
   ack(message: amqplib.Message) {
-    this.channel.ack(message);
+    try {
+      this.channel.ack(message);
+    } catch (error) {
+      this.log('error', `Failed to acknowledge message: ${error.message}`);
+      throw error;
+    }
   }
 
   reject(message: amqplib.Message) {
-    this.channel.reject(message, false);
+    try {
+      this.channel.reject(message, false);
+    } catch (error) {
+      this.log('error', `Failed to reject message: ${error.message}`);
+      throw error;
+    }
   }
 
   retry(message: amqplib.Message) {
-    const timeouts = [5_000, 30_000, 60_000, 300_000, 900_000, 3600_000];
+    try {
+      message.properties.headers['x-redelivered-count'] ??= 0;
+      message.properties.headers['x-redelivered-count']++;
 
-    message.properties.headers['x-redelivered-count'] ??= 0;
-    message.properties.headers['x-redelivered-count']++;
+      const redeliveredCount = message.properties.headers['x-redelivered-count'];
 
-    const redeliveredCount = message.properties.headers['x-redelivered-count'];
+      this.channel.reject(message, false);
 
-    this.channel.reject(message, false);
+      if (isNaN(redeliveredCount) || redeliveredCount > this.retryConfig.maxRetries) {
+        this.log('warn', `message ${message.properties.messageId} deadlettered, it has been retried too many times`);
+        return;
+      }
 
-    if (isNaN(redeliveredCount) || redeliveredCount > timeouts.length) {
-      this.log('warn', `message ${message.properties.messageId} deadlettered, it has been retried too many times`);
-      return;
+      const timeout =
+        this.retryConfig.timeouts[redeliveredCount - 1] ||
+        this.retryConfig.timeouts[this.retryConfig.timeouts.length - 1];
+
+      setTimeout(timeout).then(() => {
+        try {
+          this.channel.sendToQueue(message.fields.routingKey, message.content, message.properties);
+        } catch (error) {
+          this.log('error', `Failed to requeue message: ${error.message}`);
+        }
+      });
+    } catch (error) {
+      this.log('error', `Failed to retry message: ${error.message}`);
+      throw error;
     }
-
-    setTimeout(timeouts[redeliveredCount - 1]).then(() => {
-      this.channel.sendToQueue(message.fields.routingKey, message.content, message.properties);
-    });
   }
 
   async checkQueue(queue: string): Promise<amqplib.Replies.AssertQueue | null> {
     try {
       return await this.channel.checkQueue(queue);
     } catch (e) {
-      // does not exist
       return null;
     }
   }
@@ -91,31 +139,42 @@ export class RabbitMQConnection {
     try {
       return await this.channel.checkExchange(exchange);
     } catch (e) {
-      // does not exist
       return null;
     }
   }
 
   async init(exchange: string, queue: string, pattern: string) {
-    // deadletter
-    const deadLetterExchange = exchange === '' || exchange.startsWith('amq.') ? 'deadletter' : `${exchange}.deadletter`;
-    await this.assertExchange(deadLetterExchange);
-    await this.assertQueue(`${queue}.deadletter`);
-    await this.bindQueue(deadLetterExchange, `${queue}.deadletter`, `${pattern}.deadletter`);
+    try {
+      if (!this.channel || !this.open) {
+        throw new Error('Channel not available');
+      }
 
-    // regular
-    await this.assertExchange(exchange);
-    await this.assertQueue(queue, {
-      durable: true,
-      deadLetterExchange,
-      deadLetterRoutingKey: `${queue}.deadletter`,
-    });
-    await this.bindQueue(exchange, queue, pattern);
+      // deadletter
+      const deadLetterExchange =
+        exchange === '' || exchange.startsWith('amq.') ? 'deadletter' : `${exchange}.deadletter`;
+      await this.assertExchange(deadLetterExchange);
+      await this.assertQueue(`${queue}.deadletter`);
+      await this.bindQueue(deadLetterExchange, `${queue}.deadletter`, `${pattern}.deadletter`);
+
+      // regular
+      await this.assertExchange(exchange);
+      await this.assertQueue(queue, {
+        durable: true,
+        deadLetterExchange,
+        deadLetterRoutingKey: `${queue}.deadletter`,
+      });
+      await this.bindQueue(exchange, queue, pattern);
+    } catch (e) {
+      if (e.message.includes('Channel closed')) {
+        this.open = false;
+        throw e; //trigger reconnection
+      }
+      throw e;
+    }
   }
 
   private async assertQueue(queue: string, options: amqplib.Options.AssertQueue = { durable: true }) {
     try {
-      this.log('debug', `rabbitmq-connection: attempting to assert queue '${queue}'`);
       await this.channel.assertQueue(queue, options);
       this.log('debug', `rabbitmq-connection: successfully asserted queue '${queue}'`);
     } catch (e) {
@@ -131,33 +190,52 @@ export class RabbitMQConnection {
     options: amqplib.Options.AssertExchange = { durable: true },
   ) {
     try {
-      this.log('debug', `rabbitmq-connection: attempting to assert exchange '${exchange}'`);
+      if (!this.channel || !this.open) {
+        throw new Error('Channel not available');
+      }
       await this.channel.assertExchange(exchange, type, options);
       this.log('debug', `rabbitmq-connection: successfully asserted exchange '${exchange}'`);
     } catch (e) {
       this.log('error', `rabbitmq-connection: failed to assert exchange '${e}'`);
+      if (e.message.includes('Channel closed')) {
+        this.open = false;
+        throw e; // trigger reconnection
+      }
       await setTimeout(1500);
       return this.assertExchange(exchange, type, options);
     }
   }
 
   private async bindQueue(exchange: string, queue: string, pattern: string) {
-    await this.channel.bindQueue(queue, exchange, pattern);
+    try {
+      await this.channel.bindQueue(queue, exchange, pattern);
+    } catch (error) {
+      this.log('error', `Failed to bind queue: ${error.message}`);
+      throw error;
+    }
   }
 
-  async close() {
-    if (this.channel) {
-      await this.channel.close();
-    }
+  async close(): Promise<boolean> {
+    try {
+      this.open = false;
 
-    if (this.connection) {
-      await this.connection.close();
+      if (this.channel) {
+        await this.channel.close();
+      }
+
+      if (this.connection) {
+        await (this.connection as any).close();
+      }
+
+      return true;
+    } catch (error) {
+      this.log('error', `Error closing RabbitMQ connection: ${error.message}`);
+      return false;
     }
   }
 
   private log(level: string, msg: string) {
     if (this.logger) {
-      // logger may be omitted so we do a check
       this.logger[level](msg);
     }
   }
