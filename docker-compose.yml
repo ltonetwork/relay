@@ -6,27 +6,20 @@ services:
       - relay-storage:/storage
       - relay-thumbnails:/thumbnail
     ports:
-      - '8000:8000'
+      - '3000:3000'
     environment:
-      - NODE_ENV=development
-      - PORT=8000
       - INBOX_STORAGE=/storage
       - INBOX_THUMBNAIL_STORAGE=/thumbnail
-      - RABBITMQ_CLIENT=amqp://relay-rabbitmq:5672
-      - REDIS_URL=redis://relay-redis:6379
-      - RABBITMQ_API=http://relay-rabbitmq:15672/api
-      - PUBLIC_HOSTNAME=localhost
+      - RABBITMQ_CLIENT=amqp://rabbitmq:5672
+      - REDIS_URL=redis://redis:6379
     depends_on:
       rabbitmq:
         condition: service_healthy
       redis:
         condition: service_healthy
-    networks:
-      - relay-network
-    restart: unless-stopped
 
   rabbitmq:
-    container_name: relay-rabbitmq
+    container_name: rabbitmq
     build: ./docker/rabbitmq
     healthcheck:
       test: ['CMD', 'rabbitmqctl', 'status']
@@ -36,15 +29,9 @@ services:
     ports:
       - '5672:5672'
       - '15672:15672' # Management UI
-    environment:
-      - RABBITMQ_DEFAULT_USER=guest
-      - RABBITMQ_DEFAULT_PASS=guest
-    networks:
-      - relay-network
-    restart: unless-stopped
 
   redis:
-    container_name: relay-redis
+    container_name: redis
     image: redis:7-alpine
     volumes:
       - relay-redis:/data
@@ -55,16 +42,8 @@ services:
       retries: 5
     ports:
       - '6379:6379'
-    command: redis-server --appendonly yes
-    networks:
-      - relay-network
-    restart: unless-stopped
 
 volumes:
   relay-storage:
   relay-thumbnails:
   relay-redis:
-
-networks:
-  relay-network:
-    driver: bridge
