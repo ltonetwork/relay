@@ -13,7 +13,7 @@ RUN git describe --tags > /dev/null 2>&1 && yarn version --new-version $(git des
 
 RUN yarn build
 
-FROM node:20-alpin
+FROM node:20-alpine
 WORKDIR /usr/app
 
 RUN yarn config set registry https://registry.npmjs.org
