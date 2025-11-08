@@ -17,9 +17,9 @@ services:
       - RABBITMQ_API=http://relay-rabbitmq:15672/api
       - PUBLIC_HOSTNAME=localhost
     depends_on:
-      relay-rabbitmq:
+      rabbitmq:
         condition: service_healthy
-      relay-redis:
+      redis:
         condition: service_healthy
     networks:
       - relay-network
