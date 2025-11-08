@@ -28,5 +28,5 @@ COPY --from=build /usr/src/src/config ./config
 # Create storage directories
 RUN mkdir -p /storage /thumbnail
 
-EXPOSE 8000
+EXPOSE 3000
 CMD ["node", "main.js"]
