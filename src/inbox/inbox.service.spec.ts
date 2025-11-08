@@ -546,7 +546,7 @@ describe('InboxService', () => {
       const recipientAddress = recipient.address;
       const hash = (message as any).hash?.base58 || message.hash?.base58 || 'mockHash123';
       redis.hexists.mockResolvedValue(1);
-      redis.hget.mockResolvedValue(JSON.stringify({ meta: { thumbnail: true } }));
+      redis.hget.mockResolvedValue(JSON.stringify({ thumbnail: true, meta: {} }));
       redis.hdel.mockResolvedValue(1);
 
       const mockThumbnailBucket = module.get<Bucket>('INBOX_THUMBNAIL_BUCKET') as jest.Mocked<Bucket>;
@@ -561,7 +561,7 @@ describe('InboxService', () => {
       expect(logger.debug).toHaveBeenCalledWith(
         `delete: message '${hash}' deleted from Redis for recipient '${recipientAddress}'`,
       );
-      expect(logger.debug).toHaveBeenCalledWith(`delete: file '${hash}' deleted from bucket storage`);
+      expect(logger.debug).toHaveBeenCalledWith(`delete: all files for '${hash}' deleted from bucket storage`);
     });
 
     it('should handle NoSuchKey error gracefully', async () => {

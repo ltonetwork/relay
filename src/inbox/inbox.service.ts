@@ -1,6 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '../common/config/config.service';
-// Dynamic import for eqty-core ES module
 let Message: any;
 let Binary: any;
 import { LoggerService } from '../common/logger/logger.service';
@@ -70,7 +69,6 @@ export class InboxService {
     let keysToFetch = allKeys;
 
     if (typeof limit === 'number' && typeof offset === 'number') {
-      // Validate pagination values
       const validLimit = Math.max(1, Math.min(100, limit));
       const validOffset = Math.max(0, offset);
       keysToFetch = allKeys.slice(validOffset, validOffset + validLimit);
@@ -108,7 +106,6 @@ export class InboxService {
       }),
     );
 
-    // Filter out null items (corrupted or missing data)
     const validItems = items.filter((item): item is MessageSummary => item !== null);
 
     const filteredItems = type ? validItems.filter((item) => item.type === type) : validItems;
@@ -134,18 +131,13 @@ export class InboxService {
     try {
       const messageMetadata = JSON.parse(data);
 
-      // Check for thumbnail: 'thumbnail: true' means it was stored separately in thumbnail_bucket
       if (messageMetadata.thumbnail === true) {
-        // Try to load thumbnail, but don't log warnings for missing files (expected after deletion)
         messageMetadata.meta.thumbnail = await this.loadThumbnail(hash);
-        // If thumbnail is missing, just leave it undefined (loadThumbnail already logs as debug)
       }
 
-      // If message has embedded data, use it directly
       if ('data' in messageMetadata || 'encryptedData' in messageMetadata) {
         return this.createFromEmbedded(messageMetadata);
       } else {
-        // For large files, reconstruct message from metadata + bucket data
         return await this.reconstructFromBucket(messageMetadata, hash);
       }
     } catch (error) {
@@ -163,7 +155,6 @@ export class InboxService {
 
   private async reconstructFromBucket(metadata: any, hash: string): Promise<any> {
     try {
-      // Get the file data from bucket
       const fileData = await this.bucket.get(hash);
       if (!fileData) {
         throw new Error(`File data not found in bucket for hash '${hash}'`);
@@ -171,7 +162,6 @@ export class InboxService {
 
       const binaryData = fileData instanceof Uint8Array ? fileData : new Uint8Array(fileData);
 
-      // Reconstruct the message from metadata + file data
       const message = new Message(binaryData, metadata.mediaType, metadata.meta);
       message.version = metadata.version;
       message.timestamp = metadata.timestamp;
@@ -196,7 +186,6 @@ export class InboxService {
     try {
       const thumbnailBuffer = await this.thumbnail_bucket.get(hash);
 
-      // Dynamic import for file type detection
       const { fileTypeFromBuffer } = await import('file-type');
       const type = await fileTypeFromBuffer(thumbnailBuffer as Uint8Array);
       const mime = type?.mime || 'application/octet-stream';
@@ -205,7 +194,7 @@ export class InboxService {
     } catch (error) {
       const errorCode = (error as any).code;
       if (errorCode === 'NoSuchKey' || errorCode === 'ENOENT') {
-        this.logger.debug(`Thumbnail file '${hash}' not found in bucket storage`);
+        this.logger.warn(`Thumbnail file '${hash}' not found in bucket storage`);
       } else {
         this.logger.error(`Failed to load thumbnail '${hash}' from bucket`, error);
       }
@@ -237,7 +226,6 @@ export class InboxService {
     promises.push(this.storeIndex(message, embed));
     if (!embed) promises.push(this.storeFile(message));
 
-    // Update the Last-Modified timestamp
     promises.push(this.updateLastModified(message.recipient));
 
     await Promise.all(promises);
@@ -278,7 +266,6 @@ export class InboxService {
       const thumbnail = new Uint8Array(Buffer.from(message.meta.thumbnail, 'base64'));
       await this.thumbnail_bucket.put(message.hash.base58, thumbnail);
     }
-    // Store only the file data, not the entire message structure
     await this.bucket.put(message.hash.base58, message.data);
   }
 
@@ -289,7 +276,6 @@ export class InboxService {
       throw new Error(`Message not found`);
     }
 
-    // Get metadata from Redis to check if thumbnail exists
     const data = await this.redis.hget(`inbox:${recipient.toLowerCase()}`, hash);
     let parsed = null;
     if (data) {
@@ -297,53 +283,43 @@ export class InboxService {
         parsed = JSON.parse(data);
       } catch (error) {
         this.logger.error(`delete: failed to parse message metadata for '${hash}'`, error);
-        // Continue with deletion even if parsing fails - we'll still delete from Redis and storage
       }
     }
 
-    // Check for thumbnail: 'thumbnail: true' means it was stored separately in thumbnail_bucket
-    // (not embedded in the message data)
     const hasThumbnailFile = parsed?.thumbnail === true;
 
-    // Delete from Redis first
     await this.redis.hdel(`inbox:${recipient.toLowerCase()}`, hash);
     this.logger.debug(`delete: message '${hash}' deleted from Redis for recipient '${recipient}'`);
     await this.updateLastModified(recipient);
 
-    // Delete from storage (both main file and thumbnail if stored separately)
     const deletePromises: Promise<any>[] = [];
 
-    // Always try to delete main file from bucket (works for both S3 and local storage)
-    // This handles both embedded and non-embedded messages
     deletePromises.push(
-      this.bucket.delete(hash).catch((error) => {
+      Promise.resolve(this.bucket.delete(hash)).catch((error) => {
         const errorCode = (error as any).code;
         if (errorCode === 'NoSuchKey' || errorCode === 'ENOENT') {
-          this.logger.debug(`delete: main file '${hash}' not found in bucket storage (already deleted or embedded)`);
+          this.logger.warn(`delete: file '${hash}' not found in bucket storage`);
         } else {
           this.logger.error(`delete: failed to delete main file '${hash}' from bucket storage`, error);
-          throw error; // Re-throw non-missing-file errors
+          throw error;
         }
       }),
     );
 
-    // Delete thumbnail from thumbnail bucket only if it was stored separately
-    // (thumbnail: true means it's in thumbnail_bucket, not embedded in message)
     if (hasThumbnailFile) {
       deletePromises.push(
-        this.thumbnail_bucket.delete(hash).catch((error) => {
+        Promise.resolve(this.thumbnail_bucket.delete(hash)).catch((error) => {
           const errorCode = (error as any).code;
           if (errorCode === 'NoSuchKey' || errorCode === 'ENOENT') {
             this.logger.debug(`delete: thumbnail '${hash}' not found in thumbnail bucket (already deleted)`);
           } else {
             this.logger.error(`delete: failed to delete thumbnail '${hash}' from thumbnail bucket`, error);
-            throw error; // Re-throw non-missing-file errors
+            throw error;
           }
         }),
       );
     }
 
-    // Execute all deletions in parallel
     await Promise.all(deletePromises);
     this.logger.debug(`delete: all files for '${hash}' deleted from bucket storage`);
   }

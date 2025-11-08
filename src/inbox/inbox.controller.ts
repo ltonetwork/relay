@@ -33,7 +33,6 @@ export class InboxController {
     @Query('limit') limit?: number,
     @Query('offset') offset?: number,
   ): Promise<{ items: MessageSummary[]; total: number; hasMore: boolean }> {
-    // Validate pagination parameters
     if (limit !== undefined) {
       const limitNum = Number(limit);
       if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
@@ -63,7 +62,6 @@ export class InboxController {
   @Get('/:address/:hash')
   @ApiProduces('application/json')
   async get(@Param('address') address: string, @Param('hash') hash: string): Promise<any> {
-    // Basic hash validation
     if (!hash || hash.length < 10 || hash.length > 100) {
       throw new BadRequestException('Invalid hash format');
     }
@@ -78,7 +76,6 @@ export class InboxController {
   @ApiParam({ name: 'address', description: 'Address of the recipient' })
   @ApiParam({ name: 'hash', description: 'Hash of the message to delete' })
   async delete(@Param('address') address: string, @Param('hash') hash: string): Promise<void> {
-    // Basic hash validation
     if (!hash || hash.length < 10 || hash.length > 100) {
       throw new BadRequestException('Invalid hash format');
     }
@@ -113,7 +110,6 @@ export class MessagesController {
   @ApiParam({ name: 'hash', description: 'Message hash' })
   @ApiProduces('application/json')
   async getMessage(@Param('address') address: string, @Param('hash') hash: string): Promise<any> {
-    // Basic hash validation (base58 format, reasonable length)
     if (!hash || hash.length < 10 || hash.length > 100) {
       throw new BadRequestException('Invalid hash format');
     }
@@ -129,7 +125,6 @@ export class MessagesController {
   @ApiParam({ name: 'address', description: 'Address to delete message for' })
   @ApiParam({ name: 'hash', description: 'Message hash' })
   async deleteMessage(@Param('address') address: string, @Param('hash') hash: string): Promise<void> {
-    // Basic hash validation
     if (!hash || hash.length < 10 || hash.length > 100) {
       throw new BadRequestException('Invalid hash format');
     }
