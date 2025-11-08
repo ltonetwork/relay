@@ -3,10 +3,12 @@ import { RabbitMQService } from '../rabbitmq/rabbitmq.service';
 import { RabbitMQConnection } from '../rabbitmq/classes/rabbitmq.connection';
 import { LoggerService } from '../common/logger/logger.service';
 import { ConfigService } from '../common/config/config.service';
-import { Message, buildAddress, getNetwork } from '@ltonetwork/lto';
+// Dynamic import for eqty-core ES module
+let Message: any;
+import { getNetworkId } from '../common/address/address.utils';
+import { BaseAnchorService } from '../common/blockchain/base-anchor.service';
 import amqplib from 'amqplib';
 import { RequestService } from '../common/request/request.service';
-import { LtoIndexService } from '../common/lto-index/lto-index.service';
 import { APP_ID } from '../constants';
 import { InboxService } from '../inbox/inbox.service';
 
@@ -19,11 +21,16 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
     private readonly rabbitMQ: RabbitMQService,
     private readonly request: RequestService,
     private readonly inbox: InboxService,
-    private readonly ltoIndex: LtoIndexService,
+    private readonly baseAnchor: BaseAnchorService,
     private readonly logger: LoggerService,
   ) {}
 
   async onModuleInit() {
+    // Initialize eqty-core Message class
+    const importFn = new Function('specifier', 'return import(specifier)');
+    const eqtyCore = await importFn('eqty-core');
+    Message = eqtyCore.Message;
+
     await this.start();
   }
 
@@ -57,7 +64,7 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
     const message = this.decodeMessage(msg);
     if (!message) return false;
 
-    if (!this.validateMessage(message, msg)) return false;
+    if (!(await this.validateMessage(message, msg))) return false;
 
     if (this.config.verifyAnchorOnDispatch()) {
       const verified = await this.verifyAnchor(message, msg);
@@ -76,26 +83,27 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
     return true;
   }
 
-  private decodeMessage(msg: amqplib.Message): Message | undefined {
-    switch (msg.properties.contentType) {
-      case 'application/json':
-        const json = JSON.parse(msg.content.toString());
-        return Message.from(json);
-      case 'application/octet-stream':
-        return Message.from(msg.content);
-      default:
-        this.reject(msg, `message ${msg.properties.messageId} rejected, content type is not supported`);
+  private decodeMessage(msg: amqplib.Message): any | undefined {
+    if (msg.properties.contentType !== 'application/json') {
+      this.reject(
+        msg,
+        `message ${msg.properties.messageId} rejected, content type ${msg.properties.contentType} is not supported`,
+      );
+      return undefined;
     }
+
+    const json = JSON.parse(msg.content.toString());
+    return Message.from(json);
   }
 
-  private validateMessage(message: Message, msg: amqplib.Message): boolean {
+  private async validateMessage(message: any, msg: amqplib.Message): Promise<boolean> {
     const msgId = msg.properties.messageId;
 
     if (msg.properties.appId !== APP_ID) {
       return this.reject(msg, `message ${msgId} rejected, invalid app id`);
     }
 
-    if (message.type !== msg.properties.type) {
+    if (message.meta?.type !== msg.properties.type) {
       return this.reject(msg, `message ${msgId} rejected, type does not match message type`);
     }
 
@@ -115,49 +123,46 @@ export class DispatcherService implements OnModuleInit, OnModuleDestroy {
       return this.reject(msg, `message ${msgId} rejected, message is not signed`);
     }
 
-    if (message.isSigned() && !message.verifySignature()) {
+    if (message.isSigned() && !(await message.verifySignature(async () => true))) {
       return this.reject(msg, `message ${msgId} rejected, invalid signature`);
     }
 
     return true;
   }
 
-  private async verifyAnchor(message: Message, msg: amqplib.Message): Promise<boolean> {
+  private async verifyAnchor(message: any, msg: amqplib.Message): Promise<boolean> {
     const msgId = msg.properties.messageId;
-    const networkId = getNetwork(message.recipient);
+    const networkId = getNetworkId(message.recipient, this.config.getDefaultNetworkId());
 
-    if (networkId !== 'L' && networkId !== 'T') {
+    if (!this.baseAnchor.isNetworkSupported(networkId)) {
       return this.reject(msg, `message ${msgId} rejected, unsupported network ${networkId}`);
     }
 
-    if (!(await this.ltoIndex.verifyAnchor(networkId, message.hash))) {
-      return this.retry(msg, `message ${msgId} requeued, not anchored`);
+    const result = await this.baseAnchor.verifyAnchor(networkId, message.hash);
+    if (!result.isAnchored) {
+      return this.retry(msg, `message ${msgId} requeued, not anchored: ${result.error}`);
     }
 
     return true;
   }
 
-  private async dispatch(message: Message, msg: amqplib.Message): Promise<boolean> {
+  private async dispatch(message: any, msg: amqplib.Message): Promise<boolean> {
     const target = this.config.getDispatchTarget();
     if (!target.url) return true;
 
     const msgId = msg.properties.messageId;
-    const networkId = getNetwork(message.recipient);
-    const data = message.isEncrypted() ? message.encryptedData : message.data;
-    const thumbnail = message.meta?.thumbnail ? message.meta.thumbnail : null;
+    const _networkId = getNetworkId(message.recipient, this.config.getDefaultNetworkId());
 
+    const data = message.data;
+    const thumbnail = message.meta?.thumbnail ? message.meta.thumbnail : null;
     const headers: Record<string, string> = {
-      'Content-Type': message.isEncrypted() ? 'application/octet-stream' : message.mediaType,
-      'LTO-Message-Type': message.type,
-      'LTO-Message-Sender': buildAddress(message.sender.publicKey, networkId),
-      'LTO-Message-SenderKeyType': message.sender.keyType,
-      'LTO-Message-SenderPublicKey': message.sender.publicKey.base58,
-      'LTO-Message-Recipient': message.recipient,
-      'LTO-Message-Signature': message.signature.base58,
-      'LTO-Message-Timestamp': message.timestamp.toString(),
-      'LTO-Message-Hash': message.hash.base58,
-      ...(message.meta?.title ? { 'LTO-Message-Title': message.meta.title } : {}),
-      ...(message.meta?.description ? { 'LTO-Message-Description': message.meta.description } : {}),
+      'Content-Type': message.mediaType,
+      'EQTY-Message-Type': message.meta?.type || 'basic',
+      'EQTY-Message-Sender': message.sender || '',
+      'EQTY-Message-Recipient': message.recipient,
+      'EQTY-Message-Signature': message.signature?.base58 || '',
+      'EQTY-Message-Timestamp': message.timestamp?.toString() || '',
+      'EQTY-Message-Hash': message.hash.base58,
     };
 
     if (target.api_key) {

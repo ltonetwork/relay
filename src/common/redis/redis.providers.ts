@@ -8,5 +8,5 @@ export const redisProviders = [
       return new Redis(config.getRedisUrl(), { lazyConnect: true });
     },
     inject: [ConfigService],
-  }
+  },
 ];

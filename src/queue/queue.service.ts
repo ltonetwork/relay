@@ -4,7 +4,8 @@ import { RabbitMQApiService } from '../rabbitmq/rabbitmq-api.service';
 import { RabbitMQConnection } from '../rabbitmq/classes/rabbitmq.connection';
 import { LoggerService } from '../common/logger/logger.service';
 import { ConfigService } from '../common/config/config.service';
-import { Message } from '@ltonetwork/lto';
+// Dynamic import for eqty-core ES module
+let _Message: any;
 import { DidResolverService } from '../common/did-resolver/did-resolver.service';
 import { APP_ID } from '../constants';
 
@@ -21,6 +22,11 @@ export class QueueService implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
+    // Initialize eqty-core Message class
+    const importFn = new Function('specifier', 'return import(specifier)');
+    const eqtyCore = await importFn('eqty-core');
+    _Message = eqtyCore.Message;
+
     if (!this.config.isQueueEnabled()) return;
     this.connection = await this.rabbitMQService.connect(this.config.getRabbitMQClient());
   }
@@ -33,7 +39,7 @@ export class QueueService implements OnModuleInit {
     return new URL(endpoint).hostname === this.config.getHostname();
   }
 
-  async add(message: Message): Promise<void> {
+  async add(message: any): Promise<void> {
     if (!this.isEnabled()) throw new Error(`queue: module not enabled`);
 
     if (this.config.forceLocalDelivery()) {
@@ -50,12 +56,12 @@ export class QueueService implements OnModuleInit {
     }
   }
 
-  private async addLocal(message: Message): Promise<void> {
+  private async addLocal(message: any): Promise<void> {
     this.logger.info(`queue: delivering message '${message.hash.base58}'`);
     await this.publish(this.config.getRabbitMQQueue(), message);
   }
 
-  private async addRemote(endpoint: string, message: Message): Promise<void> {
+  private async addRemote(endpoint: string, message: any): Promise<void> {
     const queueInfo = await this.connection.checkQueue(endpoint);
     if (!queueInfo) await this.createShovel(endpoint);
 
@@ -73,12 +79,13 @@ export class QueueService implements OnModuleInit {
       throw new Error('queue: failed to add shovel for remote endpoint');
     }
   }
-
-  private async publish(endpoint: string, message: Message): Promise<void> {
-    await this.connection.publish(this.config.getRabbitMQExchange(), endpoint, message.toBinary(message.isSigned()), {
+  //App Id
+  private async publish(endpoint: string, message: any): Promise<void> {
+    await this.connection.publish(this.config.getRabbitMQExchange(), endpoint, JSON.stringify(message.toJSON()), {
       appId: APP_ID,
       messageId: message.hash.base58,
-      type: message.type,
+      type: message.meta?.type || 'basic',
+      contentType: 'application/json',
     });
   }
 }

@@ -43,7 +43,7 @@ describe('ConfigService', () => {
     });
 
     test('getRabbitMQClient()', async () => {
-      expect(configService.getRabbitMQClient()).toBe('amqp://');
+      expect(configService.getRabbitMQClient()).toBe('amqp://guest:guest@localhost:5672');
     });
 
     test('getRabbitMQClientAsObject()', async () => {
@@ -58,10 +58,10 @@ describe('ConfigService', () => {
     });
 
     test('getRabbitMQPublicUrl()', async () => {
-      expect(configService.getRabbitMQPublicUrl()).toBe('amqp://relay@localhost');
+      expect(configService.getRabbitMQPublicUrl()).toBe('amqp://relay@localhost:5672');
 
       configService.getHostname = jest.fn(() => 'example.com');
-      expect(configService.getRabbitMQPublicUrl()).toBe('amqp://relay@example.com');
+      expect(configService.getRabbitMQPublicUrl()).toBe('amqp://relay@example.com:5672');
     });
 
     test('getRabbitMQCredentials()', async () => {
@@ -80,15 +80,15 @@ describe('ConfigService', () => {
     });
 
     test('getRabbitMQExchange()', async () => {
-      expect(configService.getRabbitMQExchange()).toBe("amq.direct");
+      expect(configService.getRabbitMQExchange()).toBe('amq.direct');
     });
 
     test('getRabbitMQQueue()', async () => {
-      expect(configService.getRabbitMQQueue()).toBe('default');
+      expect(configService.getRabbitMQQueue()).toBe('relay');
     });
 
     test('getRabbitMQShovel()', async () => {
-      expect(configService.getRabbitMQQueue()).toBe('default');
+      expect(configService.getRabbitMQShovel()).toBe('relay-shovel');
     });
   });
 });

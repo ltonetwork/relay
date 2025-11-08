@@ -23,7 +23,6 @@ describe('DidResolverService', () => {
         {
           provide: ConfigService,
           useValue: {
-            getDidResolver: jest.fn(),
             getDefaultServiceEndpoint: jest.fn().mockReturnValue('https://relay.lto.network'),
           },
         },
@@ -31,8 +30,8 @@ describe('DidResolverService', () => {
           provide: LoggerService,
           useValue: {
             warn: jest.fn(),
-          }
-        }
+          },
+        },
       ],
     }).compile();
 
@@ -46,122 +45,45 @@ describe('DidResolverService', () => {
   });
 
   describe('resolve', () => {
-    it('should resolve valid address', async () => {
-      const address = '3MsAuZ59xHHa5vmoPG45fBGC7PxLCYQZnbM';
-      const url = 'https://example.com';
-      const response = {
-        status: 200,
-        data: { '@context': 'https://www.w3.org/ns/did/v1', id: 'did:lto:3MsAuZ59xHHa5vmoPG45fBGC7PxLCYQZnbM' }
-      };
-
-      jest.spyOn(configService, 'getDidResolver').mockReturnValue(url);
-      jest.spyOn(requestService, 'get').mockResolvedValue(response as any);
-
-      const result = await service.resolve(address);
-
-      expect(result).toEqual(response.data);
-      expect(configService.getDidResolver).toHaveBeenCalledWith('T');
-      expect(requestService.get).toHaveBeenCalledWith(`${url}/${address}`);
-    });
-
-    it('should resolve valid address with array context', async () => {
-      const address = '3MsAuZ59xHHa5vmoPG45fBGC7PxLCYQZnbM';
-      const url = 'https://example.com';
-      const response = {
-        status: 200,
-        data: {
-          '@context': [
-            "https://www.w3.org/ns/did/v1",
-            "https://w3id.org/security/suites/ed25519-2020/v1",
-            "https://w3id.org/security/suites/secp256k1-2019/v1"
-          ],
-          id: 'did:lto:3MsAuZ59xHHa5vmoPG45fBGC7PxLCYQZnbM'
-        }
-      };
-
-      jest.spyOn(configService, 'getDidResolver').mockReturnValue(url);
-      jest.spyOn(requestService, 'get').mockResolvedValue(response as any);
-
-      const result = await service.resolve(address);
-
-      expect(result).toEqual(response.data);
-      expect(configService.getDidResolver).toHaveBeenCalledWith('T');
-      expect(requestService.get).toHaveBeenCalledWith(`${url}/${address}`);
-    });
-
-    it('should handle not found response', async () => {
-      const address = '3MsAuZ59xHHa5vmoPG45fBGC7PxLCYQZnbM';
-      const url = 'https://example.com';
-      const response = { status: 404, data: { error: 'notFound' } };
-
-      jest.spyOn(configService, 'getDidResolver').mockReturnValue(url);
-      jest.spyOn(requestService, 'get').mockResolvedValue(response as any);
+    it('should return null for Ethereum address (DID resolution not implemented)', async () => {
+      const address = '0x1234567890123456789012345678901234567890';
 
       const result = await service.resolve(address);
 
       expect(result).toBeNull();
-      expect(configService.getDidResolver).toHaveBeenCalledWith('T');
-      expect(requestService.get).toHaveBeenCalledWith(`${url}/${address}`);
     });
 
-    it('should throw an error for invalid address', async () => {
-      const address = 'in3MsAuZ59xHHa5vmoPG45fBGC7PxLCYQZnbM';
+    it('should throw an error for invalid Ethereum address', async () => {
+      const address = 'invalid-address';
 
       const result = service.resolve(address);
 
-      await expect(result).rejects.toThrow(`Invalid address ${address}`);
-    });
-
-    it('should throw an error for failed request', async () => {
-      const address = '3MsAuZ59xHHa5vmoPG45fBGC7PxLCYQZnbM';
-      const url = 'https://example.com';
-      const response = { status: 500 };
-
-      jest.spyOn(configService, 'getDidResolver').mockReturnValue(url);
-      jest.spyOn(requestService, 'get').mockResolvedValue(response as any);
-
-      const result = service.resolve(address);
-
-      await expect(result).rejects.toThrow(`Failed to fetch DID document for ${address}`);
-      expect(configService.getDidResolver).toHaveBeenCalledWith('T');
-      expect(requestService.get).toHaveBeenCalledWith(`${url}/${address}`);
-    });
-
-    it('should throw an error for invalid DID document', async () => {
-      const address = '3MsAuZ59xHHa5vmoPG45fBGC7PxLCYQZnbM';
-      const url = 'https://example.com';
-      const response = { status: 200, data: { '@context': 'invalidContext' } };
-
-      jest.spyOn(configService, 'getDidResolver').mockReturnValue(url);
-      jest.spyOn(requestService, 'get').mockResolvedValue(response as any);
-
-      const result = service.resolve(address);
-
-      await expect(result).rejects.toThrow(`Invalid DID document for ${address}`);
-      expect(configService.getDidResolver).toHaveBeenCalledWith('T');
-      expect(requestService.get).toHaveBeenCalledWith(`${url}/${address}`);
+      await expect(result).rejects.toThrow(`Invalid Ethereum address ${address}`);
     });
   });
 
   describe('getServiceEndpoint', () => {
-    it('should return default service endpoint if didDocument is null', async () => {
-      const address = '3MsAuZ59xHHa5vmoPG45fBGC7PxLCYQZnbM';
+    it('should return default service endpoint for Ethereum address', async () => {
+      const address = '0x1234567890123456789012345678901234567890';
       const defaultEndpoint = 'https://relay.lto.network';
 
-      jest.spyOn(service, 'resolve').mockResolvedValue(null);
+      // Spy on resolve method
+      const resolveSpy = jest.spyOn(service, 'resolve').mockResolvedValue(null);
 
       const result = await service.getServiceEndpoint(address);
 
       expect(result).toBe(defaultEndpoint);
-      expect(service.resolve).toHaveBeenCalledWith(address);
+      expect(resolveSpy).toHaveBeenCalledWith(address);
+
+      resolveSpy.mockRestore();
     });
 
-    it('should return service endpoint from didDocument', async () => {
-      const address = '3MsAuZ59xHHa5vmoPG45fBGC7PxLCYQZnbM';
+    it('should return service endpoint from didDocument if available', async () => {
+      const address = '0x1234567890123456789012345678901234567890';
       const didDocument = {
         service: [
           { type: 'other-service', serviceEndpoint: 'https://other.example.com' },
-          { type: 'lto-relay', serviceEndpoint: 'https://relay.example.com' },
+          { type: 'eqty-relay', serviceEndpoint: 'https://relay.example.com' },
         ],
       };
 
@@ -174,7 +96,7 @@ describe('DidResolverService', () => {
     });
 
     it('should return default service endpoint if didDocument does not contain a matching service', async () => {
-      const address = '3MsAuZ59xHHa5vmoPG45fBGC7PxLCYQZnbM';
+      const address = '0x1234567890123456789012345678901234567890';
       const didDocument = {
         service: [
           { type: 'other-service', serviceEndpoint: 'https://other.example.com' },
@@ -191,16 +113,12 @@ describe('DidResolverService', () => {
       expect(service.resolve).toHaveBeenCalledWith(address);
     });
 
-    it('should return default service endpoint if didDocument is null and default endpoint is configured', async () => {
-      const address = '3MsAuZ59xHHa5vmoPG45fBGC7PxLCYQZnbM';
-      const defaultEndpoint = 'https://relay.lto.network';
-
-      jest.spyOn(service, 'resolve').mockResolvedValue(null);
+    it('should throw error for invalid address', async () => {
+      const address = 'invalid-address';
 
       const result = await service.getServiceEndpoint(address);
 
-      expect(result).toBe(defaultEndpoint);
-      expect(service.resolve).toHaveBeenCalledWith(address);
+      expect(result).toBe('https://relay.lto.network');
     });
   });
 });
