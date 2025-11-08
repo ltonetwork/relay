@@ -123,8 +123,17 @@ export class BaseAnchorService {
 
       this.logger.debug(`Querying anchor events for hash ${hashHex} on network ${networkId}`);
 
+      // Get current block number to limit query range (max 100,000 blocks)
+      const currentBlock = await this.queryWithRetry(() => provider.getBlockNumber());
+      const maxBlockRange = 100000;
+      const fromBlock = Math.max(0, currentBlock - maxBlockRange);
+
+      this.logger.debug(
+        `Querying from block ${fromBlock} to ${currentBlock} (range: ${currentBlock - fromBlock} blocks)`,
+      );
+
       const filter = contract.filters.Anchored(hashHex);
-      const events = await this.queryWithRetry(() => contract.queryFilter(filter));
+      const events = await this.queryWithRetry(() => contract.queryFilter(filter, fromBlock, currentBlock));
 
       if (events.length === 0) {
         const result = {
@@ -273,9 +282,18 @@ export class BaseAnchorService {
 
       this.logger.debug(`Batch verifying ${hashes.length} hashes on network ${networkId}`);
 
-      // Query all Anchored events at once
+      // Get current block number to limit query range (max 100,000 blocks)
+      const currentBlock = await this.queryWithRetry(() => provider.getBlockNumber());
+      const maxBlockRange = 100000;
+      const fromBlock = Math.max(0, currentBlock - maxBlockRange);
+
+      this.logger.debug(
+        `Batch querying from block ${fromBlock} to ${currentBlock} (range: ${currentBlock - fromBlock} blocks)`,
+      );
+
+      // Query all Anchored events at once within block range
       const filter = contract.filters.Anchored();
-      const allEvents = await this.queryWithRetry(() => contract.queryFilter(filter));
+      const allEvents = await this.queryWithRetry(() => contract.queryFilter(filter, fromBlock, currentBlock));
 
       // Group events by hash
       const eventsByHash = new Map<string, any[]>();

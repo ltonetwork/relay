@@ -32,7 +32,7 @@ export default {
   blockchain: {
     base: {
       sepolia: {
-        rpc_url: 'https://base-sepolia.public.blastapi.io',
+        rpc_url: 'https://sepolia.base.org',
       },
     },
     anchor_verification: {
