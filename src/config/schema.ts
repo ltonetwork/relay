@@ -12,7 +12,7 @@ export default {
   },
   port: {
     doc: 'The port to bind.',
-    default: 8000,
+    default: 3000,
     env: 'PORT',
   },
   api_prefix: {
