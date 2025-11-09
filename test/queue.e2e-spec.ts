@@ -8,7 +8,7 @@ import * as bodyParser from 'body-parser';
 
 describe('Queue e2e test', () => {
   let app: INestApplication;
-  let config: ConfigLoaderService;
+  let _config: ConfigLoaderService;
 
   let sender: Account;
   let recipient: Account;

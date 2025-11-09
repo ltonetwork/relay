@@ -30,7 +30,7 @@ describe('LoggerBuilderService', () => {
       app: { name: 'TestApp' },
       isEnv: jest.fn().mockImplementation(() => false),
       getLog: jest.fn().mockImplementation(() => ({ level: 'info', force: false })),
-    }
+    };
 
     const moduleRef = await Test.createTestingModule({
       providers: [

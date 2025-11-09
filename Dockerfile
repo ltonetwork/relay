@@ -12,7 +12,7 @@ RUN yarn version --new-version $(git describe --tags) --no-git-tag-version
 
 RUN yarn build
 
-FROM node:20-alpine
+FROM node:20
 WORKDIR /usr/app
 
 RUN yarn global add pm2

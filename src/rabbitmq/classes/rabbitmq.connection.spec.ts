@@ -9,7 +9,7 @@ describe('RabbitMQConnection', () => {
       assertExchange: jest.fn(),
       bindQueue: jest.fn(),
       publish: jest.fn(),
-      consume: jest.fn((queue: string, callback: (data: any) => void) => {
+      consume: jest.fn((_queue: string, _callback: (data: any) => void) => {
         return rmqCallback({ content: Buffer.from('Some message') });
       }),
     };

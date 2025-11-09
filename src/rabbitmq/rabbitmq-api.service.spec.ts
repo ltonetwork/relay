@@ -23,20 +23,22 @@ describe('RabbitMQApiService', () => {
   describe('addDynamicShovel()', () => {
     test('should add a dynamic shovel', async () => {
       const response = { status: 200, data: { bar: 'crux' } };
-      const requestServiceSpy = jest.spyOn(requestService, 'put').mockImplementation(() => Promise.resolve(response as any));
+      const requestServiceSpy = jest
+        .spyOn(requestService, 'put')
+        .mockImplementation(() => Promise.resolve(response as any));
 
       const destination = 'amqp://destination';
       const queue = 'queue';
       expect(await rabbitmqApiService.addDynamicShovel(queue, destination)).toBe(response);
 
       expect(requestServiceSpy.mock.calls.length).toBe(1);
-      expect(requestServiceSpy.mock.calls[0][0]).toBe('http://localhost:15672/api/parameters/shovel/%2F/default');
+      expect(requestServiceSpy.mock.calls[0][0]).toBe('http://localhost:15672/api/parameters/shovel/%2F/relay-shovel');
       expect(requestServiceSpy.mock.calls[0][1]).toEqual({
         value: {
-          'dest-queue': 'default',
+          'dest-queue': 'relay',
           'dest-uri': destination,
           'src-queue': queue,
-          'src-uri': 'amqp://',
+          'src-uri': 'amqp://guest:guest@localhost:5672',
         },
       });
       expect(requestServiceSpy.mock.calls[0][2]).toEqual({
