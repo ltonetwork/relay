@@ -93,7 +93,7 @@ export class InboxService {
         const { data: _data, encryptedData: _encryptedData, ...messageMetadata } = parsed;
         messageMetadata.meta = messageMetadata.meta || {};
 
-        if (messageMetadata.thumbnail === true) {
+        if (messageMetadata.thumbnail === true && !_data && !_encryptedData) {
           const thumbnail = await this.loadThumbnail(parsed.hash);
           if (thumbnail) {
             messageMetadata.meta.thumbnail = thumbnail;
@@ -131,8 +131,11 @@ export class InboxService {
     try {
       const messageMetadata = JSON.parse(data);
 
-      if (messageMetadata.thumbnail === true) {
-        messageMetadata.meta.thumbnail = await this.loadThumbnail(hash);
+      if (messageMetadata.thumbnail === true && !('data' in messageMetadata) && !('encryptedData' in messageMetadata)) {
+        const thumbnail = await this.loadThumbnail(hash);
+        if (thumbnail) {
+          messageMetadata.meta.thumbnail = thumbnail;
+        }
       }
 
       if ('data' in messageMetadata || 'encryptedData' in messageMetadata) {
