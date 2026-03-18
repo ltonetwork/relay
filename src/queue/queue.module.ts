@@ -5,11 +5,13 @@ import { LoggerModule } from '../common/logger/logger.module';
 import { ConfigModule } from '../common/config/config.module';
 import { RabbitMQModule } from '../rabbitmq/rabbitmq.module';
 import { DidResolverModule } from '../common/did-resolver/did-resolver.module';
+import { BaseAnchorService } from '../common/blockchain/base-anchor.service';
+import { RedisModule } from '../common/redis/redis.module';
 
 @Module({
-  imports: [LoggerModule, ConfigModule, RabbitMQModule, DidResolverModule],
+  imports: [LoggerModule, ConfigModule, RabbitMQModule, DidResolverModule, RedisModule],
   controllers: [QueueController],
-  providers: [QueueService],
+  providers: [QueueService, BaseAnchorService],
   exports: [QueueService],
 })
 export class QueueModule {}

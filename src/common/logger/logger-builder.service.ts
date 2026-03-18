@@ -33,7 +33,26 @@ export class LoggerBuilderService {
         continue;
       }
 
-      const value = typeof info[key] === 'string' ? info[key] : JSON.stringify(info[key], null, 2);
+      let value: string;
+      if (typeof info[key] === 'string') {
+        value = info[key];
+      } else {
+        try {
+          const visited = new WeakSet();
+          const replacer = (k: string, v: any): any => {
+            if (typeof v === 'object' && v !== null) {
+              if (visited.has(v)) {
+                return '[Circular]';
+              }
+              visited.add(v);
+            }
+            return v;
+          };
+          value = JSON.stringify(info[key], replacer, 2);
+        } catch (error) {
+          value = `[Unable to stringify: ${error.message}]`;
+        }
+      }
       msg.push(`\n${key}:\n${value}\n`);
     }
 

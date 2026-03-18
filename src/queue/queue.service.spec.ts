@@ -2,7 +2,6 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { QueueService } from './queue.service';
-import { Message, Account, AccountFactoryED25519 } from '@ltonetwork/lto';
 import { ConfigModule } from '../common/config/config.module';
 import { LoggerService } from '../common/logger/logger.service';
 import { DidResolverService } from '../common/did-resolver/did-resolver.service';
@@ -33,9 +32,9 @@ describe('QueueService', () => {
     };
   };
 
-  let sender: Account;
-  let recipient: Account;
-  let message: Message;
+  let sender: { address: string };
+  let recipient: { address: string };
+  let message: any;
 
   beforeEach(() => {
     const rmqConnection = {
@@ -69,7 +68,25 @@ describe('QueueService', () => {
         { provide: DidResolverService, useValue: spies.resolver },
         { provide: LoggerService, useValue: spies.logger },
       ],
-    }).compile();
+    })
+      .overrideProvider(QueueService)
+      .useClass(
+        class extends QueueService {
+          async onModuleInit() {
+            const MockMessage = class {
+              static from(data: any) {
+                return data;
+              }
+            };
+            (this as any)._Message = MockMessage;
+            if (!(this as any).config.isQueueEnabled()) return;
+            (this as any).connection = await (this as any).rabbitMQService.connect(
+              (this as any).config.getRabbitMQClient(),
+            );
+          }
+        },
+      )
+      .compile();
     await module.init();
 
     queueService = module.get<QueueService>(QueueService);
@@ -81,20 +98,45 @@ describe('QueueService', () => {
   });
 
   beforeEach(() => {
-    const factory = new AccountFactoryED25519('T');
-    sender = factory.createFromSeed('sender');
-    recipient = factory.createFromSeed('recipient');
-    message = new Message('hello').to(recipient).signWith(sender);
+    sender = { address: '0x1234567890123456789012345678901234567890' };
+    recipient = { address: '0x0987654321098765432109876543210987654321' };
+
+    message = {
+      hash: { base58: 'mockHash123' },
+      meta: { type: 'basic' },
+      sender: sender.address,
+      recipient: recipient.address,
+      signature: { base58: 'mockSig123' },
+      timestamp: new Date(),
+      mediaType: 'text/plain',
+      data: 'hello',
+      version: 3,
+      toJSON: () => ({
+        version: 3,
+        meta: { type: 'basic' },
+        mediaType: 'text/plain',
+        data: 'hello',
+        timestamp: message.timestamp.toISOString(),
+        sender: sender.address,
+        recipient: recipient.address,
+        signature: 'mockSig123',
+        hash: 'mockHash123',
+      }),
+      verifyHash: () => true,
+      isSigned: () => true,
+      verifySignature: async () => true,
+    };
   });
 
   describe('add()', () => {
     test('should connect and publish event to local default queue', async () => {
       await queueService.add(message);
 
-      expect(spies.rmqConnection.publish).toBeCalledWith('amq.direct', 'default', message.toBinary(), {
-        appId: 'lto-relay',
+      expect(spies.rmqConnection.publish).toBeCalledWith('amq.direct', 'relay', JSON.stringify(message.toJSON()), {
+        appId: 'eqty-relay',
         messageId: message.hash.base58,
         type: 'basic',
+        contentType: 'application/json',
       });
     });
 
@@ -106,11 +148,17 @@ describe('QueueService', () => {
       expect(spies.resolver.getServiceEndpoint).toBeCalledWith(recipient.address);
       expect(spies.rmqApiService.addDynamicShovel).toBeCalledWith('amqp://example.com', 'amqp://example.com');
 
-      expect(spies.rmqConnection.publish).toBeCalledWith('amq.direct', 'amqp://example.com', message.toBinary(), {
-        appId: 'lto-relay',
-        messageId: message.hash.base58,
-        type: 'basic',
-      });
+      expect(spies.rmqConnection.publish).toBeCalledWith(
+        'amq.direct',
+        'amqp://example.com',
+        JSON.stringify(message.toJSON()),
+        {
+          appId: 'eqty-relay',
+          messageId: message.hash.base58,
+          type: 'basic',
+          contentType: 'application/json',
+        },
+      );
     });
 
     test('should not create a shovel if the queue already exists', async () => {
@@ -122,11 +170,17 @@ describe('QueueService', () => {
       expect(spies.resolver.getServiceEndpoint).toBeCalledWith(recipient.address);
       expect(spies.rmqApiService.addDynamicShovel).not.toBeCalled();
 
-      expect(spies.rmqConnection.publish).toBeCalledWith('amq.direct', 'amqp://example.com', message.toBinary(), {
-        appId: 'lto-relay',
-        messageId: message.hash.base58,
-        type: 'basic',
-      });
+      expect(spies.rmqConnection.publish).toBeCalledWith(
+        'amq.direct',
+        'amqp://example.com',
+        JSON.stringify(message.toJSON()),
+        {
+          appId: 'eqty-relay',
+          messageId: message.hash.base58,
+          type: 'basic',
+          contentType: 'application/json',
+        },
+      );
     });
   });
 });

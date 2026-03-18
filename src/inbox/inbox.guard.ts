@@ -1,26 +1,41 @@
 import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
-import { LTO } from '@ltonetwork/lto';
-import { getNetwork } from '@ltonetwork/lto';
 import { ConfigService } from '../common/config/config.service';
-import { PublicKey } from '../common/http-signature/signer';
+import { isValidAddress } from '../common/address/address.utils';
 
 @Injectable()
 export class InboxGuard implements CanActivate {
   constructor(private config: ConfigService) {}
 
-  private isAuthorized(signer: PublicKey, address: string): boolean {
-    const networkId = getNetwork(signer.publicKey);
-    const account = new LTO(networkId).account(signer);
-
-    return account.address === address;
-  }
-
   canActivate(context: ExecutionContext): boolean {
     if (this.config.disableAuth()) return true;
 
     const request = context.switchToHttp().getRequest();
-    if (!request.signer) throw new UnauthorizedException();
 
-    return this.isAuthorized(request.signer, request.params.address);
+    if (!request.signer || !request.signer.address) {
+      throw new UnauthorizedException('Request not signed');
+    }
+
+    // Extract address from path parameters
+    const addressParam = request.params.address;
+    if (!addressParam) {
+      throw new UnauthorizedException('No address parameter found');
+    }
+
+    // Validate the address format
+    if (!isValidAddress(addressParam)) {
+      throw new UnauthorizedException('Invalid address format');
+    }
+
+    // Verify the authenticated signer matches the requested address
+    // The HTTP signature middleware already verified the signature,
+    // so we just need to check that the signer's address matches the requested address
+    const signerAddress = request.signer.address.toLowerCase();
+    const requestedAddress = addressParam.toLowerCase();
+
+    if (signerAddress !== requestedAddress) {
+      throw new UnauthorizedException('Address mismatch: signer does not match requested address');
+    }
+
+    return true;
   }
 }

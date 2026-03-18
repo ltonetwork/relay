@@ -13,13 +13,13 @@ export const configurations = {
 };
 
 convict.addFormat({
-  name: "comma-separated-string",
+  name: 'comma-separated-string',
   validate: function (val) {
     const emptyStringRegex = /^$/;
     const commaSeparatedStringRegex = /^\w+(\s*,\s*\w+)*$/;
 
     if (!emptyStringRegex.test(val) && !commaSeparatedStringRegex.test(val)) {
-      throw new Error("must be a comma separated string");
+      throw new Error('must be a comma separated string');
     }
   },
   coerce: function (val) {

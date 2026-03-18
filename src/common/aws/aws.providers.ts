@@ -6,5 +6,5 @@ export const awsProviders = [
     useFactory: async () => {
       return new S3();
     },
-  }
+  },
 ];
