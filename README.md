@@ -1,7 +1,5 @@
 # Relay
 
-[![Build Status](https://app.travis-ci.com/ltonetwork/relay.svg?token=uXSzwRjzLQ9smewqbtDx&branch=master)](https://app.travis-ci.com/ltonetwork/relay)
-
 Communication service for the EQTY private layer. Relays encrypted messages between accounts.
 
 ## Installation
